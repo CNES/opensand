@@ -51,8 +51,8 @@ public:
 	~SlottedAlohaAlgoDsa();
 
 private:
-	uint16_t removeCollisions(std::map<unsigned int, Slot *> &slots,
-	                          saloha_packets_data_t *accepted_packets);
+	uint16_t removeCollisions(std::map<unsigned int, std::shared_ptr<Slot>> &slots,
+	                          saloha_packets_data_t &accepted_packets) override;
 };
 
 #endif

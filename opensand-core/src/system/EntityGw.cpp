@@ -68,7 +68,8 @@
 #include "BlockSatCarrier.h"
 #include "BlockEncap.h"
 #include "BlockPhysicalLayer.h"
-
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 #include "PacketSwitch.h"
 
 

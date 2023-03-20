@@ -82,16 +82,16 @@ class Rt::UpwardChannel<class BlockEncap>: public Channels::Upward<UpwardChannel
 	bool onEvent(const Event &event) override;
 	bool onEvent(const MessageEvent &event) override;
 
-	void setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx);
-	void setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc);
+	void setContext(const encap_contexts_t &encap_ctx);
+	void setSCPCContext(const encap_contexts_t &encap_ctx_scpc);
 
 	void setMacId(tal_id_t id);
 
  private:
 	/// the reception contexts list from upper to lower context
-	std::vector<EncapPlugin::EncapContext *> ctx;
+	encap_contexts_t ctx;
 	/// the reception contexts list from upper to lower context for SCPC mode
-	std::vector<EncapPlugin::EncapContext *> ctx_scpc;
+	encap_contexts_t ctx_scpc;
 
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
@@ -127,11 +127,11 @@ class Rt::DownwardChannel<class BlockEncap>: public Channels::Downward<DownwardC
 	bool onEvent(const TimerEvent &event) override;
 	bool onEvent(const MessageEvent &event) override;
 
-	void setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx);
+	void setContext(const encap_contexts_t &encap_ctx);
 
  private:
 	/// the emission contexts list from lower to upper context
-	std::vector<EncapPlugin::EncapContext *> ctx;
+	encap_contexts_t ctx;
 
 	/// Expiration timers for encapsulation contexts
 	std::map<event_id_t, int> timers;
@@ -191,7 +191,7 @@ class BlockEncap: public Rt::Block<BlockEncap, EncapConfig>
 	 */
 	bool getEncapContext(EncapSchemeList scheme_list,
 	                     LanAdaptationPlugin *l_plugin,
-	                     std::vector<EncapPlugin::EncapContext *> &ctx,
+	                     encap_contexts_t &ctx,
 	                     const char *link_type);
 
 	/**
@@ -205,7 +205,7 @@ class BlockEncap: public Rt::Block<BlockEncap, EncapConfig>
 	 *                         correctly obtained or not
 	 */
 	bool getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
-	                         std::vector<EncapPlugin::EncapContext *> &ctx,
+	                         encap_contexts_t &ctx,
 	                         const char *link_type);
 
 	/// initialization method

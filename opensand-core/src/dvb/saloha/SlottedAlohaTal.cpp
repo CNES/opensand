@@ -58,7 +58,7 @@ SlottedAlohaTal::SlottedAlohaTal():
 	nb_replicas(0),
 	nb_max_retransmissions(0),
 	base_id(0),
-	backoff(NULL),
+	backoff(nullptr),
 	category(NULL),
 	dvb_fifos()
 {
@@ -87,9 +87,9 @@ void SlottedAlohaTal::generateConfiguration()
 }
 
 bool SlottedAlohaTal::init(tal_id_t tal_id,
-                           TerminalCategorySaloha *category,
-                           const fifos_t &dvb_fifos,
-                           UnitConverter *converter)
+                           std::shared_ptr<TerminalCategorySaloha> category,
+                           std::shared_ptr<fifos_t> dvb_fifos,
+                           UnitConverter &converter)
 {
 	time_ms_t sat_delay_ms;
 	time_ms_t timeout_ms;
@@ -204,15 +204,15 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 
 	if(backoff_name == "BEB")
 	{
-		this->backoff = new SlottedAlohaBackoffBeb(max, multiple);
+		this->backoff = std::make_unique<SlottedAlohaBackoffBeb>(max, multiple);
 	}
 	else if(backoff_name == "EIED")
 	{
-		this->backoff = new SlottedAlohaBackoffEied(max, multiple);
+		this->backoff = std::make_unique<SlottedAlohaBackoffEied>(max, multiple);
 	}
 	else if(backoff_name == "MIMD")
 	{
-		this->backoff = new SlottedAlohaBackoffMimd(max, multiple);
+		this->backoff = std::make_unique<SlottedAlohaBackoffMimd>(max, multiple);
 	}
 	else
 	{
@@ -223,7 +223,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	}
 
 	auto output = Output::Get();
-	for(auto &&[qos, fifo]: this->dvb_fifos)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
 		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
@@ -245,10 +245,6 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	return true;
 }
 
-SlottedAlohaTal::~SlottedAlohaTal()
-{
-	delete this->backoff;
-}
 
 Rt::Ptr<SlottedAlohaPacketData> SlottedAlohaTal::addSalohaHeader(Rt::Ptr<NetPacket> encap_packet,
                                                                  uint16_t offset,
@@ -291,13 +287,13 @@ bool SlottedAlohaTal::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame)
 	std::size_t previous_length = 0;
 	for(unsigned int cpt = 0; cpt < frame->getDataLength(); cpt++)
 	{
-		SlottedAlohaPacketCtrl *ctrl_pkt;
+		std::unique_ptr<SlottedAlohaPacketCtrl> ctrl_pkt;
 		Rt::Data payload = frame->getPayload(previous_length);
 		std::size_t current_length = SlottedAlohaPacketCtrl::getPacketLength(payload);
 
 		try
 		{
-			ctrl_pkt = new SlottedAlohaPacketCtrl(payload.c_str(), current_length);
+			ctrl_pkt = std::make_unique<SlottedAlohaPacketCtrl>(payload.c_str(), current_length);
 			previous_length += current_length;
 		}
 		catch (const std::bad_alloc&)
@@ -309,7 +305,6 @@ bool SlottedAlohaTal::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame)
 		if(ctrl_pkt->getTerminalId() != this->tal_id)
 		{
 			// control packet for another terminal
-			delete ctrl_pkt;
 			continue;
 		}
 
@@ -321,7 +316,6 @@ bool SlottedAlohaTal::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame)
 				bool dup = true;
 				saloha_packets_data_t::iterator packet;
 				saloha_id_t id = ctrl_pkt->getId();
-				delete ctrl_pkt;
 
 				SlottedAlohaPacket::convertPacketId(id, ids);
 				packet = this->packets_wait_ack[ids[SALOHA_ID_QOS]].begin();
@@ -505,7 +499,7 @@ bool SlottedAlohaTal::schedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames
 	}
 
 	// Send new packets (low priority)
-	for(auto &&[qos, fifo]: this->dvb_fifos)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
 		// the allocated slot limits the capacity
 		if(nbr_packets_total >= ts.size())
@@ -567,7 +561,7 @@ skip:
 	}
 
 	// keep the probes refreshing
-	for(auto &&[qos, fifo]: this->dvb_fifos)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
 		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
@@ -593,7 +587,7 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 	                                       this->category->getCarriersNumber());
 
 	nb_packets = this->retransmission_packets.size();
-	for(auto &&[qos, fifo]: this->dvb_fifos)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
 		if(fifo->getAccessType() == ReturnAccessType::saloha)
 		{

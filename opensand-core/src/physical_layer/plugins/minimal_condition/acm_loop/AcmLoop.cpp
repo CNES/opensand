@@ -82,12 +82,12 @@ bool AcmLoop::init(void)
 	}
 	for(auto& param : modcod_params)
 	{
-		if(!this->modcod_table_rcs.add(new FmtDefinition(param.id,
-		                                                 param.modulation_type,
-		                                                 param.coding_type,
-		                                                 param.spectral_efficiency,
-		                                                 param.required_es_no,
-		                                                 req_burst_length)))
+		if(!this->modcod_table_rcs.add(std::make_unique<FmtDefinition>(param.id,
+		                                                               param.modulation_type,
+		                                                               param.coding_type,
+		                                                               param.spectral_efficiency,
+		                                                               param.required_es_no,
+		                                                               req_burst_length)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to create MODCOD table for RCS2 waveforms\n");
@@ -104,11 +104,11 @@ bool AcmLoop::init(void)
 	}
 	for(auto& param : modcod_params)
 	{
-		if(!this->modcod_table_s2.add(new FmtDefinition(param.id,
-		                                                param.modulation_type,
-		                                                param.coding_type,
-		                                                param.spectral_efficiency,
-		                                                param.required_es_no)))
+		if(!this->modcod_table_s2.add(std::make_unique<FmtDefinition>(param.id,
+		                                                              param.modulation_type,
+		                                                              param.coding_type,
+		                                                              param.spectral_efficiency,
+		                                                              param.required_es_no)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to create MODCOD table for S2 waveforms\n");

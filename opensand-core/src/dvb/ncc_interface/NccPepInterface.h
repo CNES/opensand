@@ -49,7 +49,7 @@ class NccPepInterface: public NccInterface
 {
 private:
 	/** The list of commands received from the PEP component */
-	std::vector<PepRequest *> requests_list;
+	std::vector<std::unique_ptr<PepRequest>> requests_list;
 
 public:
 	/**** constructor/destructor ****/
@@ -73,7 +73,7 @@ public:
 	pep_request_type_t getPepRequestType();
 
 	/* get the list of PEP requests */
-	PepRequest * getNextPepRequest();
+	std::unique_ptr<PepRequest> getNextPepRequest();
 
 
 	/**** socket management ****/
@@ -96,7 +96,7 @@ private:
 	bool parsePepMessage(const Rt::Data& message, tal_id_t & tal_id);
 
 	/* parse one of the commands sent in a message by the PEP component */
-	PepRequest * parsePepCommand(const Rt::Data& cmd);
+	std::unique_ptr<PepRequest> parsePepCommand(const Rt::Data& cmd);
 };
 
 #endif

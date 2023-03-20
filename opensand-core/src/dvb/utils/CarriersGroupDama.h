@@ -58,20 +58,15 @@ public:
 	 * @param  access_type        The carriers access type
 	 */
 	CarriersGroupDama(unsigned int carriers_id,
-	                  const FmtGroup *const fmt_group,
+	                  std::shared_ptr<const FmtGroup> fmt_group,
 	                  unsigned int ratio,
 	                  rate_symps_t symbol_rate_symps,
 	                  AccessType access_type);
 
-	/** Destructor */
-	virtual ~CarriersGroupDama();
-
-
-	virtual void setCapacity(const vol_sym_t capacity_sym);
-	virtual void setCarriersNumber(const unsigned int carriers_number);
-	virtual void setSymbolRate(const rate_symps_t symbol_rate_symps);
-	virtual void addVcm(const FmtGroup *const fmt_group,
-	                    unsigned int ratio);
+	void setCapacity(const vol_sym_t capacity_sym) override;
+	void setCarriersNumber(const unsigned int carriers_number) override;
+	void setSymbolRate(const rate_symps_t symbol_rate_symps) override;
+	void addVcm(std::shared_ptr<const FmtGroup> fmt_group, unsigned int ratio) override;
 
 	/**
 	 * @brief  Get available capacity.
@@ -131,7 +126,7 @@ public:
 	 *
 	 * @return the VCM carriers
 	 */
-	std::vector<CarriersGroupDama *> getVcmCarriers();
+	std::vector<CarriersGroupDama> &getVcmCarriers();
 
 protected:
 	/** The remaining capacity on the current frame */
@@ -146,7 +141,7 @@ protected:
 	/** In case of VCM, this carriers group contains only global values over
 	 *  the entire frame (total ratio, total capacity, ...) and each VCM part
 	 *  is instantiated into a new carriers group */
-	std::vector<CarriersGroupDama *> vcm_carriers;
+	std::vector<CarriersGroupDama> vcm_carriers;
 };
 
 

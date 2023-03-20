@@ -79,22 +79,8 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 
 DamaCtrl::~DamaCtrl()
 {
-	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-
-	for(DamaTerminalList::iterator it = this->terminals.begin();
-	    it != this->terminals.end(); ++it)
-	{
-		delete it->second;
-	}
 	this->terminals.clear();
-
-	for(cat_it = this->categories.begin();
-	    cat_it != this->categories.end(); ++cat_it)
-	{
-		delete (*cat_it).second;
-	}
 	this->categories.clear();
-
 	this->terminal_affectation.clear();
 }
 
@@ -103,8 +89,8 @@ bool DamaCtrl::initParent(time_us_t frame_duration,
                           rate_kbps_t fca_kbps,
                           TerminalCategories<TerminalCategoryDama> categories,
                           TerminalMapping<TerminalCategoryDama> terminal_affectation,
-                          TerminalCategoryDama *default_category,
-                          const StFmtSimuList *const input_sts,
+                          std::shared_ptr<TerminalCategoryDama> default_category,
+                          std::shared_ptr<const StFmtSimuList> input_sts,
                           FmtDefinitionTable *const input_modcod_def,
                           bool simulated)
 {
@@ -250,10 +236,9 @@ bool DamaCtrl::hereIsLogon(Rt::Ptr<LogonRequest> logon)
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
-		TerminalContextDama *terminal = NULL;
 		TerminalMapping<TerminalCategoryDama>::const_iterator it;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-		TerminalCategoryDama *category = NULL;
+		std::shared_ptr<TerminalCategoryDama> category;
 		std::vector<CarriersGroupDama *> carriers;
 		std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 		uint32_t max_capa_kbps = 0;
@@ -278,7 +263,7 @@ bool DamaCtrl::hereIsLogon(Rt::Ptr<LogonRequest> logon)
 		else
 		{
 			category = (*it).second;
-			if(category == NULL)
+			if(!category)
 			{
 				LOG(this->log_logon, LEVEL_INFO,
 				    "Terminal %d does not use DAMA\n",
@@ -296,7 +281,8 @@ bool DamaCtrl::hereIsLogon(Rt::Ptr<LogonRequest> logon)
 		}
 
 		// create the terminal
-		if(!this->createTerminal(&terminal,
+		std::shared_ptr<TerminalContextDama> terminal;
+		if(!this->createTerminal(terminal,
 		                         tal_id,
 		                         cra_kbps,
 		                         max_rbdc_kbps,
@@ -362,19 +348,16 @@ bool DamaCtrl::hereIsLogon(Rt::Ptr<LogonRequest> logon)
 		this->probe_gw_rbdc_max->put(gw_rbdc_max_kbps);
 
 		// check that CRA is not too high, else print a warning !
-		carriers = category->getCarriersGroups();
-		for(carrier_it = carriers.begin();
-		    carrier_it != carriers.end();
-		    ++carrier_it)
+		for (auto &&carriers: category->getCarriersGroups())
 		{
 			// we can use the same function that convert sym to kbits
 			// for conversion from sym/s to kbits/s
 			max_capa_kbps +=
 					// the last FMT ID in getFmtIds() is the one
 					// which will give us the higher rate
-					this->input_modcod_def->symToKbits((*carrier_it)->getFmtIds().back(),
-					                       (*carrier_it)->getSymbolRate() *
-					                       (*carrier_it)->getCarriersNumber());
+					this->input_modcod_def->symToKbits(carriers.getFmtIds().back(),
+					                                   carriers.getSymbolRate() *
+					                                   carriers.getCarriersNumber());
 		}
 
 		if(cra_kbps > max_capa_kbps)
@@ -398,13 +381,9 @@ bool DamaCtrl::hereIsLogon(Rt::Ptr<LogonRequest> logon)
 
 bool DamaCtrl::hereIsLogoff(Rt::Ptr<Logoff> logoff)
 {
-	DamaTerminalList::iterator it;
-	TerminalContextDama *terminal;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	TerminalCategoryDama *category;
 	tal_id_t tal_id = logoff->getMac();
 
-	it = this->terminals.find(tal_id);
+	auto it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
 		LOG(this->log_logon, LEVEL_INFO,
@@ -412,7 +391,7 @@ bool DamaCtrl::hereIsLogoff(Rt::Ptr<Logoff> logoff)
 		return false;
 	}
 
-	terminal = (*it).second;
+	auto terminal = it->second;
 
 	// Output probes and stats
 	this->gw_st_num -= 1;
@@ -423,10 +402,10 @@ bool DamaCtrl::hereIsLogoff(Rt::Ptr<Logoff> logoff)
 	this->terminals.erase(terminal->getTerminalId());
 
 	// remove terminal from the terminal category
-	category_it = this->categories.find(terminal->getCurrentCategory());
+	auto category_it = this->categories.find(terminal->getCurrentCategory());
 	if(category_it != this->categories.end())
 	{
-		category = (*category_it).second;
+		auto category = category_it->second;
 		if(!category->removeTerminal(terminal))
 		{
 			return false;
@@ -586,7 +565,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 	    it != this->terminals.end(); ++it)
 	{
 		tal_id_t tal_id = it->first;
-		TerminalContextDama *terminal = it->second;
+		std::shared_ptr<TerminalContextDama> terminal = it->second;
 		if(tal_id > BROADCAST_TAL_ID)
 		{
 			simu_cra += terminal->getRequiredCra();
@@ -609,17 +588,13 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 	for(cat_it = this->categories.begin();
 	    cat_it != categories.end(); ++cat_it)
 	{
-		TerminalCategoryDama *category = (*cat_it).second;
-		std::vector<CarriersGroupDama *> carriers;
-		std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+		std::shared_ptr<TerminalCategoryDama> category = cat_it->second;
 		std::string label = category->getLabel();
 		this->probes_category_return_remaining_capacity[label]->put(
 			this->category_return_remaining_capacity[label]);
-		carriers = category->getCarriersGroups();
-		for(carrier_it = carriers.begin();
-			carrier_it != carriers.end(); ++carrier_it)
+		for (auto &&carriers: category->getCarriersGroups())
 		{
-			unsigned int carrier_id = (*carrier_it)->getCarriersId();
+			unsigned int carrier_id = carriers.getCarriersId();
 
 			// Create the probes if they don't exist yet
 			// (necessary in case of carrier modifications with SVNO interface)
@@ -644,14 +619,12 @@ TerminalCategories<TerminalCategoryDama> *DamaCtrl::getCategories()
 	return &(this->categories);
 }
 
-TerminalContextDama *DamaCtrl::getTerminalContext(tal_id_t tal_id) const
+std::shared_ptr<TerminalContextDama> DamaCtrl::getTerminalContext(tal_id_t tal_id) const
 {
-	DamaTerminalList::const_iterator it;
-
-	it = this->terminals.find(tal_id);
+	auto it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	return it->second;

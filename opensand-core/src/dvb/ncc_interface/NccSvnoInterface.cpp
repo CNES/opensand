@@ -60,12 +60,8 @@ NccSvnoInterface::NccSvnoInterface():
  */
 NccSvnoInterface::~NccSvnoInterface()
 {
-	std::vector<SvnoRequest *>::iterator it;
-
 	// free all SVNO requests stored in list
-	for(it = this->requests_list.begin();
-	    it != this->requests_list.end();
-		it = requests_list.erase(it));
+	this->requests_list.clear();
 }
 
 
@@ -96,29 +92,22 @@ int NccSvnoInterface::getSvnoClientSocket()
  * @return  the first request of the list of SVNO requests,
  *          NULL if no request is available
  */
-SvnoRequest * NccSvnoInterface::getNextSvnoRequest()
+std::unique_ptr<SvnoRequest> NccSvnoInterface::getNextSvnoRequest()
 {
-	SvnoRequest *request;
-	std::vector<SvnoRequest *>::iterator it;
-
-	if(this->requests_list.empty())
-	{
-		request = NULL;
-	}
-	else
+	if (!this->requests_list.empty())
 	{
 		// get the first request of the list and make a copy of it.
 		// the erase() method calls the object's destructor,
 		// so we have to deference the request object in order to preserve it.
-		it = this->requests_list.begin();
-		request = *it;
-		*it = NULL;
+		auto it = this->requests_list.begin();
+		std::unique_ptr<SvnoRequest> request = std::move(*it);
 
 		// remove the first request of the list
 		this->requests_list.erase(it);
+		return request;
 	}
 
-	return request;
+	return {nullptr};
 }
 
 
@@ -183,10 +172,8 @@ bool NccSvnoInterface::parseSvnoMessage(const Rt::Data& message)
 	Rt::DataStream stream(message);
 	while(stream.getline(cmd, 64))
 	{
-		SvnoRequest *request;
-
 		// parse the command
-		request = this->parseSvnoCommand(cmd);
+		std::unique_ptr<SvnoRequest> request = this->parseSvnoCommand(cmd);
 		if(!request)
 		{
 			LOG(this->log_ncc_interface, LEVEL_ERROR,
@@ -208,12 +195,11 @@ bool NccSvnoInterface::parseSvnoMessage(const Rt::Data& message)
 			    "command #%d is not of the same type "
 			    "as command #1, this is not accepted, "
 			    "so ignore the command\n", nb_cmds);
-			delete request;
 			continue;
 		}
 
 		// store the command parameters in context
-		this->requests_list.push_back(request);
+		this->requests_list.push_back(std::move(request));
 
 		nb_cmds++;
 	}
@@ -235,7 +221,7 @@ bool NccSvnoInterface::parseSvnoMessage(const Rt::Data& message)
  * @return          the created SVNO request if command was successfully parsed,
  *                  NULL in case of failure
  */
-SvnoRequest *NccSvnoInterface::parseSvnoCommand(const Rt::Data& cmd)
+std::unique_ptr<SvnoRequest> NccSvnoInterface::parseSvnoCommand(const Rt::Data& cmd)
 {
 	unsigned int spot_id;
 	unsigned int type;      // allocation or release request
@@ -281,6 +267,9 @@ SvnoRequest *NccSvnoInterface::parseSvnoCommand(const Rt::Data& cmd)
 	    ((band == FORWARD) ? "Forward" : "Upward"));
 
 	// build SVNO request object
-	return new SvnoRequest(spot_id, (svno_request_type_t)type,
-	                       (band_t)band, reinterpret_cast<const char*>(label.c_str()), new_rate_kbps);
+	return std::make_unique<SvnoRequest>(spot_id,
+	                                     (svno_request_type_t)type,
+	                                     (band_t)band,
+	                                     reinterpret_cast<const char*>(label.c_str()),
+	                                     new_rate_kbps);
 }

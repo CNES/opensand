@@ -69,8 +69,8 @@ bool DamaAgent::initParent(time_us_t frame_duration,
                            vol_kb_t max_vbdc_kb,
                            time_sf_t msl_sf,
                            time_sf_t sync_period_sf,
-                           EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           const fifos_t &dvb_fifos,
+                           std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+                           std::shared_ptr<fifos_t> dvb_fifos,
                            spot_id_t spot_id)
 {
 	this->frame_duration = frame_duration;
@@ -84,7 +84,7 @@ bool DamaAgent::initParent(time_us_t frame_duration,
 	this->dvb_fifos = dvb_fifos;
 
 	// Check if RBDC or VBDC CR are activated
-	for(auto&& [qos, fifo]: this->dvb_fifos)
+	for(auto&& [qos, fifo]: *(this->dvb_fifos))
 	{
 		auto cr_type = fifo->getAccessType();
 		if (!cr_type.IsReturnAccess())

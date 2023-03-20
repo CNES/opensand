@@ -40,7 +40,6 @@
 #include <opensand_rt/MessageEvent.h>
 
 #include "BlockPhysicalLayer.h"
-#include "AttenuationHandler.h"
 
 #include "Plugin.h"
 #include "PhysicalLayerPlugin.h"
@@ -116,14 +115,9 @@ bool BlockPhysicalLayer::onInit()
 
 Rt::UpwardChannel<BlockPhysicalLayer>::UpwardChannel(const std::string &name, PhyLayerConfig config):
 	GroundPhysicalChannel{config},
-	Channels::Upward<UpwardChannel<BlockPhysicalLayer>>{name}
+	Channels::Upward<UpwardChannel<BlockPhysicalLayer>>{name},
+	attenuation_hdl{this->log_channel}
 {
-}
-
-
-Rt::UpwardChannel<BlockPhysicalLayer>::~UpwardChannel()
-{
-	delete this->attenuation_hdl;
 }
 
 
@@ -143,8 +137,7 @@ bool Rt::UpwardChannel<BlockPhysicalLayer>::onInit()
 	this->probe_total_cn = Output::Get()->registerProbe<float>(prefix + "Phy.Total_cn", "dB", true, SAMPLE_LAST);
 
 	// Initialize the attenuation handler
-	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
-	if(!this->attenuation_hdl->initialize(this->log_init, prefix))
+	if(!this->attenuation_hdl.initialize(this->log_init, prefix))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Unable to initialize Attenuation Handler");
@@ -262,7 +255,7 @@ bool Rt::UpwardChannel<BlockPhysicalLayer>::forwardPacket(Ptr<DvbFrame> dvb_fram
 	{
 		// Process Attenuation
 		auto cn = dvb_frame->getCn();
-		if(!this->attenuation_hdl->process(*dvb_frame, cn))
+		if(!this->attenuation_hdl.process(*dvb_frame, cn))
 		{
 			LOG(this->log_event, LEVEL_ERROR,
 			    "Failed to get the attenuation");

@@ -52,8 +52,8 @@
 
 SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,
-                       StFmtSimuList *input_sts,
-                       StFmtSimuList *output_sts):
+                       std::shared_ptr<StFmtSimuList> input_sts,
+                       std::shared_ptr<StFmtSimuList> output_sts):
 	DvbChannel{},
 	DvbFmt{},
 	spot_id{spot_id},
@@ -78,16 +78,7 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
 
 SpotUpward::~SpotUpward()
 {
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for(auto&& [key, group]: this->ret_fmt_groups)
-	{
-		delete group;
-	}
-
-	delete this->reception_std;
-	delete this->reception_std_scpc;
-	delete this->saloha;
+	this->ret_fmt_groups.clear();
 }
 
 
@@ -163,7 +154,7 @@ bool SpotUpward::onInit()
 	return true;
 
 error_mode:
-	delete this->reception_std;
+	this->reception_std = nullptr;
 	return false;
 
 }
@@ -173,8 +164,7 @@ bool SpotUpward::initSlottedAloha()
 {
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
-	TerminalCategorySaloha *sa_default_category;
-	UnitConverter *converter;
+	std::shared_ptr<TerminalCategorySaloha> sa_default_category;
 	vol_sym_t length_sym = 0;
 
 	auto Conf = OpenSandModelConf::Get();
@@ -205,7 +195,7 @@ bool SpotUpward::initSlottedAloha()
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
-	                                           &sa_default_category,
+	                                           sa_default_category,
 	                                           this->ret_fmt_groups))
 	{
 		return false;
@@ -251,8 +241,12 @@ bool SpotUpward::initSlottedAloha()
 	// end TODO
 
 	// Create the Slotted ALoha part
-	this->saloha = new SlottedAlohaNcc();
-	if(!this->saloha)
+	std::unique_ptr<SlottedAlohaNcc> saloha;
+	try
+	{
+		saloha = std::make_unique<SlottedAlohaNcc>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to create Slotted Aloha\n");
@@ -263,55 +257,49 @@ bool SpotUpward::initSlottedAloha()
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->ret_up_frame_duration,
-	                             // pkt_hdl is the up_ret one because transparent sat
-	                             this->pkt_hdl))
+	if(!saloha->initParent(this->ret_up_frame_duration,
+	                       // pkt_hdl is the up_ret one because transparent sat
+	                       this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Slotted Aloha NCC Initialization failed.\n");
-		goto release_saloha;
+		return false;
 	}
 
 	if(!Conf->getRcs2BurstLength(length_sym))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot get 'RCS2 Burst Length' value");
-		goto release_saloha;
+		return false;
 	}
-	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration, 0, length_sym);
+	UnitConverterFixedSymbolLength converter{this->ret_up_frame_duration, 0, length_sym};
 
-	if(!this->saloha->init(sa_categories,
-	                       sa_terminal_affectation,
-	                       sa_default_category,
-	                       this->spot_id,
-	                       converter))
+	if(!saloha->init(sa_categories,
+	                 sa_terminal_affectation,
+	                 sa_default_category,
+	                 this->spot_id,
+	                 converter))
 	{
-		delete converter;
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the Slotted Aloha NCC\n");
-		goto release_saloha;
+		return false;
 	}
-	delete converter;
 
+	this->saloha = std::move(saloha);
 	return true;
-
-release_saloha:
-	delete this->saloha;
-	return false;
 }
 
 
 bool SpotUpward::initModcodSimu()
 {
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
-	                            &this->rcs_modcod_def,
+	                            this->rcs_modcod_def,
 	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -327,19 +315,18 @@ bool SpotUpward::initMode()
 {
 	// initialize the reception standard
 	// depending on the satellite type
-	this->reception_std = new DvbRcs2Std(this->pkt_hdl);
+	this->reception_std = std::make_unique<DvbRcs2Std>(this->pkt_hdl);
 
 	// If available SCPC carriers, a new packet handler is created at NCC
 	// to received BBFrames and to be able to deencapsulate GSE packets.
 	if(this->checkIfScpc())
 	{
-		EncapPlugin::EncapPacketHandler *fwd_pkt_hdl;
+		std::shared_ptr<EncapPlugin::EncapPacketHandler> fwd_pkt_hdl;
 		std::vector<std::string> scpc_encap;
 
 		// check that the forward encapsulation scheme is GSE
 		// (this should be automatically set by the manager)
-		if(!this->initPktHdl(EncapSchemeList::FORWARD_DOWN,
-		                     &fwd_pkt_hdl))
+		if(!this->initPktHdl(EncapSchemeList::FORWARD_DOWN, fwd_pkt_hdl))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get forward packet handler\n");
@@ -360,14 +347,14 @@ bool SpotUpward::initMode()
 			return false;
 		}
 
-		if(!this->initScpcPktHdl(&this->scpc_pkt_hdl))
+		if(!this->initScpcPktHdl(this->scpc_pkt_hdl))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get packet handler for receiving GSE packets\n");
 			return false;
 		}
 
-		this->reception_std_scpc = new DvbScpcStd(this->scpc_pkt_hdl);
+		this->reception_std_scpc = std::make_unique<DvbScpcStd>(this->scpc_pkt_hdl);
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "NCC is aware that there are SCPC carriers available \n");
 	}
@@ -439,7 +426,7 @@ bool SpotUpward::checkIfScpc()
 {
 	TerminalCategories<TerminalCategoryDama> scpc_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
-	TerminalCategoryDama *default_category;
+	std::shared_ptr<TerminalCategoryDama> default_category;
 	fmt_groups_t ret_fmt_groups;
 
 	OpenSandModelConf::spot current_spot;
@@ -460,17 +447,10 @@ bool SpotUpward::checkIfScpc()
 	                                         this->s2_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
-	                                         &default_category,
+	                                         default_category,
 	                                         ret_fmt_groups))
 	{
 		return false;
-	}
-
-	// clear unused fmt_group
-	for(fmt_groups_t::iterator it = ret_fmt_groups.begin();
-	    it != ret_fmt_groups.end(); ++it)
-	{
-		delete (*it).second;
 	}
 
 	if(scpc_categories.size() == 0)
@@ -478,13 +458,6 @@ bool SpotUpward::checkIfScpc()
 		LOG(this->log_init_channel, LEVEL_INFO,
 		    "No SCPC carriers\n");
 		return false;
-	}
-
-	// clear unused category
-	for(TerminalCategories<TerminalCategoryDama>::iterator it = scpc_categories.begin();
-	    it != scpc_categories.end(); ++it)
-	{
-		delete (*it).second;
 	}
 
 	return true;
@@ -495,7 +468,7 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 {
 	EmulatedMessageType msg_type = frame->getMessageType();
 	bool corrupted = frame->isCorrupted();
-	PhysicStd *std = this->reception_std;
+	PhysicStd *std = this->reception_std.get();
 
 	if(msg_type == EmulatedMessageType::BbFrame)
 	{
@@ -507,7 +480,7 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 			    frame->getCarrierId());
 			return false;
 		}
-		std = this->reception_std_scpc;
+		std = this->reception_std_scpc.get();
 	}
 	// TODO factorize if SCPC modcod handling is the same as for regenerative case
 	// Update stats
@@ -557,15 +530,15 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 	//      will be reworked
 	if(std->getType() == "DVB-S2")
 	{
-		DvbS2Std *s2_std = (DvbS2Std *)std;
+		auto received_modcod = this->reception_std_scpc->getReceivedModcod();
 		if(!corrupted)
 		{
-			this->probe_received_modcod->put(s2_std->getReceivedModcod());
+			this->probe_received_modcod->put(received_modcod);
 			this->probe_rejected_modcod->put(0);
 		}
 		else
 		{
-			this->probe_rejected_modcod->put(s2_std->getReceivedModcod());
+			this->probe_rejected_modcod->put(received_modcod);
 			this->probe_received_modcod->put(0);
 		}
 	}

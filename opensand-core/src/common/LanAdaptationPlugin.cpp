@@ -109,7 +109,7 @@ bool LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id_
 	return true;
 }
 
-bool LanAdaptationPlugin::LanAdaptationContext::setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
+bool LanAdaptationPlugin::LanAdaptationContext::setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl)
 {
 	if(!pkt_hdl && this->handle_net_packet)
 	{

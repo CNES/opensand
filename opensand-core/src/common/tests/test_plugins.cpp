@@ -73,6 +73,7 @@
 /// The program version
 #define VERSION   "Encapsulation plugins test application, version 0.1\n"
 
+
 /// The program usage
 constexpr const char* USAGE = \
 "Encapsulation plugins test application: test the encapsulation plugins with a flow of LAN packets\n\n\
@@ -126,7 +127,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
                       lan_contexts_t lan_contexts,
                       encap_contexts_t encap_contexts);
 static void test_encap_and_decap(
-	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl,
 	lan_contexts_t lan_contexts,
 	std::vector<std::string> &failure,
 	std::string src_filename,
@@ -208,7 +209,7 @@ int main(int argc, char *argv[])
 
 
 static void test_encap_and_decap(
-	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl,
 	lan_contexts_t lan_contexts,
 	std::vector<std::string> &failure,
 	std::string src_filename,
@@ -231,13 +232,12 @@ static void test_encap_and_decap(
 	Plugin::getAllEncapsulationPlugins(encap_plug);
 
 	// test each encap context
-	for(auto plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
+	for (auto &&plugit: encap_plug)
 	{
 		encap_contexts_t encap_contexts;
-		std::string name = plugit->first;
+		std::string name = plugit.first;
 		std::string name_low;
-		EncapPlugin *plugin = NULL;
-		EncapPlugin::EncapContext *context;
+		EncapPlugin *plugin = nullptr;
 		int found;
 
 		if(!Plugin::getEncapsulationPlugin(name, &plugin))
@@ -251,7 +251,7 @@ static void test_encap_and_decap(
 			failure.push_back(stack);
 			continue;
 		}
-		context = plugin->getContext();
+		std::shared_ptr<EncapPlugin::EncapContext> context = plugin->getContext();
 		if(!context->setUpperPacketHandler(pkt_hdl))
 		{
 
@@ -260,16 +260,15 @@ static void test_encap_and_decap(
 
 			std::vector<std::string> upper = context->getAvailableUpperProto();
 			// try to add a supported upper layer
-			for(std::vector<std::string>::iterator iter = upper.begin();
-			    iter != upper.end(); ++iter)
+			for (auto &&upper_name: upper)
 			{
-				if(encap_plug[*iter].second != NULL)
+				if(encap_plug[upper_name].second != NULL)
 				{
 					EncapPlugin *up_plugin;
-					if(!Plugin::getEncapsulationPlugin(*iter, &up_plugin))
+					if(!Plugin::getEncapsulationPlugin(upper_name, &up_plugin))
 					{
 						ERROR("failed to initialize upper plugin %s for %s\n",
-						      (*iter).c_str(), name.c_str());
+						      upper_name.c_str(), name.c_str());
 						if(stack.size() > 0)
 						{
 							stack += "/";
@@ -278,8 +277,7 @@ static void test_encap_and_decap(
 						failure.push_back(stack);
 						break;
 					}
-					if(!context->setUpperPacketHandler(
-								up_plugin->getPacketHandler()))
+					if(!context->setUpperPacketHandler(up_plugin->getPacketHandler()))
 					{
 						ERROR("failed to set upper packet src_handler for "
 						        "%s context\n", name.c_str());

@@ -53,41 +53,20 @@ SlottedAlohaNcc::SlottedAlohaNcc():
 	SlottedAloha(),
 	categories(),
 	terminal_affectation(),
-	default_category(NULL),
+	default_category(nullptr),
 	spot_id(0),
 	terminals(),
-	algo(NULL),
+	algo(nullptr),
 	simu()
 {
 }
 
 SlottedAlohaNcc::~SlottedAlohaNcc()
 {
-	for(saloha_terminals_t::iterator it = this->terminals.begin();
-	    it != this->terminals.end(); ++it)
-	{
-		delete it->second;
-	}
-	this->terminals.clear();
-
-	TerminalCategories<TerminalCategorySaloha>::iterator it;
-
-	for(it = this->categories.begin();
-	    it != this->categories.end(); ++it)
-	{
-		delete (*it).second;
-	}
 	this->categories.clear();
-
+	this->terminals.clear();
 	this->terminal_affectation.clear();
-
-	for(std::vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
-	    it != this->simu.end(); ++it)
-	{
-		delete *it;
-	}
-
-	delete this->algo;
+	this->simu.clear();
 }
 
 void SlottedAlohaNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
@@ -109,11 +88,11 @@ void SlottedAlohaNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaPa
 	simu_list->addParameter("ratio", "Ratio", types->getType("ubyte"));
 }
 
-bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
-                           TerminalMapping<TerminalCategorySaloha> terminal_affectation,
-                           TerminalCategorySaloha *default_category,
+bool SlottedAlohaNcc::init(const TerminalCategories<TerminalCategorySaloha> &categories,
+                           const TerminalMapping<TerminalCategorySaloha> &terminal_affectation,
+                           std::shared_ptr<TerminalCategorySaloha> default_category,
                            spot_id_t spot_id,
-                           UnitConverter *converter)
+                           UnitConverter &converter)
 {
 	std::string algo_name;
 	auto conf = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
@@ -176,11 +155,11 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 
 	if (algo_name == "DSA")
 	{
-		this->algo = new SlottedAlohaAlgoDsa();
+		this->algo = std::make_unique<SlottedAlohaAlgoDsa>();
 	}
 	else if (algo_name == "CRDSA")
 	{
-		this->algo = new SlottedAlohaAlgoCrdsa();
+		this->algo = std::make_unique<SlottedAlohaAlgoCrdsa>();
 	}
 	else
 	{
@@ -251,11 +230,10 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 			continue;
 		}
 		
-		SlottedAlohaSimu *simulation = new SlottedAlohaSimu(cat_iter->second,
-		                                                    nb_max_packets,
-		                                                    nb_replicas,
-		                                                    ratio);
-		this->simu.push_back(simulation);
+		this->simu.emplace_back(cat_iter->second,
+		                        nb_max_packets,
+		                        nb_replicas,
+		                        ratio);
 	}
 
 	return true;
@@ -350,13 +328,11 @@ bool SlottedAlohaNcc::schedule(Rt::Ptr<NetBurst> &burst,
 }
 
 
-bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
+bool SlottedAlohaNcc::scheduleCategory(std::shared_ptr<TerminalCategorySaloha> category,
                                        Rt::Ptr<NetBurst> &burst,
                                        std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames)
 {
 	Rt::Ptr<SlottedAlohaFrameCtrl> frame = Rt::make_ptr<SlottedAlohaFrameCtrl>(nullptr);
-	saloha_packets_data_t *accepted_packets;
-	saloha_packets_data_t::iterator pkt_it;
 	// refresh the probe in case of no traffic
 	this->probe_collisions[category->getLabel()]->put(0);
 	this->probe_collisions_before[category->getLabel()]->put(0);
@@ -380,12 +356,11 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		return false;
 	}
 
-	for(std::vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
-	    it != this->simu.end(); ++it)
+	for (const SlottedAlohaSimu& simulation: this->simu)
 	{
-		if((*it)->getCategory() == category->getLabel())
+		if (simulation.getCategory() == category->getLabel())
 		{
-			this->simulateTraffic(category, *it);
+			this->simulateTraffic(category, simulation);
 		}
 	}
 
@@ -412,20 +387,19 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	    "Schedule Slotted Aloha packets\n");
 
 	// Propagate if possible all packets received to encap block
-	accepted_packets = category->getAcceptedPackets();
-	pkt_it = accepted_packets->begin();
-	while(pkt_it != accepted_packets->end())
+	auto &accepted_packets = category->getAcceptedPackets();
+	auto pkt_it = accepted_packets.begin();
+	while(pkt_it != accepted_packets.end())
 	{
 		Rt::Ptr<SlottedAlohaPacketData> sa_packet = std::move(*pkt_it);
-		SlottedAlohaPacketCtrl *ack;
-		TerminalContextSaloha *terminal;
+		std::shared_ptr<TerminalContextSaloha> terminal;
 		saloha_terminals_t::iterator st;
 		saloha_pdu_id_t id_pdu;
 		saloha_id_t id_packet;
 		tal_id_t tal_id;
 
 		// erase goes to next iterator
-		accepted_packets->erase(pkt_it);
+		accepted_packets.erase(pkt_it);
 		id_packet = sa_packet->getUniqueId();
 		id_pdu = sa_packet->getId();
 		tal_id = sa_packet->getSrcTalId();
@@ -455,19 +429,9 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		}
 
 		// Send an ACK
-		try
-		{
-			ack = new SlottedAlohaPacketCtrl(id_packet, SALOHA_CTRL_ACK, tal_id);
-		}
-		catch (const std::bad_alloc&)
-		{
-			LOG(this->log_saloha, LEVEL_ERROR,
-			    "failed to create a Slotted Aloha signal control "
-			    "packet");
-			continue;
-		}
+		SlottedAlohaPacketCtrl ack{id_packet, SALOHA_CTRL_ACK, tal_id};
 
-		if(frame->getFreeSpace() < ack->getTotalLength())
+		if(frame->getFreeSpace() < ack.getTotalLength())
 		{
 			// add the previous frame in complete frames
 			complete_dvb_frames.push_back(dvb_frame_downcast(std::move(frame)));
@@ -484,17 +448,15 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 			}
 			frame->setSpot(this->spot_id);
 		}
-		if(!frame->addPacket(*ack))
+		if(!frame->addPacket(ack))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "failed to add a Slotted Aloha packet in "
 			    "signal control frame");
-			delete ack;
 			continue;
 		}
 		LOG(this->log_saloha, LEVEL_INFO,
 		    "Ack packet %s on ST%u\n", id_packet.c_str(), tal_id);
-		delete ack;
 
 		saloha_packets_data_t pdu;
 		auto state = terminal->addPacket(std::move(sa_packet), pdu);
@@ -541,43 +503,40 @@ Rt::Ptr<NetPacket> SlottedAlohaNcc::removeSalohaHeader(Rt::Ptr<SlottedAlohaPacke
 }
 
 
-void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
+void SlottedAlohaNcc::removeCollisions(std::shared_ptr<TerminalCategorySaloha> category)
 {
 	// we remove collision per category as in the same category
 	// we do as if there was only one big carrier
 	uint16_t nbr;
-	unsigned int slots_per_carrier = floor(category->getSlotsNumber() /
-	                                       category->getCarriersNumber());
-	std::map<unsigned int, Slot *> slots = category->getSlots();
+	unsigned int slots_per_carrier = floor(category->getSlotsNumber() / category->getCarriersNumber());
+	auto slots = category->getSlots();
 	AlohaPacketComparator comparator(slots_per_carrier);
-	saloha_packets_data_t *accepted_packets = category->getAcceptedPackets();
+	saloha_packets_data_t &accepted_packets = category->getAcceptedPackets();
 
 	if(this->probe_collisions_before[category->getLabel()]->isEnabled())
 	{
 		uint16_t coll = 0;
-		for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
-		    slot_it != slots.end(); ++slot_it)
+		for (auto &&slot_it: slots)
 		{
-			Slot *slot = (*slot_it).second;
-			if(slot->size() > 1)
+			auto slot_size = slot_it.second->size();
+			if(slot_size > 1)
 			{
-				coll += slot->size();
+				coll += slot_size;
 			}
 		}
 		this->probe_collisions_before[category->getLabel()]->put(coll);
 	}
 	nbr = this->algo->removeCollisions(slots, accepted_packets);
 	this->probe_collisions[category->getLabel()]->put(nbr);
-	this->probe_collisions_ratio[category->getLabel()]->put(nbr * 100 /
-	                                                        category->getSlotsNumber());
+	this->probe_collisions_ratio[category->getLabel()]->put(nbr * 100 / category->getSlotsNumber());
 	// Because of CRDSA algorithm for example, need to sort packets
-	sort(accepted_packets->begin(), accepted_packets->end(), comparator);
+	sort(accepted_packets.begin(), accepted_packets.end(), comparator);
 }
 
-void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
-                                      const SlottedAlohaSimu *simulation)
+void SlottedAlohaNcc::simulateTraffic(std::shared_ptr<TerminalCategorySaloha> category,
+                                      const SlottedAlohaSimu &simulation)
 {
-	for(unsigned int cpt = 0; cpt < simulation->getNbTal(); cpt++)
+	for(unsigned int cpt = 0; cpt < simulation.getNbTal(); cpt++)
 	{
 		saloha_ts_list_t tmp;
 		saloha_ts_list_t time_slots;
@@ -592,7 +551,7 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 		// see SlottedAlohaTal
 		tmp.clear();
 		time_slots.clear();
-		while(tmp.size() < simulation->getNbPacketsPerTal())
+		while(tmp.size() < simulation.getNbPacketsPerTal())
 		{
 			slot = (rand() / (double)RAND_MAX) * slots_per_carrier;
 			tmp.insert(slot);
@@ -610,8 +569,8 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 		it = time_slots.begin();
 		while(it != time_slots.end())
 		{
-			std::map<unsigned int, Slot *> slots = category->getSlots();
-			uint16_t nb_replicas = simulation->getNbReplicas();
+			auto slots = category->getSlots();
+			uint16_t nb_replicas = simulation.getNbReplicas();
 			uint16_t replicas[nb_replicas];
 			for(uint16_t rep_cpt = 0; rep_cpt < nb_replicas; rep_cpt++)
 			{
@@ -652,10 +611,10 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
-		TerminalContextSaloha *terminal;
+		std::shared_ptr<TerminalContextSaloha> terminal;
 		TerminalMapping<TerminalCategorySaloha>::const_iterator it;
 		TerminalCategories<TerminalCategorySaloha>::const_iterator category_it;
-		TerminalCategorySaloha *category;
+		std::shared_ptr<TerminalCategorySaloha> category;
 
 		if(tal_id >= BROADCAST_TAL_ID)
 		{
@@ -685,8 +644,8 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 		}
 		else
 		{
-			category = (*it).second;
-			if(category == NULL)
+			category = it->second;
+			if(category == nullptr)
 			{
 				LOG(this->log_saloha,LEVEL_INFO,
 				    "Terminal %d do not use SALOHA", tal_id);
@@ -701,8 +660,11 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 			return true;
 		}
 
-		terminal = new TerminalContextSaloha(tal_id);
-		if(!terminal)
+		try
+		{
+			terminal = std::make_shared<TerminalContextSaloha>(tal_id);
+		}
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "Cannot create terminal context for ST #%d\n",
@@ -711,8 +673,7 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 		}
 
 		// Add the new terminal to the list
-		this->terminals.insert(
-			std::pair<unsigned int, TerminalContextSaloha *>(tal_id, terminal));
+		this->terminals.emplace(tal_id, terminal);
 
 		// add terminal in category and inform terminal of its category
 		category->addTerminal(terminal);

@@ -62,7 +62,7 @@ bool PacketSwitch::learn(const Rt::Data &packet, tal_id_t src_id)
 {
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
 	Rt::Lock(this->mutex);
-	if (!this->sarp_table.add(std::unique_ptr<MacAddress>{new MacAddress{src_mac.str()}}, src_id))
+	if (!this->sarp_table.add(std::make_unique<MacAddress>(src_mac.str()), src_id))
 	{
 		return false;
 	}

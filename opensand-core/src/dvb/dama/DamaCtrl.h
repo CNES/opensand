@@ -91,8 +91,8 @@ public:
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories<TerminalCategoryDama> categories,
 	                        TerminalMapping<TerminalCategoryDama> terminal_affectation,
-	                        TerminalCategoryDama *default_category,
-	                        const StFmtSimuList *const input_sts,
+	                        std::shared_ptr<TerminalCategoryDama> default_category,
+	                        std::shared_ptr<const StFmtSimuList> input_sts,
 	                        FmtDefinitionTable *const input_modcod_def,
 	                        bool simulated);
 
@@ -139,7 +139,7 @@ public:
 	 * @param   request  PEP request
 	 * @return  true on success, false otherwise
 	 */
-	virtual bool applyPepCommand(const PepRequest* request) = 0;
+	virtual bool applyPepCommand(std::unique_ptr<PepRequest> request) = 0;
 
 	/**
 	 * @brief  To be called on each SuperFrame change (when SOF is received)
@@ -228,7 +228,7 @@ protected:
 	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool createTerminal(TerminalContextDama **terminal,
+	virtual bool createTerminal(std::shared_ptr<TerminalContextDama> &terminal,
 	                            tal_id_t tal_id,
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
@@ -292,7 +292,7 @@ protected:
 	 * @return            The context of the terminal
 	 *
 	 */
-	virtual TerminalContextDama *getTerminalContext(tal_id_t tal_id) const;
+	virtual std::shared_ptr<TerminalContextDama> getTerminalContext(tal_id_t tal_id) const;
 
 	// Output Log
 	std::shared_ptr<OutputLog> log_init;
@@ -308,7 +308,7 @@ protected:
 	bool is_parent_init;
 
 	// Helper to simplify context manipulation
-	typedef std::map<tal_id_t, TerminalContextDama *> DamaTerminalList;
+	typedef std::map<tal_id_t, std::shared_ptr<TerminalContextDama>> DamaTerminalList;
 
 	/** List of registered terminals */
 	DamaTerminalList terminals;
@@ -348,10 +348,10 @@ protected:
 	 * Default terminal category.
 	 * Used on terminals which are not affected to any specific category.
 	 */
-	TerminalCategoryDama *default_category;
+	std::shared_ptr<TerminalCategoryDama> default_category;
 
 	/** list of Sts with modcod informations for input link */
-	const StFmtSimuList *input_sts;
+	std::shared_ptr<const StFmtSimuList> input_sts;
 
 	/** Fmt Definition table for input link */
 	FmtDefinitionTable *input_modcod_def;

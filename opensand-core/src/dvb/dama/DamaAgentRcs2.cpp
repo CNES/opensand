@@ -50,40 +50,22 @@ const vol_kb_t C_MAX_VBDC_IN_SAC = 4080;       // 4080 packets/ceils, limitation
                                                // due to CR value size in to SAC field
 
 
-DamaAgentRcs2::DamaAgentRcs2(FmtDefinitionTable *ret_modcod_def):
+DamaAgentRcs2::DamaAgentRcs2(const FmtDefinitionTable &ret_modcod_def):
 	DamaAgent(),
 	allocated_kb(0),
 	dynamic_allocation_kb(0),
 	remaining_allocation_b(0),
-	rbdc_request_buffer(NULL),
-	ret_schedule(NULL),
+	rbdc_request_buffer(nullptr),
+	ret_schedule(nullptr),
 	rbdc_timer_sf(0),
 	ret_modcod_def(ret_modcod_def),
 	modcod_id(0)
 {
 }
 
-DamaAgentRcs2::~DamaAgentRcs2()
-{
-	if(this->ret_schedule != NULL)
-	{
-		delete this->ret_schedule;
-	}
-
-	if(this->rbdc_request_buffer != NULL)
-	{
-		delete this->rbdc_request_buffer;
-	}
-
-	if(this->converter != NULL)
-	{
-		delete this->converter;
-	}
-}
 
 bool DamaAgentRcs2::init(spot_id_t)
 {
-	FmtDefinition *fmt_def;
 	vol_sym_t length_sym = 0;
 
 	if(this->rbdc_enabled)
@@ -92,9 +74,11 @@ bool DamaAgentRcs2::init(spot_id_t)
 		// MSL duration with size = integer part of MSL / SYNC period
 		// (in frame number)
 		// NB: if size = 0, only last req is saved and sum is always 0
-		this->rbdc_request_buffer =
-			new CircularBuffer((size_t) this->msl_sf / this->sync_period_sf);
-		if(this->rbdc_request_buffer == nullptr)
+		try
+		{
+			this->rbdc_request_buffer = std::make_unique<CircularBuffer>((size_t) this->msl_sf / this->sync_period_sf);
+		}
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot create circular buffer to save "
@@ -121,7 +105,7 @@ bool DamaAgentRcs2::init(spot_id_t)
 	
 	try
 	{
-		this->converter = new UnitConverterFixedSymbolLength(this->frame_duration, 0, length_sym);
+		this->converter = std::make_unique<UnitConverterFixedSymbolLength>(this->frame_duration, 0, length_sym);
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -130,20 +114,24 @@ bool DamaAgentRcs2::init(spot_id_t)
 		return false;
 	}
 
-	this->ret_schedule = new ReturnSchedulingRcs2(this->packet_handler, this->dvb_fifos);
-	if(!this->ret_schedule)
+	try
+	{
+		this->ret_schedule = std::make_unique<ReturnSchedulingRcs2>(this->packet_handler, this->dvb_fifos);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot create the return link scheduling\n");
 		return false;
 	}
 
-	this->modcod_id = this->ret_modcod_def->getMaxId();
-	fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
-	if(fmt_def != NULL)
+	this->modcod_id = this->ret_modcod_def.getMaxId();
+	try
 	{
-		this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
+		FmtDefinition &fmt_def = this->ret_modcod_def.getDefinition(this->modcod_id);
+		this->converter->setModulationEfficiency(fmt_def.getModulationEfficiency());
 	}
+	catch (const std::range_error&){}
 	LOG(this->log_init, LEVEL_DEBUG,
 	    "Default modcod id %u, modulation efficiency %u\n",
 	    this->modcod_id, this->converter->getModulationEfficiency());
@@ -157,14 +145,22 @@ bool DamaAgentRcs2::init(spot_id_t)
 
 bool DamaAgentRcs2::processOnFrameTick()
 {
-	FmtDefinition *fmt_def;
-	vol_b_t length_b;
-
 	this->remaining_allocation_b = this->dynamic_allocation_kb * 1000;
 	this->burst_length_b = this->converter->getPacketBitLength();
 
-	fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
-	if(fmt_def == NULL)
+	try
+	{
+		FmtDefinition &fmt_def = this->ret_modcod_def.getDefinition(this->modcod_id);
+		vol_b_t length_b = this->burst_length_b;
+		this->burst_length_b = fmt_def.removeFec(this->burst_length_b);
+		LOG(this->log_schedule, LEVEL_DEBUG,
+		    "SF#%u: burst length without FEC %u b, with FEC %u b",
+		    this->current_superframe_sf,
+		    this->burst_length_b,
+		    length_b);
+		return true;
+	}
+	catch (const std::range_error&)
 	{
 		LOG(this->log_schedule, LEVEL_WARNING,
 		    "SF#%u: no MODCOD %u found",
@@ -172,15 +168,6 @@ bool DamaAgentRcs2::processOnFrameTick()
 		    this->modcod_id);
 		return false;
 	}
-
-	length_b = this->burst_length_b;
-	this->burst_length_b = fmt_def->removeFec(this->burst_length_b);
-	LOG(this->log_schedule, LEVEL_DEBUG,
-	    "SF#%u: burst length without FEC %u b, with FEC %u b",
-	    this->current_superframe_sf,
-	    this->burst_length_b,
-	    length_b);
-	return true;
 }
 
 bool DamaAgentRcs2::hereIsSOF(time_sf_t superframe_number_sf)
@@ -240,7 +227,6 @@ bool DamaAgentRcs2::hereIsTTP(Rt::Ptr<Ttp> ttp)
 	    it != tp.end(); ++it)
 	{
 		vol_kb_t assign_kb;
-		FmtDefinition *fmt_def;
 
 		LOG(this->log_ttp, LEVEL_DEBUG,
 		    "SF#%u: frame#%u: offset:%u, assignment_count:%u kb, "
@@ -260,13 +246,16 @@ bool DamaAgentRcs2::hereIsTTP(Rt::Ptr<Ttp> ttp)
 		}
 		
 		assign_kb = (*it).second.assignment_count;
-		fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
-		if(fmt_def == NULL)
+		try
+		{
+			FmtDefinition &fmt_def = this->ret_modcod_def.getDefinition(this->modcod_id);
+			this->converter->setModulationEfficiency(fmt_def.getModulationEfficiency());
+		}
+		catch (const std::range_error&)
 		{
 			this->converter->setModulationEfficiency(0);
 			continue;
 		}
-		this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
 
 		this->allocated_kb += assign_kb;
 	}
@@ -281,7 +270,7 @@ bool DamaAgentRcs2::hereIsTTP(Rt::Ptr<Ttp> ttp)
 	return true;
 }
 
-bool DamaAgentRcs2::returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames)
+bool DamaAgentRcs2::returnSchedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames)
 {
 	uint32_t remaining_alloc_b = this->remaining_allocation_b;
 	rate_kbps_t remaining_alloc_kbps;
@@ -319,7 +308,7 @@ bool DamaAgentRcs2::returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_fr
 		return false;
 	}
 	// add modcod id in frames
-	for (auto&& dvb_frame: *complete_dvb_frames)
+	for (auto&& dvb_frame: complete_dvb_frames)
 	{
 		if(dvb_frame->getMessageType() == EmulatedMessageType::DvbBurst)
 		{
@@ -327,7 +316,7 @@ bool DamaAgentRcs2::returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_fr
 		}
 	}
 	this->probe_st_sent_modcod->put(0);
-	if(complete_dvb_frames->size() > 0)
+	if(complete_dvb_frames.size() > 0)
 	{
 		// only set MODCOD id if there is data sent
 		// as we are with SAMPLE_LAST we may miss some of these
@@ -433,7 +422,7 @@ bool DamaAgentRcs2::buildSAC(ReturnAccessType,
 		this->rbdc_request_buffer->Update(rbdc_request_kbps);
 
 		// reset counter of arrival packets in MAC FIFOs related to RBDC
-		for(auto &&it: this->dvb_fifos)
+		for(auto &&it: *(this->dvb_fifos))
 		{
 			it.second->resetNew(ReturnAccessType::dama_rbdc);
 		}
@@ -486,7 +475,7 @@ vol_b_t DamaAgentRcs2::getMacBufferLength(ReturnAccessType cr_type)
 	vol_b_t nb_b_in_fifo; // absolute data length in fifo
 
 	nb_b_in_fifo = 0;
-	for(auto&& it: this->dvb_fifos)
+	for(auto&& it: *(this->dvb_fifos))
 	{
 		if(it.second->getAccessType() == cr_type)
 		{
@@ -504,7 +493,7 @@ vol_b_t DamaAgentRcs2::getMacBufferArrivals(ReturnAccessType cr_type)
 	vol_b_t nb_b_input; // data that filled the queue since last RBDC request
 
 	nb_b_input = 0;
-	for(auto&& it: this->dvb_fifos)
+	for(auto&& it: *(this->dvb_fifos))
 	{
 		if(it.second->getAccessType() == cr_type)
 		{

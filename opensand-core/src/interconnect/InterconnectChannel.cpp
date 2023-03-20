@@ -58,13 +58,6 @@ InterconnectChannel::InterconnectChannel(std::string name, const InterconnectCon
 }
 
 
-InterconnectChannel::~InterconnectChannel()
-{
-	delete this->data_channel;
-	delete this->sig_channel;
-}
-
-
 /*
  * INTERCONNECT_CHANNEL_SENDER
  */
@@ -80,38 +73,37 @@ void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned
                                                 unsigned int rmem, unsigned int wmem)
 {
 	// Create channels
-	this->data_channel = new UdpChannel(name + ".data",
-	                                    0, // no use for the channel ID
-	                                    0, // no use for the spot ID
-	                                    false,
-	                                    true,
-	                                    data_port,
-	                                    false, // this socket is not multicast
-	                                    this->interconnect_addr,
-	                                    remote_addr,
-	                                    stack,
-	                                    rmem,
-	                                    wmem);
-	this->sig_channel = new UdpChannel(name + ".sig",
-	                                   0, // no use for the channel ID
-	                                   0, // no use for the spot ID
-	                                   false,
-	                                   true,
-	                                   sig_port,
-	                                   false, // this socket is not multicast
-	                                   this->interconnect_addr,
-	                                   remote_addr,
-	                                   stack,
-	                                   rmem,
-	                                   wmem);
+	this->data_channel = std::make_unique<UdpChannel>(name + ".data",
+	                                                  0, // no use for the channel ID
+	                                                  0, // no use for the spot ID
+	                                                  false,
+	                                                  true,
+	                                                  data_port,
+	                                                  false, // this socket is not multicast
+	                                                  this->interconnect_addr,
+	                                                  remote_addr,
+	                                                  stack,
+	                                                  rmem,
+	                                                  wmem);
+	this->sig_channel = std::make_unique<UdpChannel>(name + ".sig",
+	                                                 0, // no use for the channel ID
+	                                                 0, // no use for the spot ID
+	                                                 false,
+	                                                 true,
+	                                                 sig_port,
+	                                                 false, // this socket is not multicast
+	                                                 this->interconnect_addr,
+	                                                 remote_addr,
+	                                                 stack,
+	                                                 rmem,
+	                                                 wmem);
 }
 
 
 bool InterconnectChannelSender::sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg)
 {
 	auto buffer = reinterpret_cast<const uint8_t *>(&msg);
-	auto channel = is_sig ? this->sig_channel : this->data_channel;
-	return channel->send(buffer, msg.data_len);
+	return (is_sig ? this->sig_channel : this->data_channel)->send(buffer, msg.data_len);
 }
 
 
@@ -279,30 +271,30 @@ void InterconnectChannelReceiver::initUdpChannels(unsigned int data_port, unsign
                                                   unsigned int rmem, unsigned int wmem)
 {
 	// Create channel
-	this->data_channel = new UdpChannel(name + ".data",
-	                                    0, // no use for the channel ID
-	                                    0, // no use for the spot ID
-	                                    true,
-	                                    false,
-	                                    data_port,
-	                                    false, // this socket is not multicast
-	                                    this->interconnect_addr,
-	                                    remote_addr,
-	                                    stack,
-	                                    rmem,
-	                                    wmem);
-	this->sig_channel = new UdpChannel(name + ".sig",
-	                                   0, // no use for the channel ID
-	                                   0, // no use for the spot ID
-	                                   true,
-	                                   false,
-	                                   sig_port,
-	                                   false, // this socket is not multicast
-	                                   this->interconnect_addr,
-	                                   remote_addr,
-	                                   stack,
-	                                   rmem,
-	                                   wmem);
+	this->data_channel = std::make_unique<UdpChannel>(name + ".data",
+	                                                  0, // no use for the channel ID
+	                                                  0, // no use for the spot ID
+	                                                  true,
+	                                                  false,
+	                                                  data_port,
+	                                                  false, // this socket is not multicast
+	                                                  this->interconnect_addr,
+	                                                  remote_addr,
+	                                                  stack,
+	                                                  rmem,
+	                                                  wmem);
+	this->sig_channel = std::make_unique<UdpChannel>(name + ".sig",
+	                                                 0, // no use for the channel ID
+	                                                 0, // no use for the spot ID
+	                                                 true,
+	                                                 false,
+	                                                 sig_port,
+	                                                 false, // this socket is not multicast
+	                                                 this->interconnect_addr,
+	                                                 remote_addr,
+	                                                 stack,
+	                                                 rmem,
+	                                                 wmem);
 }
 
 int InterconnectChannelReceiver::receiveToBuffer(const Rt::NetSocketEvent& event, Rt::Ptr<Rt::Data> &buf)

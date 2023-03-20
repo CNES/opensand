@@ -78,8 +78,8 @@ private:
 	 * @param request_rate_kbps  The requested rate in kbit/s
 	 * @param alloc_rate_kbps    The allocated rate in kbit/s
 	 */
-	void computeDamaCraPerCarrier(CarriersGroupDama *carriers,
-	                              const TerminalCategoryDama *category,
+	void computeDamaCraPerCarrier(CarriersGroupDama &carriers,
+	                              std::shared_ptr<const TerminalCategoryDama> category,
 	                              rate_kbps_t &request_rate_kbps,
 	                              rate_kbps_t &alloc_rate_kbps);
 
@@ -91,8 +91,8 @@ private:
 	 * @param request_rate_kbps  The requested rate in kbit/s
 	 * @param alloc_rate_kbps    The allocated rate in kbit/s
 	 */
-	void computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
-	                               const TerminalCategoryDama *category,
+	void computeDamaRbdcPerCarrier(CarriersGroupDama &carriers,
+	                               std::shared_ptr<const TerminalCategoryDama> category,
 	                               rate_kbps_t &request_rate_kbps,
 	                               rate_kbps_t &alloc_rate_kbps);
 
@@ -104,8 +104,8 @@ private:
 	 * @param request_vol_kb  The requested volume in kbit
 	 * @param alloc_vol_kb    The allocated volume in kbit
 	 */
-	void computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
-	                               const TerminalCategoryDama *category,
+	void computeDamaVbdcPerCarrier(CarriersGroupDama &carriers,
+	                               std::shared_ptr<const TerminalCategoryDama> category,
 	                               vol_kb_t &request_vol_kb,
 	                               vol_kb_t &alloc_vol_kb);
 
@@ -116,8 +116,8 @@ private:
 	 * @param category           The terminal category containing the carrier
 	 * @param alloc_rate_kbps    The allocated rate in kbit/s
 	 */
-	void computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
-	                              const TerminalCategoryDama *category,
+	void computeDamaFcaPerCarrier(CarriersGroupDama &carriers,
+	                              std::shared_ptr<const TerminalCategoryDama> category,
 	                              rate_kbps_t &alloc_rate_kbps);
 
 };

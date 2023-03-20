@@ -42,7 +42,7 @@
 #include "DamaAgentRcs2Legacy.h"
 
 
-DamaAgentRcs2Legacy::DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modcod_def):
+DamaAgentRcs2Legacy::DamaAgentRcs2Legacy(const FmtDefinitionTable &ret_modcod_def):
 	DamaAgentRcs2(ret_modcod_def),
 	vbdc_credit_kb(0)
 {

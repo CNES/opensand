@@ -65,22 +65,22 @@ private:
 	TerminalMapping<TerminalCategorySaloha> terminal_affectation;
 
 	/// The default terminal category
-	TerminalCategorySaloha *default_category;
+	std::shared_ptr<TerminalCategorySaloha> default_category;
 
 	/// The spot id
 	spot_id_t spot_id;
 
 	// Helper to simplify context manipulation
-	typedef std::map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
+	typedef std::map<tal_id_t, std::shared_ptr<TerminalContextSaloha>> saloha_terminals_t;
 
 	/** List of registered terminals */
 	saloha_terminals_t terminals;
 
 	/// Algorithm used to check collisions on slots
-	SlottedAlohaAlgo *algo;
+	std::unique_ptr<SlottedAlohaAlgo> algo;
 
 	/// Parameters to simulate Slotted Aloha traffic
-	std::vector<SlottedAlohaSimu *> simu;
+	std::vector<SlottedAlohaSimu> simu;
 
 	typedef std::map<std::string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
 	/// Statistics
@@ -106,11 +106,11 @@ public:
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool init(TerminalCategories<TerminalCategorySaloha> &categories,
-	          TerminalMapping<TerminalCategorySaloha> terminal_affectation,
-	          TerminalCategorySaloha *default_category,
+	bool init(const TerminalCategories<TerminalCategorySaloha> &categories,
+	          const TerminalMapping<TerminalCategorySaloha> &terminal_affectation,
+	          std::shared_ptr<TerminalCategorySaloha> default_category,
 	          spot_id_t spot,
-	          UnitConverter *converter);
+	          UnitConverter &converter);
 
 	/**
 	 * Schedule Slotted Aloha packets
@@ -150,7 +150,7 @@ private:
 	 *
 	 * @param category  The terminal category
 	 */
-	void removeCollisions(TerminalCategorySaloha *category);
+	void removeCollisions(std::shared_ptr<TerminalCategorySaloha> category);
 
 	/**
 	 * @brief Simulate traffic to get some performance statistics with minimal plateform
@@ -158,8 +158,8 @@ private:
 	 * @param category    The terminal category
 	 * @param simulation  The simulation parameters
 	 */
-	void simulateTraffic(TerminalCategorySaloha *category,
-	                     const SlottedAlohaSimu *simulation);
+	void simulateTraffic(std::shared_ptr<TerminalCategorySaloha> category,
+	                     const SlottedAlohaSimu &simulation);
 
 	/**
 	 * Schedule Slotted Aloha packets per category
@@ -171,7 +171,7 @@ private:
 	 *
 	 * @return true if packets were successful scheduled, false otherwise
 	 */
-	bool scheduleCategory(TerminalCategorySaloha *category,
+	bool scheduleCategory(std::shared_ptr<TerminalCategorySaloha> category,
 	                      Rt::Ptr<NetBurst> &burst,
 	                      std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames);
 };
@@ -234,7 +234,7 @@ public:
 	 * @param nb_replicas     The number of replicas
 	 * @param ratio           The ratio of the band the traffic should occupy
 	 */
-	SlottedAlohaSimu(const TerminalCategorySaloha *category,
+	SlottedAlohaSimu(std::shared_ptr<const TerminalCategorySaloha> category,
 	                 uint16_t nb_max_packets,
 	                 uint16_t nb_replicas,
 	                 uint8_t ratio):

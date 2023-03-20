@@ -257,9 +257,6 @@ bool TestSatCarriers::onInit()
 
 bool Rt::UpwardChannel<TestSatCarriers>::onInit()
 {
-	std::vector<UdpChannel *>::iterator it;
-	UdpChannel *channel;
-
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr, Component::unknown, 0))
 	{
@@ -269,10 +266,8 @@ bool Rt::UpwardChannel<TestSatCarriers>::onInit()
 
 	// ask the runtime to manage channel file descriptors
 	// (only for channels that accept input)
-	for(it = this->in_channel_set.begin(); it != this->in_channel_set.end(); it++)
+	for (auto &&channel: this->in_channel_set)
 	{
-		channel = *it;
-
 		if(channel->isInputOk() && channel->getChannelFd() != -1)
 		{
 			std::ostringstream name;

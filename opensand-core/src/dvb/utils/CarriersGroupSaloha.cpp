@@ -47,7 +47,7 @@
 //      channel per carriers_group
 
 CarriersGroupSaloha::CarriersGroupSaloha(unsigned int carriers_id,
-                                         const FmtGroup *const fmt_group,
+                                         std::shared_ptr<const FmtGroup> fmt_group,
                                          unsigned int ratio,
                                          rate_symps_t symbol_rate_symps,
                                          AccessType access_type):
@@ -56,15 +56,12 @@ CarriersGroupSaloha::CarriersGroupSaloha(unsigned int carriers_id,
 {
 }
 
+
 CarriersGroupSaloha::~CarriersGroupSaloha()
 {
-	for(std::map<unsigned int, Slot *>::iterator it = this->slots.begin();
-	    it != this->slots.end(); ++it)
-	{
-		delete (*it).second;
-	}
 	this->slots.clear();
 }
+
 
 void CarriersGroupSaloha::setSlotsNumber(unsigned int slots_nbr,
                                          unsigned int last_id)
@@ -73,10 +70,10 @@ void CarriersGroupSaloha::setSlotsNumber(unsigned int slots_nbr,
 	// a single carrier
 	for(unsigned int i = last_id;
 	    i < last_id + slots_nbr * this->carriers_number;
-	    i++)
+	    ++i)
 	{
-		Slot *slot = new Slot(this->carriers_id, i);
-		this->slots[i] = slot;
+		auto slot = std::make_shared<Slot>(this->carriers_id, i);
+		this->slots.emplace(i, slot);
 	}
 }
 
@@ -85,7 +82,7 @@ unsigned int CarriersGroupSaloha::getSlotsNumber(void) const
 	return this->slots.size();
 }
 
-std::map<unsigned int, Slot *> CarriersGroupSaloha::getSlots(void) const
+const std::map<unsigned int, std::shared_ptr<Slot>> &CarriersGroupSaloha::getSlots(void) const
 {
 	return this->slots;
 }

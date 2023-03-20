@@ -65,6 +65,8 @@
 #include "OpenSandModelConf.h"
 
 #include "PacketSwitch.h"
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 #include "BlockDvbNcc.h"
 #include "BlockDvbTal.h"
 #include "BlockEncap.h"
@@ -74,6 +76,7 @@
 #include "BlockSatCarrier.h"
 #include "BlockSatDispatcher.h"
 #include "BlockSatAsymetricHandler.h"
+#include "DvbS2Std.h"
 
 
 EntitySat::EntitySat(tal_id_t instance_id):

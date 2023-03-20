@@ -136,7 +136,7 @@ public:
 		 */
 		virtual bool handleTap() = 0;
 
-		bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl);
+		bool setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl) override;
 
 		virtual bool init();
 
@@ -160,9 +160,9 @@ public:
 	 *
 	 * @return the context
 	 */
-	inline LanAdaptationContext *getContext() const
+	inline std::shared_ptr<LanAdaptationContext> getContext() const
 	{
-		return static_cast<LanAdaptationContext *>(this->context);
+		return std::static_pointer_cast<LanAdaptationContext>(this->context);
 	};
 
 	/**
@@ -170,13 +170,13 @@ public:
 	 *
 	 * @return the packet handler
 	 */
-	inline LanAdaptationPacketHandler *getPacketHandler() const
+	inline std::shared_ptr<LanAdaptationPacketHandler> getPacketHandler() const
 	{
-		return static_cast<LanAdaptationPacketHandler *>(this->packet_handler);
+		return std::static_pointer_cast<LanAdaptationPacketHandler>(this->packet_handler);
 	};
 };
 
-typedef std::vector<LanAdaptationPlugin::LanAdaptationContext *> lan_contexts_t;
+typedef std::vector<std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext>> lan_contexts_t;
 
 
 #ifdef CREATE

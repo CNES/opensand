@@ -126,7 +126,8 @@ public:
 		 * @return the Ethernet frame
 		 */
 		Rt::Ptr<NetPacket> createEthFrameData(Rt::Data data,
-		                                     MacAddress mac_src, MacAddress mac_dst,
+		                                     const MacAddress &mac_src,
+		                                     const MacAddress &mac_dst,
 		                                     NET_PROTO ether_type,
 		                                     uint16_t q_tci,
 		                                     uint16_t ad_tci,
@@ -144,8 +145,8 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
-		Evc *getEvc(const MacAddress src_mac,
-		            const MacAddress dst_mac,
+		Evc *getEvc(const MacAddress &src_mac,
+		            const MacAddress &dst_mac,
 		            NET_PROTO ether_type,
 		            uint8_t &evc_id) const;
 
@@ -159,8 +160,8 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
-		Evc *getEvc(const MacAddress src_mac,
-		            const MacAddress dst_mac,
+		Evc *getEvc(const MacAddress &src_mac,
+		            const MacAddress &dst_mac,
 		            uint16_t q_tci,
 		            NET_PROTO ether_type,
 		            uint8_t &evc_id) const;
@@ -176,8 +177,8 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
-		Evc *getEvc(const MacAddress src_mac,
-		            const MacAddress dst_mac,
+		Evc *getEvc(const MacAddress &src_mac,
+		            const MacAddress &dst_mac,
 		            uint16_t q_tci,
 		            uint16_t ad_tci,
 		            NET_PROTO ether_type,
@@ -207,7 +208,7 @@ public:
 		bool initTrafficCategories();
 
 		/// The Ethernet Virtual Connections
-		std::map<uint8_t, Evc *> evc_map;
+		std::map<uint8_t, std::unique_ptr<Evc>> evc_map;
 		/// The amount of data sent per EVC between two updates
 		std::map<uint8_t, size_t> evc_data_size;
 		/// The throughput per EVC
@@ -219,10 +220,10 @@ public:
 		NET_PROTO sat_frame_type; //< The type of Ethernet frame transmitted on satellite
 
 		/// The traffic categories
-		std::map<qos_t, TrafficCategory *> category_map;
+		std::map<qos_t, std::unique_ptr<TrafficCategory>> category_map;
 
 		/// The default traffic category
-		TrafficCategory *default_category;
+		const TrafficCategory *default_category;
 	};
 
 	/**

@@ -42,9 +42,9 @@
 #include "StFmtSimu.h"
 
 
-Scheduling::Scheduling(EncapPlugin::EncapPacketHandler *packet_handler,
-                       const fifos_t &fifos,
-                       const StFmtSimuList *const simu_sts):
+Scheduling::Scheduling(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+                       std::shared_ptr<fifos_t> fifos,
+                       std::shared_ptr<const StFmtSimuList> simu_sts):
 	packet_handler(packet_handler),
 	dvb_fifos(fifos),
 	simu_sts(simu_sts),

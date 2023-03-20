@@ -1034,12 +1034,6 @@ bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels) co
 }
 
 
-inline std::unique_ptr<MacAddress> make_unique_mac(std::string address)
-{
-	return std::unique_ptr<MacAddress>{new MacAddress{address}};
-}
-
-
 bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 {
 	if (infrastructure == nullptr) {
@@ -1053,10 +1047,10 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 	sarp_table.setDefaultTal(default_gw);
 
 	// Broadcast
-	sarp_table.add(make_unique_mac("ff:ff:ff:ff:ff:ff"), 31);
+	sarp_table.add(std::make_unique<MacAddress>("ff:ff:ff:ff:ff:ff"), 31);
 	// Multicast
-	sarp_table.add(make_unique_mac("33:33:**:**:**:**"), 31);
-	sarp_table.add(make_unique_mac("01:00:5E:**:**:**"), 31);
+	sarp_table.add(std::make_unique<MacAddress>("33:33:**:**:**:**"), 31);
+	sarp_table.add(std::make_unique<MacAddress>("01:00:5E:**:**:**"), 31);
 
 	static const std::vector<std::string> list_names{"gateways", "terminals"};
 	for (auto& list_name : list_names) {
@@ -1073,7 +1067,7 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 				return false;
 			}
 
-			sarp_table.add(make_unique_mac(mac_address), entity_id);
+			sarp_table.add(std::make_unique<MacAddress>(mac_address), entity_id);
 		}
 	}
 

@@ -74,8 +74,8 @@ public:
 	 * @param fifo     the packets that are not collisionned
 	 * @return the number of collisionned packets
 	 */
-	virtual uint16_t removeCollisions(std::map<unsigned int, Slot *> &slots,
-	                                  saloha_packets_data_t *accepted_packets) = 0;
+	virtual uint16_t removeCollisions(std::map<unsigned int, std::shared_ptr<Slot>> &slots,
+	                                  saloha_packets_data_t &accepted_packets) = 0;
 
 protected:
 	std::shared_ptr<OutputLog> log_saloha;

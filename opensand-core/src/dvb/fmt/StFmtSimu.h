@@ -64,10 +64,10 @@ private:
 	tal_id_t id;
 
 	/** The MODCOD definitions for the terminal and associated link */
-	const FmtDefinitionTable *const modcod_def;
+	const FmtDefinitionTable &modcod_def;
 	
 	/** the cni status*/
-	bool cni_has_changed;
+	mutable bool cni_has_changed;
 	
 	/** The column used to read FMT id */
 	unsigned long column;
@@ -96,11 +96,7 @@ private:
 	StFmtSimu(std::string name,
 	          tal_id_t id,
 	          uint8_t init_modcod_id,
-	          const FmtDefinitionTable *const modcod_def);
-
-	/* destroy an internal representation of a Satellite Terminal (ST) */
-	~StFmtSimu();
-
+	          const FmtDefinitionTable &modcod_def);
 
 	/**** accessors ****/
 
@@ -160,14 +156,14 @@ private:
 	 *
 	 * @return the current CNI value or 0.0 on error
 	 */
-	double getRequiredCni();
+	double getRequiredCni() const;
 
 	/**
 	 * @brief get the cni change status
 	 *
 	 * @return the cni status
 	 */
-	bool getCniHasChanged();
+	bool getCniHasChanged() const;
 
 };
 
@@ -182,13 +178,13 @@ private:
 class StFmtSimuList: public std::set<tal_id_t>
 {
 private:
-	typedef std::map<tal_id_t, StFmtSimu *> ListStFmt;
+	typedef std::map<tal_id_t, StFmtSimu> ListStFmt;
 
 	/** A name to know is this is input or output terminals */
 	std::string name;
 
 	/** the list of StFmtSimu per spot */
-	ListStFmt *sts;
+	ListStFmt sts;
 
 	/** The ACM loop margin */
 	double acm_loop_margin_db;
@@ -221,7 +217,7 @@ public:
 	 * @return  true on succes, false otherwise
 	 */
 	bool addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
-	                 const FmtDefinitionTable *const modcod_def);
+	                 const FmtDefinitionTable &modcod_def);
 
 	/**
 	 * @brief  remove a terminal from the list
@@ -261,7 +257,7 @@ public:
 	 *
 	 * @param  st_id  the id of the st
 	 */
-	bool getCniHasChanged(tal_id_t st_id);
+	bool getCniHasChanged(tal_id_t st_id) const;
 
 	/**
 	 * @brief  check is the st is present

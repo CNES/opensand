@@ -47,8 +47,8 @@ SlottedAlohaAlgoDsa::~SlottedAlohaAlgoDsa()
 {
 }
 
-uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
-                                               saloha_packets_data_t *accepted_packets)
+uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, std::shared_ptr<Slot>> &slots,
+                                               saloha_packets_data_t &accepted_packets)
 {
 	std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
 	uint16_t nbr_collisions = 0;
@@ -56,7 +56,7 @@ uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &s
 	// cf: DSA algorithm
 	for(auto&& slot_it : slots)
 	{
-		Slot *slot = slot_it.second;
+		std::shared_ptr<Slot> slot = slot_it.second;
 		saloha_packets_data_t::iterator pkt_it;
 		if(!slot->size())
 		{
@@ -84,7 +84,7 @@ uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &s
 			{
 				// packet was not already received on another slot
 				accepted_ids[tal_id].push_back(packet->getUniqueId());
-				accepted_packets->push_back(std::move(packet));
+				accepted_packets.push_back(std::move(packet));
 				LOG(this->log_saloha, LEVEL_DEBUG,
 				    "No collision, keep packet from terminal %u\n",
 				    tal_id);

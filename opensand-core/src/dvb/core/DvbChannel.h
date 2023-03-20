@@ -83,7 +83,7 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool initPktHdl(EncapSchemeList encap_schemes,
-	                EncapPlugin::EncapPacketHandler **pkt_hdl);
+	                std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl);
 
 	/**
 	 * @brief Read the encapsulation shcemes to get packet handler
@@ -91,7 +91,7 @@ protected:
 	 * @param pkt_hdl          The packet handler corresponding to the encapsulation name
 	 * @return true on success, false otherwise
 	 */
-	bool initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl);
+	bool initScpcPktHdl(std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl);
 
 	/**
 	 * @brief Read the common configuration parameters
@@ -133,10 +133,10 @@ protected:
 	              std::string section,
 	              AccessType access_type,
 	              time_us_t duration,
-	              const FmtDefinitionTable *fmt_def,
+	              const FmtDefinitionTable &fmt_def,
 	              TerminalCategories<T> &categories,
 	              TerminalMapping<T> &terminal_affectation,
-	              T **default_category,
+	              std::shared_ptr<T> &default_category,
 	              fmt_groups_t &fmt_groups);
 
 	/**
@@ -222,7 +222,7 @@ protected:
 	 * @return  true on success, false otherwise
 	 */
 	template<class T>
-	bool carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
+	bool carriersTransferCalculation(std::shared_ptr<T> cat, rate_symps_t &rate_symps,
 	                                 std::map<rate_symps_t, unsigned int> &carriers);
 
 	/**
@@ -236,7 +236,8 @@ protected:
 	 * @return  true on success, false otherwise
 	 */
 	template<class T>
-	bool carriersTransfer(time_us_t duration, T* cat1, T* cat2,
+	bool carriersTransfer(time_us_t duration,
+	                      std::shared_ptr<T> cat1, std::shared_ptr<T> cat2,
 	                      std::map<rate_symps_t , unsigned int> carriers);
 
 	/// the RCS2 required burst length in symbol
@@ -250,7 +251,7 @@ protected:
 	time_us_t ret_up_frame_duration;
 
 	/// The encapsulation packet handler
-	EncapPlugin::EncapPacketHandler *pkt_hdl;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl;
 
 	/// The statistics period
 	time_ms_t stats_period_ms;
@@ -283,21 +284,21 @@ public:
 
 	DvbFmt();
 
-	virtual ~DvbFmt();
+	virtual ~DvbFmt() = default;
 
 	/**
 	 * @brief setter of input_sts
 	 *
 	 * @param the new input_sts
 	 */
-	void setInputSts(StFmtSimuList* new_input_sts);
+	void setInputSts(std::shared_ptr<StFmtSimuList> new_input_sts);
 
 	/**
 	 * @brief setter of output_sts
 	 *
 	 * @param the new output_sts
 	 */
-	void setOutputSts(StFmtSimuList* new_output_sts);
+	void setOutputSts(std::shared_ptr<StFmtSimuList> new_output_sts);
 
 	/**
 	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
@@ -354,7 +355,7 @@ protected:
 	 * @param req_burst_length  The required burst length (only for DVB-RCS2)
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modcod_def,
+	bool initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable &modcod_def,
 	                       vol_sym_t req_burst_length = 0);
 
 	/**
@@ -364,8 +365,7 @@ protected:
 	 * @param modcod_def   the MODCOD definition for the terminal on the input link
 	 * @return             true if the addition is successful, false otherwise
 	 */
-	bool addOutputTerminal(tal_id_t id,
-	                       const FmtDefinitionTable *const modcod_def);
+	bool addOutputTerminal(tal_id_t id, const FmtDefinitionTable &modcod_def);
 
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the input list
@@ -374,8 +374,7 @@ protected:
 	 * @param modcod_def   the MODCOD definition for the terminal on the input link
 	 * @return             true if the addition is successful, false otherwise
 	 */
-	bool addInputTerminal(tal_id_t id,
-	                      const FmtDefinitionTable *const modcod_def);
+	bool addInputTerminal(tal_id_t id, const FmtDefinitionTable &modcod_def);
 
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the output list
@@ -439,7 +438,7 @@ protected:
 	 *
 	 * @return The packet with extension on success, nullptr otherwise
 	 */
-	Rt::Ptr<NetPacket> setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+	Rt::Ptr<NetPacket> setPacketExtension(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
 	                                      Rt::Ptr<NetPacket> packet,
 	                                      tal_id_t source,
 	                                      tal_id_t dest,
@@ -448,16 +447,16 @@ protected:
 	                                      bool is_gw);
 
 	/** The internal map that stores all the STs and modcod id for input */
-	StFmtSimuList *input_sts;
+	std::shared_ptr<StFmtSimuList> input_sts;
 
 	/// The MODCOD Definition Table for S2
-	FmtDefinitionTable *s2_modcod_def;
+	FmtDefinitionTable s2_modcod_def;
 
 	/** The internal map that stores all the STs and modcod id for output */
-	StFmtSimuList *output_sts;
+	std::shared_ptr<StFmtSimuList> output_sts;
 
 	/// The MODCOD Definition Table for RCS
-	FmtDefinitionTable *rcs_modcod_def;
+	FmtDefinitionTable rcs_modcod_def;
 
 	/// The ACM loop margin
 	double fwd_down_acm_margin_db;
@@ -477,7 +476,7 @@ private:
 	 * @param sts     the list which we have to delete a st
 	 * @return    true if the deletion is successful, false otherwise
 	 */
-	bool delTerminal(tal_id_t id, StFmtSimuList* sts);
+	bool delTerminal(tal_id_t id, StFmtSimuList &sts);
 };
 
 

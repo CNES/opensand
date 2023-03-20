@@ -66,8 +66,10 @@
 #include "BlockLanAdaptation.h"
 #include "BlockDvbNcc.h"
 #include "BlockEncap.h"
-
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 #include "PacketSwitch.h"
+#include "UdpChannel.h"
 
 
 EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id): Entity("gw_net_acc" + std::to_string(instance_id), instance_id)

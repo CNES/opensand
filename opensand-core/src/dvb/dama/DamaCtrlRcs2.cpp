@@ -50,20 +50,10 @@
  */
 DamaCtrlRcs2::DamaCtrlRcs2(spot_id_t spot):
 	DamaCtrl(spot),
-	converter(NULL)
+	converter(nullptr)
 {
 }
 
-/**
- * Destructor
- */
-DamaCtrlRcs2::~DamaCtrlRcs2()
-{
-	if(this->converter != NULL)
-	{
-		delete this->converter;
-	}
-}
 
 bool DamaCtrlRcs2::init()
 {
@@ -94,7 +84,7 @@ bool DamaCtrlRcs2::init()
 	
 	try
 	{
-		this->converter = new UnitConverterFixedSymbolLength(this->frame_duration, 0, length_sym);
+		this->converter = std::make_unique<UnitConverterFixedSymbolLength>(this->frame_duration, 0, length_sym);
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -108,7 +98,6 @@ bool DamaCtrlRcs2::init()
 
 bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)
 {
-	TerminalContextDamaRcs *terminal;
 	vol_kb_t request_kb;
 	rate_kbps_t request_kbps;
 	tal_id_t tal_id = sac->getTerminalId();
@@ -116,13 +105,13 @@ bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)
 
 	// Checking if the station is registered
 	// if we get GW terminal ID this is for physical layer parameters
-	terminal = (TerminalContextDamaRcs *)this->getTerminalContext(tal_id);
-	if(terminal == NULL && !OpenSandModelConf::Get()->isGw(tal_id))
+	auto terminal = std::dynamic_pointer_cast<TerminalContextDamaRcs>(this->getTerminalContext(tal_id));
+	if(!terminal && !OpenSandModelConf::Get()->isGw(tal_id))
 	{
 		LOG(this->log_sac, LEVEL_ERROR, 
 		    "SF#%u: CR for an unknown st (logon_id=%u). "
 		    "Discarded.\n" , this->current_superframe_sf, tal_id);
-		goto error;
+		return false;
 	}
 
 	for (auto&& cr_info: requests)
@@ -187,31 +176,21 @@ bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 bool DamaCtrlRcs2::buildTTP(Ttp &ttp)
 {
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    category_it++)
+	for (auto &&[label, category]: this->categories)
 	{
-		const std::vector<TerminalContext *> &terminals =
-			(*category_it).second->getTerminals();
+		const std::vector<std::shared_ptr<TerminalContext>> &terminals = category->getTerminals();
 		
 		LOG(this->log_ttp, LEVEL_DEBUG,
 		    "SF#%u: Category %s has %zu terminals\n",
 		    this->current_superframe_sf,
-		    (*category_it).first.c_str(), terminals.size());
-		for(unsigned int terminal_index = 0;
-			terminal_index < terminals.size();
-			terminal_index++)
+		    label, terminals.size());
+		for (auto &&term: terminals)
 		{
-			TerminalContextDamaRcs *terminal =
-					dynamic_cast<TerminalContextDamaRcs*>(terminals[terminal_index]);
+			std::shared_ptr<TerminalContextDamaRcs> terminal = std::dynamic_pointer_cast<TerminalContextDamaRcs>(term);
 			vol_kb_t total_allocation_kb = 0;
 
 			// we need to do that else some CRA will be allocated and the terminal
@@ -252,23 +231,22 @@ bool DamaCtrlRcs2::buildTTP(Ttp &ttp)
 	return true;
 }
 
-bool DamaCtrlRcs2::applyPepCommand(const PepRequest *request)
+bool DamaCtrlRcs2::applyPepCommand(std::unique_ptr<PepRequest> request)
 {
-	TerminalContextDamaRcs *terminal;
 	rate_kbps_t cra_kbps;
 	rate_kbps_t max_rbdc_kbps;
 	rate_kbps_t rbdc_kbps;
 
 	// check that the ST is logged on
-	terminal = dynamic_cast<TerminalContextDamaRcs *>(this->getTerminalContext(request->getStId()));
-	if(terminal == NULL)
+	auto terminal = std::dynamic_pointer_cast<TerminalContextDamaRcs>(this->getTerminalContext(request->getStId()));
+	if(terminal == nullptr)
 	{
 		LOG(this->log_pep, LEVEL_ERROR, 
 		    "SF#%u: ST%d is not logged on, ignore %s request\n",
 		    this->current_superframe_sf, request->getStId(),
 		    request->getType() == PEP_REQUEST_ALLOCATION ?
 		    "allocation" : "release");
-		goto abort;
+		return false;
 	}
 
 	// update CRA allocation ?
@@ -320,15 +298,10 @@ bool DamaCtrlRcs2::applyPepCommand(const PepRequest *request)
 	}
 
 	return true;
-
-abort:
-	return false;
 }
 
 void DamaCtrlRcs2::updateRequiredFmts()
 {
-	DamaTerminalList::iterator it;
-	TerminalContextDamaRcs *terminal;
 	tal_id_t tal_id;
 	double cni;
 	fmt_id_t fmt_id;
@@ -336,9 +309,9 @@ void DamaCtrlRcs2::updateRequiredFmts()
 	if(!this->simulated)
 	{
 		// Update required Fmt in function of the Cni
-		for(it = this->terminals.begin(); it != this->terminals.end(); ++it)
+		for (auto &&terminal_it: this->terminals)
 		{
-			terminal = dynamic_cast<TerminalContextDamaRcs *>(it->second);
+			auto terminal = std::dynamic_pointer_cast<TerminalContextDamaRcs>(terminal_it.second);
 			tal_id = terminal->getTerminalId();
 
 			// Get CNI
@@ -358,15 +331,15 @@ void DamaCtrlRcs2::updateRequiredFmts()
 				this->current_superframe_sf, tal_id, cni, fmt_id);
 	
 			// Set required Modcod to the terminal context
-			terminal->setRequiredFmt(this->input_modcod_def->getDefinition(fmt_id));
+			terminal->setRequiredFmt(&(this->input_modcod_def->getDefinition(fmt_id)));
 		}
 	}
 	else
 	{
 		// Update required Fmt in function of the simulation file
-		for(it = this->terminals.begin(); it != this->terminals.end(); ++it)
+		for (auto &&terminal_it: this->terminals)
 		{
-			terminal = dynamic_cast<TerminalContextDamaRcs *>(it->second);
+			auto terminal = std::dynamic_pointer_cast<TerminalContextDamaRcs>(terminal_it.second);
 			tal_id = terminal->getTerminalId();
 
 			// Get required Modcod from the simulation file
@@ -380,34 +353,26 @@ void DamaCtrlRcs2::updateRequiredFmts()
 				this->current_superframe_sf, tal_id, fmt_id);
 	
 			// Set required Modcod to the terminal context
-			terminal->setRequiredFmt(this->input_modcod_def->getDefinition(fmt_id));
+			terminal->setRequiredFmt(&(this->input_modcod_def->getDefinition(fmt_id)));
 		}
 	}
 }
 
 bool DamaCtrlRcs2::updateWaveForms()
 {
-	DamaTerminalList::iterator terminal_it;
-
-	for(DamaTerminalList::iterator terminal_it = this->terminals.begin();
-	    terminal_it != this->terminals.end(); ++terminal_it)
+	for (auto &&terminal_it: this->terminals)
 	{
-		TerminalCategoryDama *category;
-		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-		TerminalContextDamaRcs *terminal = dynamic_cast<TerminalContextDamaRcs *>(terminal_it->second);
+		auto terminal = std::dynamic_pointer_cast<TerminalContextDamaRcs>(terminal_it.second);
 		tal_id_t tal_id = terminal->getTerminalId();
-		std::vector<CarriersGroupDama *> carriers_group;
-		FmtDefinition *fmt_def;
-		CarriersGroupDama *carriers;
 		unsigned int required_fmt;
 		unsigned int available_fmt = 0; // not in the table
 
 		// get the required Fmt for the current terminal
-		fmt_def = terminal->getRequiredFmt();
-		required_fmt = fmt_def != NULL ? fmt_def->getId() : 0;
+		FmtDefinition *fmt_def = terminal->getRequiredFmt();
+		required_fmt = fmt_def != nullptr ? fmt_def->getId() : 0;
 
 		// get the category
-		category_it = this->categories.find(terminal->getCurrentCategory());
+		auto category_it = this->categories.find(terminal->getCurrentCategory());
 		if(category_it == this->categories.end())
 		{
 			LOG(this->log_fmt, LEVEL_ERROR,
@@ -415,23 +380,20 @@ bool DamaCtrlRcs2::updateWaveForms()
 			    "terminal %u\n", this->current_superframe_sf, tal_id);
 			continue;
 		}
-		category = (*category_it).second;
-		carriers_group = category->getCarriersGroups();
+		auto &carriers_group = category_it->second->getCarriersGroups();
 
 		// check current carrier has the required FMT
-		for(std::vector<CarriersGroupDama *>::iterator it = carriers_group.begin();
-		    it != carriers_group.end(); ++it)
+		for (auto &&carriers: carriers_group)
 		{
 			unsigned int fmt;
 			// Find the terminal carrier
-			carriers = *it;
-			if(carriers->getCarriersId() != terminal->getCarrierId())
+			if(carriers.getCarriersId() != terminal->getCarrierId())
 			{
 				continue;
 			}
 
 			// Check the terminal carrier handles the required FMT
-			fmt = carriers->getNearestFmtId(required_fmt);
+			fmt = carriers.getNearestFmtId(required_fmt);
 			if(fmt != 0)
 			{
 				available_fmt = fmt;
@@ -442,18 +404,16 @@ bool DamaCtrlRcs2::updateWaveForms()
 		if(available_fmt == 0)
 		{
 			// get an available MODCOD id for this terminal among carriers
-			for(std::vector<CarriersGroupDama *>::const_iterator it = carriers_group.begin();
-				it != carriers_group.end(); ++it)
+			for (auto &&carriers: carriers_group)
 			{
 				unsigned int fmt;
 				// FMT groups should only have one FMT id here, so get nearest should
 				// return the FMT id of the carrier
-				carriers = *it;
-				fmt = carriers->getNearestFmtId(required_fmt);
+				fmt = carriers.getNearestFmtId(required_fmt);
 				if(required_fmt <= fmt)
 				{
 					// we have a carrier with the corresponding MODCOD
-					terminal->setCarrierId(carriers->getCarriersId());
+					terminal->setCarrierId(carriers.getCarriersId());
 					available_fmt = fmt;
 					LOG(this->log_fmt, LEVEL_DEBUG,
 						"SF#%u: ST%u will be served with the required "
@@ -467,7 +427,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 				{
 					// take the closest FMT id (i.e. the bigger value)
 					available_fmt = std::max(available_fmt, fmt);
-					terminal->setCarrierId(carriers->getCarriersId());
+					terminal->setCarrierId(carriers.getCarriersId());
 				}
 			}
 		}
@@ -487,34 +447,37 @@ bool DamaCtrlRcs2::updateWaveForms()
 			    terminal->getTerminalId(), available_fmt);
 		}
 		// it will be 0 if the terminal cannot be served
-		terminal->setFmt(this->input_modcod_def->getDefinition(available_fmt));
+		terminal->setFmt(&(this->input_modcod_def->getDefinition(available_fmt)));
 	}
 	return true;
 }
 
-bool DamaCtrlRcs2::createTerminal(TerminalContextDama **terminal,
-	tal_id_t tal_id,
-	rate_kbps_t cra_kbps,
-	rate_kbps_t max_rbdc_kbps,
-	time_sf_t rbdc_timeout_sf,
-	vol_kb_t max_vbdc_kb)
+bool DamaCtrlRcs2::createTerminal(std::shared_ptr<TerminalContextDama> &terminal,
+                                  tal_id_t tal_id,
+                                  rate_kbps_t cra_kbps,
+                                  rate_kbps_t max_rbdc_kbps,
+                                  time_sf_t rbdc_timeout_sf,
+                                  vol_kb_t max_vbdc_kb)
 {
 	fmt_id_t fmt_id;
-	TerminalContextDamaRcs *term;
 
-	term = new TerminalContextDamaRcs(tal_id,
-	                                  cra_kbps,
-	                                  max_rbdc_kbps,
-	                                  rbdc_timeout_sf,
-	                                  max_vbdc_kb);
-	*terminal = term;
-	if(!(*terminal))
+	std::shared_ptr<TerminalContextDamaRcs> term;
+	try
+	{
+		term = std::make_shared<TerminalContextDamaRcs>(tal_id,
+	                                                    cra_kbps,
+	                                                    max_rbdc_kbps,
+	                                                    rbdc_timeout_sf,
+	                                                    max_vbdc_kb);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_logon, LEVEL_ERROR,
 		    "SF#%u: cannot allocate terminal %u\n",
 		    this->current_superframe_sf, tal_id);
 		return false;
 	}
+	terminal = term;
 
 	// Get the best Modcod
 	fmt_id = this->input_modcod_def->getMaxId();
@@ -530,27 +493,24 @@ bool DamaCtrlRcs2::createTerminal(TerminalContextDama **terminal,
 	    this->current_superframe_sf, tal_id, fmt_id);
 
 	// Set required Modcod to the terminal context
-	term->setRequiredFmt(this->input_modcod_def->getDefinition(fmt_id));
+	term->setRequiredFmt(&(this->input_modcod_def->getDefinition(fmt_id)));
 
 	return true;
 }
 
 
-bool DamaCtrlRcs2::removeTerminal(TerminalContextDama **terminal)
+bool DamaCtrlRcs2::removeTerminal(std::shared_ptr<TerminalContextDama> &terminal)
 {
-	delete *terminal;
-	*terminal = NULL;
+	terminal = nullptr;
 	return true;
 }
 
 bool DamaCtrlRcs2::resetTerminalsAllocations()
 {
 	bool ret = true;
-	DamaTerminalList::iterator it;
-
-	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
+	for(auto it = this->terminals.begin(); it != this->terminals.end(); it++)
 	{
-		TerminalContextDamaRcs *terminal = (TerminalContextDamaRcs *)(it->second);
+		auto terminal = std::dynamic_pointer_cast<TerminalContextDamaRcs>(it->second);
 		double credit_kbps = terminal->getRbdcCredit();
 		rate_kbps_t request_kbps = terminal->getRequiredRbdc();
 
@@ -594,27 +554,26 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 	rate_symps_t gw_return_total_capacity_symps = 0;
 
 	// Initialize the capacity of carriers
-	for (auto &&category_pair: this->categories)
+	for (auto &&category_it: this->categories)
 	{
 		rate_symps_t category_return_capacity_symps = 0;
-		TerminalCategoryDama *category = category_pair.second;
-		std::vector<CarriersGroupDama *> carriers_group = category->getCarriersGroups();
+		std::shared_ptr<TerminalCategoryDama> category = category_it.second;
 		std::string label = category->getLabel();
 
-		for (auto *carriers: carriers_group)
+		for (auto &&carriers: category->getCarriersGroups())
 		{
-			unsigned int carrier_id = carriers->getCarriersId();
+			unsigned int carrier_id = carriers.getCarriersId();
 			rate_symps_t remaining_capacity_symps;
 			rate_pktpf_t remaining_capacity_pktpf;
 
 			// we have several MODCOD for each carrier so we can't convert
 			// from bauds to kbits
-			remaining_capacity_symps = carriers->getTotalCapacity();
+			remaining_capacity_symps = carriers.getTotalCapacity();
 			remaining_capacity_pktpf = this->converter->symToPkt(remaining_capacity_symps);
 
 			// initialize remaining capacity with total capacity in
 			// packet per superframe as it is the unit used in DAMA computations
-			carriers->setRemainingCapacity(remaining_capacity_pktpf);
+			carriers.setRemainingCapacity(remaining_capacity_pktpf);
 			LOG(this->log_run_dama, LEVEL_NOTICE,
 			    "SF#%u: Capacity before DAMA computation for "
 			    "carrier %u: %u packet (per frame) (%u sym/s)\n",

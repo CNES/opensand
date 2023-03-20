@@ -94,8 +94,8 @@ public:
 	                vol_kb_t max_vbdc_kb,
 	                time_sf_t msl_sf,
 	                time_sf_t sync_period_sf,
-	                EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                const fifos_t &dvb_fifos,
+	                std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+	                std::shared_ptr<fifos_t> dvb_fifos,
 	                spot_id_t spot_id);
 
 	/**
@@ -155,7 +155,7 @@ public:
 	 * @param complete_dvb_frames  created DVB frames.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames) = 0;
+	virtual bool returnSchedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.
@@ -184,10 +184,10 @@ protected:
 	bool is_parent_init;
 
 	/** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
 
 	/** The MAC FIFOs */
-	fifos_t dvb_fifos;
+	std::shared_ptr<fifos_t> dvb_fifos;
 
 	/** Terminal ID of the ST */
 	tal_id_t tal_id;

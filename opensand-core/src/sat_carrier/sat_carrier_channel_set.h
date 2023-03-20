@@ -49,11 +49,10 @@
  * @brief This implements a set of satellite carrier channels
  */
 // TODO why not a map<fd, carrier>?
-class sat_carrier_channel_set: public std::vector < UdpChannel * >
+class sat_carrier_channel_set: public std::vector<std::unique_ptr<UdpChannel>>
 {
 public:
 	sat_carrier_channel_set(tal_id_t tal_id);
-	~sat_carrier_channel_set();
 
 	/**
 	 * Read data from the configuration file and create input channels

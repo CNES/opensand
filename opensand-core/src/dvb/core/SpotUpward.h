@@ -44,7 +44,8 @@
 
 class SlottedAlohaNcc;
 class StFmtSimuList;
-class PhysicStd;
+class DvbRcs2Std;
+class DvbScpcStd;
 class NetBurst;
 
 
@@ -53,8 +54,8 @@ class SpotUpward: public DvbChannel, public DvbFmt
 	public:
 		SpotUpward(spot_id_t spot_id,
 		           tal_id_t mac_id,
-		           StFmtSimuList *input_sts,
-		           StFmtSimuList *output_sts);
+		           std::shared_ptr<StFmtSimuList> input_sts,
+		           std::shared_ptr<StFmtSimuList> output_sts);
 
 		~SpotUpward();
 
@@ -184,16 +185,16 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		tal_id_t mac_id;
 
 		/// The Slotted Aloha for NCC
-		SlottedAlohaNcc *saloha;
+		std::unique_ptr<SlottedAlohaNcc> saloha;
 
 		/// reception standard (DVB-RCS or DVB-S2)
-		PhysicStd *reception_std;
+		std::unique_ptr<DvbRcs2Std> reception_std;
 
 		/// reception standard for SCPC
-		PhysicStd *reception_std_scpc;
+		std::unique_ptr<DvbScpcStd> reception_std_scpc;
 
 		/// The up/return packet handler for SCPC
-		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;
+		std::shared_ptr<EncapPlugin::EncapPacketHandler> scpc_pkt_hdl;
 
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
@@ -216,5 +217,6 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		/// logon request events
 		std::shared_ptr<OutputEvent> event_logon_req;
 };
+
 
 #endif

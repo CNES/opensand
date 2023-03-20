@@ -140,7 +140,8 @@ bool Ethernet::init()
 }
 
 Ethernet::Context::Context(LanAdaptationPlugin &plugin):
-	LanAdaptationContext(plugin)
+	LanAdaptationContext(plugin),
+	default_category{nullptr}
 {
 }
 
@@ -242,20 +243,8 @@ bool Ethernet::Context::init()
 
 Ethernet::Context::~Context()
 {
-	std::map<uint8_t, Evc *>::iterator evc_it;
-	std::map<qos_t, TrafficCategory *>::iterator cat_it;
-	for(evc_it = this->evc_map.begin(); evc_it != this->evc_map.end(); ++evc_it)
-	{
-		delete (*evc_it).second;
-	}
 	this->evc_map.clear();
-	
-	for(cat_it = this->category_map.begin(); cat_it != this->category_map.end(); ++cat_it)
-	{
-		delete (*cat_it).second;
-	}
 	this->category_map.clear();
-
 	this->probe_evc_throughput.clear();
 	this->probe_evc_size.clear();
 }
@@ -283,7 +272,7 @@ bool Ethernet::Context::initEvc()
 			    "Section network, missing virtual connection MAC source\n");
 			return false;
 		}
-		MacAddress *mac_src = new MacAddress(src);
+		MacAddress mac_src{src};
 
 		std::string dst;
 		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("mac_dst"), dst))
@@ -292,7 +281,7 @@ bool Ethernet::Context::initEvc()
 			    "Section network, missing virtual connection MAC destination\n");
 			return false;
 		}
-		MacAddress *mac_dst = new MacAddress(dst);
+		MacAddress mac_dst{dst};
 
 		uint16_t q_tci;
 		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1q"), q_tci))
@@ -325,7 +314,7 @@ bool Ethernet::Context::initEvc()
 		LOG(this->log, LEVEL_INFO,
 		    "New EVC: MAC source = %s, MAC destination = %s, "
 		    "tag Q = %u, tag AD = %u, payload_type = %#2X\n",
-		    mac_src->str().c_str(), mac_dst->str().c_str(),
+		    mac_src.str(), mac_dst.str(),
 		    q_tci, ad_tci, pt);
 
 		if(this->evc_map.find(id) != this->evc_map.end())
@@ -335,8 +324,8 @@ bool Ethernet::Context::initEvc()
 			return false;
 		}
 
-		Evc *evc = new Evc(mac_src, mac_dst, q_tci, ad_tci, to_enum<NET_PROTO>(pt));
-		this->evc_map[id] = evc;
+		auto evc = std::make_unique<Evc>(mac_src, mac_dst, q_tci, ad_tci, to_enum<NET_PROTO>(pt));
+		this->evc_map.emplace(id, std::move(evc));
 	}
 	// initialize the statistics on EVC
 	this->initStats();
@@ -385,21 +374,22 @@ bool Ethernet::Context::initTrafficCategories()
 			return false;
 		}
 
-		if(this->category_map.count(pcp))
+		auto existing_category = this->category_map.find(pcp);
+		if(existing_category != this->category_map.end())
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Traffic category %ld - [%s] rejected: identifier "
 			    "already exists for [%s]\n", pcp,
-			    class_name.c_str(),
-			    this->category_map[pcp]->getName().c_str());
+			    class_name,
+			    existing_category->second->getName());
 			return false;
 		}
 
-		TrafficCategory *traffic_category = new TrafficCategory(pcp);
+		std::unique_ptr<TrafficCategory> traffic_category = std::make_unique<TrafficCategory>(pcp);
 
 		traffic_category->setId(mac_queue_prio);
 		traffic_category->setName(class_name);
-		this->category_map[pcp] = traffic_category;
+		this->category_map.emplace(pcp, std::move(traffic_category));
 	}
 
 	auto default_pcp = network->getComponent("qos_settings")->getParameter("default_pcp");
@@ -418,7 +408,7 @@ bool Ethernet::Context::initTrafficCategories()
 		    "Default PCP level does not map to a registered traffic category");
 		return false;
 	}
-	this->default_category = found_default_category->second;
+	this->default_category = found_default_category->second.get();
 	
 	return true;
 }
@@ -730,7 +720,6 @@ Rt::Ptr<NetBurst> Ethernet::Context::deencapsulate(Rt::Ptr<NetBurst> burst)
 					LOG(this->log, LEVEL_WARNING,
 					    "cannot find destination MAC address %s in sarp table\n",
 					    dst_mac.str().c_str());
-					delete deenc_packet;
 					continue;
 				}
 				else
@@ -799,17 +788,16 @@ Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(const Rt::Ptr<NetPacket
 	uint16_t q_tci = 0;
 	uint16_t ad_tci = 0;
 	NET_PROTO ether_type = packet->getType();
-	Evc *evc = NULL;
+	Evc *evc = nullptr;
 	SarpTable *sarp_table = packet_switch->getSarpTable();
 
 	// search traffic category associated with QoS value
 	// TODO we should filter on IP addresses instead of QoS
-	for(std::map<qos_t, TrafficCategory *>::const_iterator it = this->category_map.begin();
-	    it != this->category_map.end(); ++it)
+	for (auto &&[traffic_qos, traffic_category]: this->category_map)
 	{
-		if((*it).second->getId() == qos)
+		if(traffic_category->getId() == qos)
 		{
-			ad_tci = (*it).first;
+			ad_tci = traffic_qos;
 		}
 	}
 
@@ -861,8 +849,8 @@ Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(const Rt::Ptr<NetPacket
 	{
 		q_tci = (evc->getQTci() & 0xffff);
 		ad_tci = (evc->getAdTci() & 0xffff);
-		src_mac = *(evc->getMacSrc());
-		dst_mac = *(evc->getMacDst());
+		src_mac = evc->getMacSrc();
+		dst_mac = evc->getMacDst();
 	}
 	return this->createEthFrameData(packet->getData(),
 	                                src_mac,
@@ -878,8 +866,8 @@ Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(const Rt::Ptr<NetPacket
 
 
 Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(Rt::Data data,
-                                                         MacAddress src_mac,
-                                                         MacAddress dst_mac,
+                                                         const MacAddress &src_mac,
+                                                         const MacAddress &dst_mac,
                                                          NET_PROTO ether_type,
                                                          uint16_t q_tci,
                                                          uint16_t ad_tci,
@@ -971,8 +959,9 @@ void Ethernet::Context::initStats()
 	this->probe_evc_throughput[id] = output->registerProbe<float>("EVC throughput.default", "kbits/s", true, SAMPLE_AVG);
 	this->probe_evc_size[id] = output->registerProbe<float>("EVC frame size.default", "Bytes", true, SAMPLE_SUM);
 
-	for(auto &&[id, evc]: this->evc_map)
+	for(auto &&evc_it: this->evc_map)
 	{
+		auto id = evc_it.first;
 		if(this->probe_evc_throughput.find(id) != this->probe_evc_throughput.end())
 		{
 			continue;
@@ -985,14 +974,9 @@ void Ethernet::Context::initStats()
 
 void Ethernet::Context::updateStats(const time_ms_t &period)
 {
-	std::map<uint8_t, size_t>::iterator it;
-	std::map<uint8_t, Probe<float> *>::iterator found;
-	uint8_t id;
-	std::stringstream name;
-
-	for(it = this->evc_data_size.begin(); it != this->evc_data_size.end(); ++it)
+	for(auto it = this->evc_data_size.begin(); it != this->evc_data_size.end(); ++it)
 	{
-		id = (*it).first;
+		uint8_t id = (*it).first;
 		if(this->probe_evc_throughput.find(id) == this->probe_evc_throughput.end())
 		{
 			// use the default id
@@ -1035,60 +1019,57 @@ Rt::Ptr<NetPacket> Ethernet::PacketHandler::build(const Rt::Data &data,
 	                               head_length);
 }
 
-Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
-                               const MacAddress dst_mac,
+Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
+                               const MacAddress &dst_mac,
                                NET_PROTO ether_type,
                                uint8_t &evc_id) const
 {
-	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
-	    it != this->evc_map.end(); ++it)
+	for (auto &&[id, evc]: this->evc_map)
 	{
-		if((*it).second->matches(&src_mac, &dst_mac, ether_type))
+		if(evc->matches(src_mac, dst_mac, ether_type))
 		{
-			evc_id = (*it).first;
-			return (*it).second;
+			evc_id = id;
+			return evc.get();
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
-Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
-                               const MacAddress dst_mac,
+Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
+                               const MacAddress &dst_mac,
                                uint16_t q_tci,
                                NET_PROTO ether_type,
                                uint8_t &evc_id) const
 {
-	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
-	    it != this->evc_map.end(); ++it)
+	for (auto &&[id, evc]: this->evc_map)
 	{
-		if((*it).second->matches(&src_mac, &dst_mac, q_tci, ether_type))
+		if(evc->matches(src_mac, dst_mac, q_tci, ether_type))
 		{
-			evc_id = (*it).first;
-			return (*it).second;
+			evc_id = id;
+			return evc.get();
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
-Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
-                               const MacAddress dst_mac,
+Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
+                               const MacAddress &dst_mac,
                                uint16_t q_tci,
                                uint16_t ad_tci,
                                NET_PROTO ether_type,
                                uint8_t &evc_id) const
 {
-	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
-	    it != this->evc_map.end(); ++it)
+	for (auto &&[id, evc]: this->evc_map)
 	{
-		if((*it).second->matches(&src_mac, &dst_mac, q_tci, ad_tci, ether_type))
+		if(evc->matches(src_mac, dst_mac, q_tci, ad_tci, ether_type))
 		{
-			evc_id = (*it).first;
-			return (*it).second;
+			evc_id = id;
+			return evc.get();
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 

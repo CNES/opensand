@@ -50,10 +50,10 @@
 
 #include "OpenSandCore.h"
 #include "GroundPhysicalChannel.h"
+#include "AttenuationHandler.h"
 
 
 template<typename> class Probe;
-class AttenuationHandler;
 
 
 /**
@@ -69,7 +69,7 @@ class Rt::UpwardChannel<class BlockPhysicalLayer>: public GroundPhysicalChannel,
 
  protected:
 	/// The attenuation process
-	AttenuationHandler *attenuation_hdl;
+	AttenuationHandler attenuation_hdl;
 
 	/**
 	 * @brief Forward the frame to the next channel
@@ -97,11 +97,6 @@ public:
 	 * @param config  the config of the block
 	 */
 	UpwardChannel(const std::string &name, PhyLayerConfig config);
-
-	/**
-	 * @brief Destroy the Channel
-	 */
-	virtual ~UpwardChannel();
 
 	/**
 	 * @brief Initialize the ground upward physical channel

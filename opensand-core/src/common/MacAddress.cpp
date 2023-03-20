@@ -103,11 +103,11 @@ unsigned char MacAddress::at(unsigned int i) const
 }
 
 
-bool MacAddress::matches(const MacAddress *addr) const
+bool MacAddress::matches(const MacAddress &addr) const
 {
 	for(std::size_t i = 0; i < MacAddress::bytes_count; ++i)
 	{
-		if(!this->generic_bytes[i] && this->mac[i] != addr->mac[i])
+		if(!this->generic_bytes[i] && this->mac[i] != addr.mac[i])
 		{
 			return false;
 		}

@@ -47,7 +47,6 @@
 #include "BlockDvb.h"
 
 #include "DvbChannel.h"
-#include "PhysicStd.h"
 #include "DamaAgent.h"
 #include "SlottedAlohaTal.h"
 #include "Scheduling.h"
@@ -62,6 +61,9 @@
 #include <netdb.h>        // for h_errno and hstrerror
 #include <arpa/inet.h>    // for inet_ntoa
 #include <sys/socket.h>
+
+
+class DvbS2Std; 
 
 
 /// the current state of the ST
@@ -80,7 +82,6 @@ class Rt::UpwardChannel<class BlockDvbTal>: public DvbChannel, public Channels::
 {
  public:
 	UpwardChannel(const std::string &name, dvb_specific specific);
-	~UpwardChannel();
 
 	bool onInit() override;
 
@@ -155,7 +156,7 @@ class Rt::UpwardChannel<class BlockDvbTal>: public DvbChannel, public Channels::
 	void updateStats();
 
 	/// reception standard (DVB-RCS or DVB-S2)
-	PhysicStd *reception_std; 
+	std::unique_ptr<DvbS2Std> reception_std; 
 
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
@@ -356,9 +357,6 @@ protected:
 	 */
 	void deletePackets();
 
-	/// reception standard (DVB-RCS or DVB-S2)
-	PhysicStd *reception_std; 
-
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 
@@ -384,10 +382,10 @@ protected:
 	vol_kb_t max_vbdc_kb;
 
 	/// the DAMA agent
-	DamaAgent *dama_agent;
+	std::unique_ptr<DamaAgent> dama_agent;
 
 	/// The Slotted Aloha for terminal
-	SlottedAlohaTal *saloha;
+	std::unique_ptr<SlottedAlohaTal> saloha;
 
 	/// SCPC Carrier duration in μs
 	time_us_t scpc_carr_duration;
@@ -399,7 +397,7 @@ protected:
 	fmt_groups_t ret_fmt_groups;
 
 	/// The uplink of forward scheduling depending on satellite	
-	Scheduling *scpc_sched;
+	std::unique_ptr<Scheduling> scpc_sched;
 
 	/// counter for SCPC frames
 	time_sf_t scpc_frame_counter;
@@ -411,7 +409,7 @@ protected:
 
 	/* Fifos */
 	/// map of FIFOs per MAX priority to manage different queues
-	fifos_t dvb_fifos;
+	std::shared_ptr<fifos_t> dvb_fifos;
 	/// the default MAC fifo index = fifo with the smallest priority
 	unsigned int default_fifo_id;
 	
@@ -489,7 +487,6 @@ class BlockDvbTal: public Rt::Block<BlockDvbTal, dvb_specific>, public BlockDvb
 {
  public:
 	BlockDvbTal(const std::string &name, dvb_specific specific);
-	~BlockDvbTal();
 
 	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
@@ -501,8 +498,8 @@ class BlockDvbTal: public Rt::Block<BlockDvbTal, dvb_specific>, public BlockDvb
 	bool disable_control_plane;
 
 	/// The list of Sts with return/up modcod
-	StFmtSimuList* input_sts;
-	StFmtSimuList* output_sts;
+	std::shared_ptr<StFmtSimuList> input_sts;
+	std::shared_ptr<StFmtSimuList> output_sts;
 };
 
 

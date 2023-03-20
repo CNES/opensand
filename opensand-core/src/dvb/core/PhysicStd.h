@@ -59,7 +59,7 @@ private:
 
 protected:
 	/** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
 
 public:
 	/**
@@ -69,12 +69,12 @@ public:
 	 * @param pkt_hdl  the packet handler
 	 */
 	PhysicStd(std::string type,
-	          EncapPlugin::EncapPacketHandler *pkt_hdl);
+	          std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
 
 	/**
 	 * Destroy the Physical Transmission Standard
 	 */
-	virtual ~PhysicStd();
+	virtual ~PhysicStd() = default;
 
 	/**
 	 * Get the type of Physical Transmission Standard (DVB-RCS, DVB-S2, etc.)

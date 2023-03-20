@@ -82,7 +82,6 @@ class Rt::UpwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels::
 {
  public:
 	UpwardChannel(const std::string& name, dvb_specific specific);
-	~UpwardChannel();
 
 	bool onInit() override;
 
@@ -114,7 +113,7 @@ class Rt::UpwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels::
 	/// The id of the associated spot
 	spot_id_t spot_id;
 
-	SpotUpward* spot;
+	std::unique_ptr<SpotUpward> spot;
 
 	// log for slotted aloha
 	std::shared_ptr<OutputLog> log_saloha;
@@ -133,7 +132,6 @@ class Rt::DownwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels
 {
  public:
 	DownwardChannel(const std::string &name, dvb_specific specific);
-	~DownwardChannel();
 
 	bool onInit() override;
 
@@ -200,13 +198,6 @@ class Rt::DownwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels
 	 */
 	bool handleLogonReq(Ptr<DvbFrame> dvb_frame);
 
-	/**
-	 * @brief Send a SAC message containing ACM parameters
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool sendAcmParameters(SpotDownward *spot_downward);
-
 	/// The interface between Ncc and PEP
 	NccPepInterface pep_interface;
 
@@ -233,7 +224,7 @@ class Rt::DownwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels
 	/// Delay for allocation requests from PEP (in ms)
 	int pep_alloc_delay;
 
-	SpotDownward* spot;
+	std::unique_ptr<SpotDownward> spot;
 
 	// Frame interval
 	std::shared_ptr<Probe<float>> probe_frame_interval;
@@ -246,8 +237,6 @@ public:
 	/// Class constructor
 	BlockDvbNcc(const std::string &name, struct dvb_specific specific);
 
-	~BlockDvbNcc();
-
 	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
 protected:
@@ -259,10 +248,10 @@ protected:
 	int mac_id;
 
 	/// The list of Sts with forward/down modcod for this spot
-	StFmtSimuList* output_sts;
+	std::shared_ptr<StFmtSimuList> output_sts;
 
 	/// The list of Sts with return/up modcod for this spot
-	StFmtSimuList* input_sts;
+	std::shared_ptr<StFmtSimuList> input_sts;
 };
 
 

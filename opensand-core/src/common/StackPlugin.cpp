@@ -45,11 +45,6 @@ StackPlugin::StackPacketHandler::StackPacketHandler(StackPlugin &pl):
 }
 
 
-StackPlugin::StackPacketHandler::~StackPacketHandler()
-{
-}
-
-
 NET_PROTO StackPlugin::StackPacketHandler::getEtherType() const
 {
 	return plugin.ether_type;
@@ -65,11 +60,6 @@ std::string StackPlugin::StackPacketHandler::getName() const
 StackPlugin::StackContext::StackContext(StackPlugin &pl):
 	current_upper{nullptr},
 	plugin{pl}
-{
-}
-
-
-StackPlugin::StackContext::~StackContext()
 {
 }
 
@@ -93,7 +83,7 @@ NET_PROTO StackPlugin::StackContext::getEtherType() const
 }
 
 
-bool StackPlugin::StackContext::setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
+bool StackPlugin::StackContext::setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl)
 {
 	if (pkt_hdl == nullptr)
 	{
@@ -135,20 +125,13 @@ StackPlugin::StackPlugin(NET_PROTO ether_type):
 }
 
 
-StackPlugin::~StackPlugin()
-{
-	delete this->context;
-	delete this->packet_handler;
-}
-
-
-StackPlugin::StackContext *StackPlugin::getContext() const
+std::shared_ptr<StackPlugin::StackContext> StackPlugin::getContext() const
 {
 	return this->context;
 }
 
 
-StackPlugin::StackPacketHandler *StackPlugin::getPacketHandler() const
+std::shared_ptr<StackPlugin::StackPacketHandler> StackPlugin::getPacketHandler() const
 {
 	return this->packet_handler;
 }

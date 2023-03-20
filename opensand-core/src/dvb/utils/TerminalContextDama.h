@@ -251,8 +251,8 @@ public:
 	 * @param e2  second terminal
 	 * @return true if remaining credit of e1 is greater than e2
 	 */
-	static bool sortByRemainingCredit(const TerminalContextDama *e1,
-	                                  const TerminalContextDama *e2);
+	static bool sortByRemainingCredit(const std::shared_ptr<TerminalContextDama> &e1,
+	                                  const std::shared_ptr<TerminalContextDama> &e2);
 
 	/**
 	 * @brief Functor to sort terminals by descending VBDC Request
@@ -261,8 +261,8 @@ public:
 	 * @param e2  second terminal
 	 * @return true if VBDC request of e1 is greater than e2
 	 */
-	static bool sortByVbdcReq(const TerminalContextDama *e1,
-	                          const TerminalContextDama *e2);
+	static bool sortByVbdcReq(const std::shared_ptr<TerminalContextDama> &e1,
+	                          const std::shared_ptr<TerminalContextDama> &e2);
 
 protected:
 	/** Required CRA for the terminal (kb/s) */

@@ -88,13 +88,13 @@ private:
 	saloha_pdu_id_t base_id;
 
 	/// Backoff algorithm used
-	SlottedAlohaBackoff *backoff;
+	std::unique_ptr<SlottedAlohaBackoff> backoff;
 
 	/// The terminal category
-	TerminalCategorySaloha *category;
+	std::shared_ptr<TerminalCategorySaloha> category;
 
 	/// The DVB fifos
-	fifos_t dvb_fifos;
+	std::shared_ptr<fifos_t> dvb_fifos;
 
 	//TODO in opensandcore.h
 	typedef std::map<qos_t, std::shared_ptr<Probe<int> > > probe_per_qos_t;
@@ -110,11 +110,6 @@ public:
 	 */
 	SlottedAlohaTal();
 
-	/**
-	 * Class destructor
-	 */
-	~SlottedAlohaTal();
-
 	static void generateConfiguration();
 
 	/**
@@ -128,9 +123,9 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool init(tal_id_t tal_id,
-	          TerminalCategorySaloha *category,
-	          const fifos_t &dvb_fifos,
-	          UnitConverter *converter);
+	          std::shared_ptr<TerminalCategorySaloha> category,
+	          std::shared_ptr<fifos_t> dvb_fifos,
+	          UnitConverter &converter);
 
 	/**
 	 * Add the Slotted Aloha header on an encapsulation packet

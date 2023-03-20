@@ -71,19 +71,6 @@
 int Rt::DownwardChannel<BlockDvbTal>::qos_server_sock = -1;
 
 
-template<typename T>
-bool releaseMap(T& container, bool isError)
-{
-	for(auto&& item : container)
-	{
-		delete item.second;
-	}
-	container.clear();
-
-	return !isError;
-}
-
-
 const char* stateDescription(TalState state)
 {
 	switch(state)
@@ -110,13 +97,6 @@ BlockDvbTal::BlockDvbTal(const std::string &name, dvb_specific specific):
 	input_sts{nullptr},
 	output_sts{nullptr}
 {
-}
-
-
-BlockDvbTal::~BlockDvbTal()
-{
-	delete this->input_sts;
-	delete this->output_sts;
 }
 
 
@@ -195,7 +175,7 @@ bool BlockDvbTal::initListsSts()
 {
 	try
 	{
-		this->input_sts = new StFmtSimuList("in");
+		this->input_sts = std::make_shared<StFmtSimuList>("in");
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -219,7 +199,7 @@ bool BlockDvbTal::initListsSts()
 	{
 		try
 		{
-			this->output_sts = new StFmtSimuList("out");
+			this->output_sts = std::make_shared<StFmtSimuList>("out");
 		}
 		catch (const std::bad_alloc&)
 		{
@@ -262,7 +242,7 @@ Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_s
 	carrier_id_ctrl{},
 	carrier_id_logon{},
 	carrier_id_data{},
-	dvb_fifos{},
+	dvb_fifos{std::make_shared<fifos_t>()},
 	default_fifo_id{0},
 	sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
 	obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
@@ -287,19 +267,9 @@ Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_s
 
 Rt::DownwardChannel<BlockDvbTal>::~DownwardChannel()
 {
-	delete this->dama_agent;
-	delete this->saloha;
-	delete this->scpc_sched;
-
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for (auto&& group : this->ret_fmt_groups)
-	{
-		delete group.second;
-	}
-
+	this->ret_fmt_groups.clear();
 	// delete fifos
-	releaseMap(this->dvb_fifos, false);
+	this->dvb_fifos->clear();
 
 	// close QoS Server socket if it was opened
 	if(DownwardChannel<BlockDvbTal>::qos_server_sock != -1)
@@ -351,7 +321,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onInit()
 	}
 
 	// Initialization od fow_modcod_def (useful to send SAC)
-	if(!this->initModcodDefFile(MODCOD_DEF_S2, &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -555,7 +525,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo priority from section 'network, fifos'\n");
-			return releaseMap(this->dvb_fifos, true);
+			this->dvb_fifos->clear();
+			return false;
 		}
 
 		std::string fifo_name;
@@ -563,7 +534,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo name from section 'network, fifos'\n");
-			return releaseMap(this->dvb_fifos, true);
+			this->dvb_fifos->clear();
+			return false;
 		}
 
 		auto fifo_it = fifo_ids.find(fifo_name);
@@ -578,7 +550,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo capacity from section 'network, fifos'\n");
-			return releaseMap(this->dvb_fifos, true);
+			this->dvb_fifos->clear();
+			return false;
 		}
 
 		std::string fifo_access_type;
@@ -586,11 +559,11 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo access type from section 'network, fifos'\n");
-			return releaseMap(this->dvb_fifos, true);
+			this->dvb_fifos->clear();
+			return false;
 		}
 
-		DvbFifo *fifo = new DvbFifo(fifo_priority, fifo_name,
-		                            fifo_access_type, fifo_size);
+		auto fifo = std::make_unique<DvbFifo>(fifo_priority, fifo_name, fifo_access_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "Fifo priority = %u, FIFO name %s, size %u, "
@@ -611,7 +584,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 			this->default_fifo_id = fifo_id;
 		}
 
-		this->dvb_fifos.emplace(fifo_id, fifo);
+		this->dvb_fifos->emplace(fifo_id, std::move(fifo));
 	}
 
 	this->l2_to_sat_total_bytes = 0;
@@ -630,11 +603,11 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 
 	TerminalCategories<TerminalCategoryDama> dama_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
-	TerminalCategoryDama *default_category;
-	TerminalCategoryDama *tal_category{nullptr};
+	std::shared_ptr<TerminalCategoryDama> default_category;
+	std::shared_ptr<TerminalCategoryDama> tal_category{nullptr};
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 
-	for (auto&& it: this->dvb_fifos)
+	for (auto&& it: *(this->dvb_fifos))
 	{
 		const auto access_type = it.second->getAccessType();
 		if (access_type == ReturnAccessType::dama_rbdc ||
@@ -647,7 +620,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 
 	// init
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
-	                            &this->rcs_modcod_def,
+	                            this->rcs_modcod_def,
 	                            this->req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -674,7 +647,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	                                         this->rcs_modcod_def,
 	                                         dama_categories,
 	                                         terminal_affectation,
-	                                         &default_category,
+	                                         default_category,
 	                                         this->ret_fmt_groups))
 	{
 		return false;
@@ -699,7 +672,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 		{
 			LOG(this->log_init, LEVEL_INFO,
 			    "ST not affected to a DAMA category\n");
-			return releaseMap(dama_categories, false);
+			return true;
 		}
 		tal_category = default_category;
 	}
@@ -718,16 +691,15 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 			LOG(this->log_init, LEVEL_WARNING,
 			    "Remove DAMA FIFOs because there is no "
 			    "DAMA carrier\n");
-			fifos_t::iterator it = this->dvb_fifos.begin();
-			while (it != this->dvb_fifos.end())
+			fifos_t::iterator it = this->dvb_fifos->begin();
+			while (it != this->dvb_fifos->end())
 			{
 				const auto access_type = it->second->getAccessType();
 				if (access_type == ReturnAccessType::dama_rbdc ||
 				    access_type == ReturnAccessType::dama_vbdc ||
 				    access_type == ReturnAccessType::dama_cra)
 				{
-					delete it->second;
-					this->dvb_fifos.erase(it);
+					this->dvb_fifos->erase(it);
 				}
 				else
 				{
@@ -735,14 +707,14 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 				}
 			}
 		}
-		return releaseMap(dama_categories, false);
+		return true;
 	}
 
 	if(!is_dama_fifo)
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The DAMA carrier won't be used as there is no DAMA FIFO\n");
-		return releaseMap(dama_categories, false);
+		return true;
 	}
 
 	OpenSandModelConf::extractParameterData(dama->getParameter("dama_enabled"), is_dama_fifo);
@@ -750,7 +722,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The DAMA carrier won't be used as requested by the configuration file\n");
-		return releaseMap(dama_categories, false);
+		return true;
 	}
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
@@ -758,7 +730,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'CRA'\n");
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -773,7 +745,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'max RBDC'\n");
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	// Max VBDC
@@ -785,7 +757,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'max VBDC'\n");
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	// MSL duration -- in frames number
@@ -793,7 +765,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'MSL duration'\n");
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	// get the OBR period
@@ -801,7 +773,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing 'sync period'\n");
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 	this->sync_period_frame = time_frame_t(round(std::chrono::duration_cast<std::chrono::duration<double>>(sync_period_ms) /
 	                                             std::chrono::duration_cast<std::chrono::duration<double>>(this->ret_up_frame_duration)));
@@ -830,7 +802,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'access': missing parameter 'dama algorithm'\n");
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	if(dama_algo == "Legacy")
@@ -839,7 +811,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 		    "SF#%u: create Legacy DAMA agent\n",
 		    this->super_frame_counter);
 
-		this->dama_agent = new DamaAgentRcs2Legacy(this->rcs_modcod_def);
+		this->dama_agent = std::make_unique<DamaAgentRcs2Legacy>(this->rcs_modcod_def);
 	}
 	/*else if(dama_algo == "RrmQos")
 	{
@@ -849,14 +821,14 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 
 		if(this->return_link_std == DVB_RCS)
 		{
-			this->dama_agent = new DamaAgentRcsRrmQos(this->rcs_modcod_def);
+			this->dama_agent = std::make_unique<DamaAgentRcsRrmQos>(this->rcs_modcod_def);
 		}
 		else
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot create DAMA agent: algo named '%s' is not "
 			    "managed by current MAC layer\n", dama_algo.c_str());
-			return releaseMap(dama_categories, true);
+			return false;
 		}
 	}*/
 	else
@@ -864,14 +836,14 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot create DAMA agent: algo named '%s' is not "
 		    "managed by current MAC layer\n", dama_algo.c_str());
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	if(this->dama_agent == nullptr)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create DAMA agent\n");
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	// Initialize the DamaAgent parent class
@@ -889,8 +861,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u Dama Agent Initialization failed.\n",
 		    this->super_frame_counter);
-		delete this->dama_agent;
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
 	// Initialize the DamaAgentRcsXXX class
@@ -898,11 +869,10 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Dama Agent initialization failed.\n");
-		delete this->dama_agent;
-		return releaseMap(dama_categories, true);
+		return false;
 	}
 
-	return releaseMap(dama_categories, false);
+	return true;
 }
 
 
@@ -913,13 +883,12 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> terminal_affectation;
-	TerminalCategorySaloha *default_category;
-	TerminalCategorySaloha *tal_category{nullptr};
+	std::shared_ptr<TerminalCategorySaloha> default_category;
+	std::shared_ptr<TerminalCategorySaloha> tal_category{nullptr};
 	TerminalMapping<TerminalCategorySaloha>::const_iterator tal_map_it;
-	UnitConverter *converter{nullptr};
 	vol_sym_t length_sym = 0;
 
-	for (auto&& it: this->dvb_fifos)
+	for (auto&& it: *(this->dvb_fifos))
 	{
 		if(it.second->getAccessType() == ReturnAccessType::saloha)
 		{
@@ -946,7 +915,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
 	                                           terminal_affectation,
-	                                           &default_category,
+	                                           default_category,
 	                                           this->ret_fmt_groups))
 	{
 		return false;
@@ -1000,13 +969,12 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 			LOG(this->log_init, LEVEL_WARNING,
 			    "Remove Slotted Aloha FIFOs because there is no "
 			    "Slotted Aloha carrier\n");
-			fifos_t::iterator it = this->dvb_fifos.begin();
-			while (it != this->dvb_fifos.end())
+			fifos_t::iterator it = this->dvb_fifos->begin();
+			while (it != this->dvb_fifos->end())
 			{
-				if((*it).second->getAccessType() == ReturnAccessType::saloha)
+				if(it->second->getAccessType() == ReturnAccessType::saloha)
 				{
-					delete (*it).second;
-					this->dvb_fifos.erase(it);
+					this->dvb_fifos->erase(it);
 				}
 				else
 				{
@@ -1026,24 +994,16 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The Slotted Aloha carrier won't be used as there is no "
 		    "Slotted Aloha FIFO\n");
-		for(auto&& cat_it : sa_categories)
-		{
-			delete cat_it.second;
-		}
 		return true;
 	}
 
-	for(auto&& cat_it : sa_categories)
-	{
-		if(cat_it.second->getLabel() != tal_category->getLabel())
-		{
-			delete cat_it.second;
-		}
-	}
-
 	// Create the Slotted ALoha part
-	this->saloha = new SlottedAlohaTal();
-	if(!this->saloha)
+	std::unique_ptr<SlottedAlohaTal> saloha;
+	try
+	{
+		saloha = std::make_unique<SlottedAlohaTal>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create Slotted Aloha\n");
@@ -1054,11 +1014,10 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->ret_up_frame_duration, this->pkt_hdl))
+	if(!saloha->initParent(this->ret_up_frame_duration, this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Slotted Aloha Tal Initialization failed.\n");
-		delete this->saloha;
 		return false;
 	}
 
@@ -1066,32 +1025,27 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get 'burst length' value");
-		delete this->saloha;
 		return false;
 	}
-	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration, 0, length_sym);
 
-	if(!this->saloha->init(this->mac_id,
-	                       tal_category,
-	                       this->dvb_fifos,
-	                       converter))
+	UnitConverterFixedSymbolLength converter{this->ret_up_frame_duration, 0, length_sym};
+	if(!saloha->init(this->mac_id,
+	                 tal_category,
+	                 this->dvb_fifos,
+	                 converter))
 	{
-		delete converter;
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the Slotted Aloha Tal\n");
-		delete this->saloha;
 		return false;
 	}
 
-	delete converter;
+	this->saloha = std::move(saloha);
 	return true;
 }
 
 
 bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 {
-	bool success = false;
-
 	//  Duration of the carrier -- in ms
 	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent(disable_control_plane ? "access2" : "access");
 	auto duration = access->getComponent("scpc")->getParameter("carrier_duration");
@@ -1121,7 +1075,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 
 	TerminalCategories<TerminalCategoryDama> scpc_categories{};
 	TerminalMapping<TerminalCategoryDama> terminal_affectation{};
-	TerminalCategoryDama *default_category{nullptr};
+	std::shared_ptr<TerminalCategoryDama> default_category{nullptr};
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
 	                                         AccessType::SCPC,
@@ -1130,7 +1084,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	                                         this->s2_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
-	                                         &default_category,
+	                                         default_category,
 	                                         this->ret_fmt_groups))
 	{
 		LOG(this->log_init, LEVEL_WARNING,
@@ -1148,7 +1102,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	}
 
 	// Find the category for this terminal
-	TerminalCategoryDama *tal_category{nullptr};
+	std::shared_ptr<TerminalCategoryDama> tal_category{nullptr};
 	auto tal_map_it = terminal_affectation.find(this->mac_id);
 	if(tal_map_it == terminal_affectation.end())
 	{
@@ -1157,7 +1111,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 		{
 			LOG(this->log_init, LEVEL_INFO,
 			    "ST not affected to a SCPC category\n");
-			goto error;
+			return false;
 		}
 		tal_category = default_category;
 	}
@@ -1174,7 +1128,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Remove SCPC FIFOs because there is no "
 		    "SCPC carrier in the return_up_band configuration\n");
-		goto error;
+		return false;
 	}
 
 	// Check if there are DAMA or SALOHA FIFOs in the terminal
@@ -1183,24 +1137,24 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Conflict: SCPC FIFOs and DAMA or SALOHA FIFOs "
 		    "in the same Terminal\n");
-		goto error;
+		return false;
 	}
 
 	//TODO: veritfy that 2ST are not using the same carrier and category
 
 	// Initialise Encapsulation scheme
-	if(!this->initScpcPktHdl(&this->pkt_hdl))
+	if(!this->initScpcPktHdl(this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler\n");
-		goto error;
+		return false;
 	}
 
-	if(!this->initModcodDefFile(MODCOD_DEF_S2, &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the return MODCOD definition file for SCPC\n");
-		goto error;
+		return false;
 	}
 
 	// register GW
@@ -1209,33 +1163,28 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to register simulated ST with MAC "
 		    "ID %u\n", this->tal_id);
-		goto error;
+		return false;
 	}
 
 	// Create the SCPC scheduler
-	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration,
-	                                      this->pkt_hdl,
-	                                      this->dvb_fifos,
-	                                      this->output_sts,
-	                                      this->s2_modcod_def,
-	                                      scpc_categories.begin()->second,
-	                                      this->gw_id);
-	if(!this->scpc_sched)
+	try
+	{
+		this->scpc_sched = std::make_unique<ScpcScheduling>(this->scpc_carr_duration,
+	                                                        this->pkt_hdl,
+	                                                        this->dvb_fifos,
+	                                                        this->output_sts,
+	                                                        this->s2_modcod_def,
+	                                                        scpc_categories.begin()->second,
+	                                                        this->gw_id);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize SCPC\n");
-		goto error;
+		return false;
 	}
-	scpc_categories.begin()->second = nullptr;
-	success = true;
 
-error:
-	terminal_affectation.clear();
-	for (auto&& category : scpc_categories)
-	{
-		delete category.second;
-	}
-	return success;
+	return true;
 }
 
 
@@ -1286,7 +1235,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initOutput()
 		this->log_saloha = output->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 	}
 
-	for(auto&& [qos_id, fifo]: this->dvb_fifos)
+	for(auto&& [qos_id, fifo]: *(this->dvb_fifos))
 	{
 		std::string fifo_name = fifo->getName();
 
@@ -1413,7 +1362,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const TimerEvent& event)
 		// TODO we should send packets containing CNI extension with
 		//      the most robust MODCOD
 		if(!this->scpc_sched->schedule(this->scpc_frame_counter,
-		                               &this->complete_dvb_frames,
+		                               this->complete_dvb_frames,
 		                               remaining_alloc_sym))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -1475,7 +1424,6 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 	unsigned int sa_burst_size = burst->length(); // burst size
 	unsigned int sa_offset = 0; // packet position (offset) in the burst
 
-	sa_burst_size = burst->length();
 	LOG(this->log_receive, LEVEL_INFO,
 	    "SF#%u: encapsulation burst received (%d "
 	    "packets)\n", this->super_frame_counter,
@@ -1492,11 +1440,11 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 
 		// find the FIFO associated to the IP QoS (= MAC FIFO id)
 		// else use the default id
-		auto fifo_it = this->dvb_fifos.find(fifo_priority);
-		if(fifo_it == this->dvb_fifos.end())
+		auto fifo_it = this->dvb_fifos->find(fifo_priority);
+		if(fifo_it == this->dvb_fifos->end())
 		{
 			fifo_priority = this->default_fifo_id;
-			fifo_it = this->dvb_fifos.find(this->default_fifo_id);
+			fifo_it = this->dvb_fifos->find(this->default_fifo_id);
 		}
 
 		// Slotted Aloha
@@ -1549,7 +1497,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 		       " <Sender>CrossLayer</Sender>\n"
 		       " <Type type=\"CrossLayer\" >\n"
 		       "  <Infos ";
-		for (auto const& it : this->dvb_fifos)
+		for (auto const& it : *(this->dvb_fifos))
 		{
 			uint32_t nbFreeFrames = it.second->getMaxSize() - it.second->getCurrentSize();
 			// bits
@@ -1582,7 +1530,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::addCniExt()
 	bool in_fifo = false;
 
 	// Create list of first packet from FIFOs
-	for (auto&& [qos, fifo]: dvb_fifos)
+	for (auto&& [qos, fifo]: *dvb_fifos)
 	{
 		for (auto it = fifo->wbegin(); it != fifo->wend(); ++it)
 		{
@@ -1630,8 +1578,9 @@ bool Rt::DownwardChannel<BlockDvbTal>::addCniExt()
 			return false;
 		}
 
+		fifos_t &fifos = *(this->dvb_fifos);
 		// highest priority fifo
-		this->dvb_fifos[0]->push(std::move(scpc_packet), time_ms_t::zero());
+		fifos[0]->push(std::move(scpc_packet), time_ms_t::zero());
 
 		LOG(this->log_send_channel, LEVEL_DEBUG,
 		    "SF #%d: adding empty packet into FIFO NM\n",
@@ -1887,12 +1836,12 @@ bool Rt::DownwardChannel<BlockDvbTal>::handleStartOfFrame(Ptr<DvbFrame> dvb_fram
 		this->deletePackets();
 		if(!this->sendLogonReq())
 		{
-			goto error;
+			return false;
 		}
 
 		this->state = TalState::wait_logon_resp;
 		this->super_frame_counter = sfn;
-		goto error;
+		return false;
 	}
 
 	// update the frame numerotation
@@ -1901,7 +1850,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::handleStartOfFrame(Ptr<DvbFrame> dvb_fram
 	// Inform dama agent
 	if(this->dama_agent && !this->dama_agent->hereIsSOF(sfn))
 	{
-		goto error;
+		return false;
 	}
 
 	// There is a risk of unprecise timing so the following hack
@@ -1918,7 +1867,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::handleStartOfFrame(Ptr<DvbFrame> dvb_fram
 		LOG(this->log_frame_tick, LEVEL_ERROR,
 		    "SF#%u: treatments failed\n",
 		    this->super_frame_counter);
-		goto error;
+		return false;
 	}
 
 	if(this->saloha)
@@ -1930,14 +1879,11 @@ bool Rt::DownwardChannel<BlockDvbTal>::handleStartOfFrame(Ptr<DvbFrame> dvb_fram
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "SF#%u: failed to process Slotted Aloha frame tick\n",
 			    this->super_frame_counter);
-			goto error;
+			return false;
 		}
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 
@@ -1965,7 +1911,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::processOnFrameTick()
 		// ---------- schedule and send data frames ---------
 		// schedule packets extracted from DVB FIFOs according to
 		// the algorithm defined in DAMA agent
-		if(!this->dama_agent->returnSchedule(&this->complete_dvb_frames))
+		if(!this->dama_agent->returnSchedule(this->complete_dvb_frames))
 		{
 			LOG(this->log_frame_tick, LEVEL_ERROR,
 			    "SF#%u: failed to schedule packets from DVB "
@@ -2037,7 +1983,7 @@ void Rt::DownwardChannel<BlockDvbTal>::updateStats()
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
-	for(auto&& [qos_id, fifo]: this->dvb_fifos)
+	for(auto&& [qos_id, fifo]: *(this->dvb_fifos))
 	{
 		fifo->getStatsCxt(fifo_stat);
 
@@ -2238,7 +2184,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 
 void Rt::DownwardChannel<BlockDvbTal>::deletePackets()
 {
-	for(auto&& it : this->dvb_fifos)
+	for(auto&& it : *(this->dvb_fifos))
 	{
 		it.second->flush();
 	}
@@ -2267,13 +2213,6 @@ Rt::UpwardChannel<BlockDvbTal>::UpwardChannel(const std::string &name, dvb_speci
 	disable_control_plane{specific.disable_control_plane},
 	disable_acm_loop{specific.disable_acm_loop}
 {
-}
-
-
-Rt::UpwardChannel<BlockDvbTal>::~UpwardChannel()
-{
-	// release the reception DVB standards
-	delete this->reception_std;
 }
 
 
@@ -2419,11 +2358,9 @@ bool Rt::UpwardChannel<BlockDvbTal>::onInit()
 //      dedicated to each host ?
 bool Rt::UpwardChannel<BlockDvbTal>::initMode()
 {
-	DvbS2Std *reception_std;
-
 	try
 	{
-		reception_std = new DvbS2Std(this->pkt_hdl);
+		this->reception_std = std::make_unique<DvbS2Std>(this->pkt_hdl);
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -2432,8 +2369,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::initMode()
 		return false;
 	}
 
-	reception_std->setModcodDef(this->s2_modcod_def);
-	this->reception_std = reception_std;
+	this->reception_std->setModcodDef(&this->s2_modcod_def);
 	return true;
 }
 
@@ -2449,8 +2385,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::initModcodSimu()
 	// 	return false;
 	// }
 
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD definition file\n");
@@ -2459,8 +2394,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::initModcodSimu()
 
 	if(this->is_scpc)
 	{
-		if(!this->initModcodDefFile(MODCOD_DEF_S2,
-		                            &this->s2_modcod_def))
+		if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to initialize the up/return MODCOD definition file\n");
@@ -2530,7 +2464,6 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 			}
 
 			Ptr<NetBurst> burst = make_ptr<NetBurst>(nullptr);
-			DvbS2Std *std = static_cast<DvbS2Std *>(this->reception_std);
 
 			// Update stats
 			auto message_length = dvb_frame->getMessageLength();
@@ -2538,9 +2471,9 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
 
 			// Set the real modcod of the ST
-			std->setRealModcod(this->getCurrentModcodIdInput(this->tal_id));
+			this->reception_std->setRealModcod(this->getCurrentModcodIdInput(this->tal_id));
 
-			if(!std->onRcvFrame(std::move(dvb_frame), this->tal_id, burst))
+			if(!this->reception_std->onRcvFrame(std::move(dvb_frame), this->tal_id, burst))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to handle the reception of "
@@ -2578,12 +2511,12 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 			if(!corrupted)
 			{
 				// update MODCOD probes
-				this->probe_st_received_modcod->put(std->getReceivedModcod());
+				this->probe_st_received_modcod->put(this->reception_std->getReceivedModcod());
 				this->probe_st_rejected_modcod->put(0);
 			}
 			else
 			{
-				this->probe_st_rejected_modcod->put(std->getReceivedModcod());
+				this->probe_st_rejected_modcod->put(this->reception_std->getReceivedModcod());
 				this->probe_st_received_modcod->put(0);
 			}
 

@@ -48,7 +48,7 @@ SlottedAloha::SlottedAloha():
 	sf_per_saframe(),
 	frame_duration(0),
 	is_parent_init(false),
-	pkt_hdl(NULL)
+	pkt_hdl(nullptr)
 {
 	this->log_saloha = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.init");
@@ -56,7 +56,7 @@ SlottedAloha::SlottedAloha():
 
 
 bool SlottedAloha::initParent(time_us_t frame_duration,
-                              EncapPlugin::EncapPacketHandler *const pkt_hdl)
+                              std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl)
 {
 	srand(time(nullptr));
 	this->frame_duration = frame_duration;

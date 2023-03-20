@@ -58,9 +58,9 @@ class OutputLog;
 class Scheduling
 {
 public:
-	Scheduling(EncapPlugin::EncapPacketHandler *packet_handler,
-	           const fifos_t &fifos,
-	           const StFmtSimuList *const simu_sts);
+	Scheduling(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+	           std::shared_ptr<fifos_t> fifos,
+	           std::shared_ptr<const StFmtSimuList> simu_sts);
 
 	virtual ~Scheduling() = default;
 
@@ -75,7 +75,7 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	virtual bool schedule(const time_sf_t current_superframe_sf,
-	                      std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
+	                      std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
 	                      uint32_t &remaining_allocation) = 0;
 
 	
@@ -91,11 +91,11 @@ public:
 
 protected:
 	/** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
 	/** The MAC FIFOs */
-	const fifos_t dvb_fifos;
+	std::shared_ptr<fifos_t> dvb_fifos;
 	/** The FMT simulated data */
-	const StFmtSimuList *const simu_sts;
+	std::shared_ptr<const StFmtSimuList> simu_sts;
 
 	/// Fragment of a packet that couldn't be scheduled
 	/// in a single call to schedule; saved for priority

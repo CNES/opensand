@@ -236,9 +236,9 @@ public:
 	 *
 	 * @return the context
 	 */
-	inline EncapContext *getContext() const
+	inline std::shared_ptr<EncapContext> getContext() const
 	{
-		return static_cast<EncapContext *>(this->context);
+		return std::static_pointer_cast<EncapContext>(this->context);
 	};
 
 	/**
@@ -246,14 +246,15 @@ public:
 	 *
 	 * @return the packet handler
 	 */
-	inline EncapPacketHandler *getPacketHandler() const
+	inline std::shared_ptr<EncapPacketHandler> getPacketHandler() const
 	{
-		return static_cast<EncapPacketHandler *>(this->packet_handler);
+		return std::static_pointer_cast<EncapPacketHandler>(this->packet_handler);
 	};
 
 };
 
-typedef std::vector<EncapPlugin::EncapContext *> encap_contexts_t;
+
+typedef std::vector<std::shared_ptr<EncapPlugin::EncapContext>> encap_contexts_t;
 
 
 #ifdef CREATE

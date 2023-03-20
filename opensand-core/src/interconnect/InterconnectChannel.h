@@ -72,7 +72,7 @@ class InterconnectChannel
 {
  public:
 	InterconnectChannel(std::string name, const InterconnectConfig &config);
-	virtual ~InterconnectChannel();
+	virtual ~InterconnectChannel() = default;
 
  protected:
 	/**
@@ -89,9 +89,9 @@ class InterconnectChannel
 	/// The interconnect interface IP address
 	std::string interconnect_addr;
 	/// The data channel
-	UdpChannel *data_channel;
+	std::unique_ptr<UdpChannel> data_channel;
 	/// The signalling channel
-	UdpChannel *sig_channel;
+	std::unique_ptr<UdpChannel> sig_channel;
 	/// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 };

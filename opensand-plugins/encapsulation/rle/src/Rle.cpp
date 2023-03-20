@@ -220,8 +220,8 @@ bool Rle::init(void)
 	}
 
 unload:
-	static_cast<Rle::PacketHandler *>(this->packet_handler)->loadRleConf(conf);
-	static_cast<Rle::Context *>(this->context)->loadRleConf(conf);
+	std::static_pointer_cast<Rle::PacketHandler>(this->packet_handler)->loadRleConf(conf);
+	std::static_pointer_cast<Rle::Context>(this->context)->loadRleConf(conf);
 	
 	return status;
 }

@@ -60,13 +60,8 @@ NccPepInterface::NccPepInterface():
  */
 NccPepInterface::~NccPepInterface()
 {
-	std::vector<PepRequest *>::iterator it;
-
 	// free all PEP requests stored in list
-	for(it = this->requests_list.begin();
-	    it != this->requests_list.end();
-		it = requests_list.erase(it));
-
+	this->requests_list.clear();
 	this->~NccInterface();
 }
 
@@ -121,29 +116,22 @@ pep_request_type_t NccPepInterface::getPepRequestType()
  * @return  the first request of the list of PEP requests,
  *          NULL if no request is available
  */
-PepRequest * NccPepInterface::getNextPepRequest()
+std::unique_ptr<PepRequest> NccPepInterface::getNextPepRequest()
 {
-	PepRequest *request;
-	std::vector<PepRequest *>::iterator it;
-
-	if(this->requests_list.empty())
-	{
-		request = NULL;
-	}
-	else
+	if (!this->requests_list.empty())
 	{
 		// get the first request of the list and make a copy of it.
 		// the erase() method calls the object's destructor,
 		// so we have to deference the request object in order to preserve it.
-		it = this->requests_list.begin();
-		request = *it;
-		*it = NULL; // FIXME *it = NULL before erase it ?
+		auto it = this->requests_list.begin();
+		std::unique_ptr<PepRequest> request = std::move(*it);
 
 		// remove the first request of the list
 		this->requests_list.erase(it);
+		return request;
 	}
 
-	return request;
+	return {nullptr};
 }
 
 
@@ -223,10 +211,8 @@ bool NccPepInterface::parsePepMessage(const Rt::Data& message, tal_id_t &tal_id)
 	Rt::DataStream stream(message);
 	while(stream.getline(cmd, 64))
 	{
-		PepRequest *request;
-
 		// parse the command
-		request = this->parsePepCommand(cmd);
+		std::unique_ptr<PepRequest> request = this->parsePepCommand(cmd);
 		if(!request)
 		{
 			LOG(this->log_ncc_interface, LEVEL_ERROR,
@@ -250,12 +236,11 @@ bool NccPepInterface::parsePepMessage(const Rt::Data& message, tal_id_t &tal_id)
 			    "command #%d is not of the same type "
 			    "as command #1, this is not accepted, "
 			    "so ignore the command\n", nb_cmds);
-			delete request;
 			continue;
 		}
 
 		// store the command parameters in context
-		this->requests_list.push_back(request);
+		this->requests_list.push_back(std::move(request));
 
 		nb_cmds++;
 	}
@@ -277,7 +262,7 @@ bool NccPepInterface::parsePepMessage(const Rt::Data& message, tal_id_t &tal_id)
  * @return          the created PEP request if command was successfully parsed,
  *                  NULL in case of failure
  */
-PepRequest * NccPepInterface::parsePepCommand(const Rt::Data& cmd)
+std::unique_ptr<PepRequest> NccPepInterface::parsePepCommand(const Rt::Data& cmd)
 {
 	Rt::IDataStream stream(cmd);
 	unsigned char c;        // the colon separator char
@@ -308,7 +293,7 @@ PepRequest * NccPepInterface::parsePepCommand(const Rt::Data& cmd)
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,
 		    "bad formated PEP command received: '%s'\n", cmd);
-		return nullptr;
+		return {nullptr};
 	}
 	else
 	{
@@ -323,7 +308,7 @@ PepRequest * NccPepInterface::parsePepCommand(const Rt::Data& cmd)
 		    "bad request type in PEP command '%s', "
 		    "should be %u or %u\n", cmd,
 		    PEP_REQUEST_ALLOCATION, PEP_REQUEST_RELEASE);
-		return nullptr;
+		return {nullptr};
 	}
 
 	LOG(this->log_ncc_interface, LEVEL_INFO,
@@ -333,5 +318,5 @@ PepRequest * NccPepInterface::parsePepCommand(const Rt::Data& cmd)
 	    st_id, cra, rbdc, rbdc_max);
 
 	// build PEP request object
-	return new PepRequest((pep_request_type_t) type, st_id, cra, rbdc, rbdc_max);
+	return std::make_unique<PepRequest>((pep_request_type_t) type, st_id, cra, rbdc, rbdc_max);
 }

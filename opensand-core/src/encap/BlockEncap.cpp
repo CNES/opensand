@@ -178,7 +178,7 @@ bool Rt::DownwardChannel<BlockEncap>::onEvent(const MessageEvent &event)
 }
 
 
-void Rt::DownwardChannel<BlockEncap>::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
+void Rt::DownwardChannel<BlockEncap>::setContext(const encap_contexts_t &encap_ctx)
 {
 	this->ctx = encap_ctx;
 }
@@ -201,7 +201,7 @@ bool Rt::UpwardChannel<BlockEncap>::onEvent(const MessageEvent &event)
 	InternalMessageType msg_type = to_enum<InternalMessageType>(event.getMessageType());
 	if(msg_type == InternalMessageType::link_up)
 	{
-		std::vector<EncapPlugin::EncapContext*>::iterator encap_it;
+		encap_contexts_t::iterator encap_it;
 
 		// 'link up' message received => forward it to upper layer
 		Ptr<T_LINK_UP> link_up_msg = event.getMessage<T_LINK_UP>();
@@ -284,9 +284,9 @@ bool Rt::UpwardChannel<BlockEncap>::onEvent(const MessageEvent &event)
 
 bool BlockEncap::onInit()
 {
-	std::vector <EncapPlugin::EncapContext *> up_return_ctx;
-	std::vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
-	std::vector <EncapPlugin::EncapContext *> down_forward_ctx;
+	encap_contexts_t up_return_ctx;
+	encap_contexts_t up_return_ctx_scpc;
+	encap_contexts_t down_forward_ctx;
 
 	this->upward.setMacId(this->mac_id);
 	
@@ -557,13 +557,13 @@ bool Rt::DownwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
 }
 
 
-void Rt::UpwardChannel<BlockEncap>::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
+void Rt::UpwardChannel<BlockEncap>::setContext(const encap_contexts_t &encap_ctx)
 {
 	this->ctx = encap_ctx;
 }
 
 
-void Rt::UpwardChannel<BlockEncap>::setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc)
+void Rt::UpwardChannel<BlockEncap>::setSCPCContext(const encap_contexts_t &encap_ctx_scpc)
 {
 	this->ctx_scpc = encap_ctx_scpc;
 	if (0 < this->ctx_scpc.size())
@@ -644,7 +644,7 @@ bool Rt::UpwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
 
 bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
                                  LanAdaptationPlugin *l_plugin,
-                                 std::vector <EncapPlugin::EncapContext *> &ctx,
+                                 encap_contexts_t &ctx,
                                  const char *link_type)
 {
 	EncapPlugin *plugin;
@@ -671,8 +671,6 @@ bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
 	// get all the encapsulation to use upper to lower
 	for(auto& encap_name : encapsulations)
 	{
-		EncapPlugin::EncapContext *context;
-		
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -681,10 +679,9 @@ bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
 			return false;
 		}
 
-		context = plugin->getContext();
+		std::shared_ptr<EncapPlugin::EncapContext> context = plugin->getContext();
 		ctx.push_back(context);
-		if(!context->setUpperPacketHandler(
-					upper_encap->getPacketHandler()))
+		if(!context->setUpperPacketHandler(upper_encap->getPacketHandler()))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "
@@ -704,7 +701,7 @@ bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
 
 
 bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
-                                     std::vector <EncapPlugin::EncapContext *> &ctx,
+                                     encap_contexts_t &ctx,
                                      const char *link_type)
 {
 
@@ -733,10 +730,9 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 			return false;
 		}
 
-		EncapPlugin::EncapContext *context = plugin->getContext();
+		std::shared_ptr<EncapPlugin::EncapContext> context = plugin->getContext();
 		ctx.push_back(context);
-		if(!context->setUpperPacketHandler(
-					upper_encap->getPacketHandler()))
+		if(!context->setUpperPacketHandler(upper_encap->getPacketHandler()))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "

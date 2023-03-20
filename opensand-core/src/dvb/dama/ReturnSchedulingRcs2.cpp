@@ -48,8 +48,8 @@
 constexpr const uint32_t max_allocation = 1U << (8 * sizeof(vol_kb_t));
 
 
-ReturnSchedulingRcs2::ReturnSchedulingRcs2(EncapPlugin::EncapPacketHandler *packet_handler,
-                                           const fifos_t &fifos):
+ReturnSchedulingRcs2::ReturnSchedulingRcs2(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+                                           std::shared_ptr<fifos_t> fifos):
 	Scheduling(packet_handler, fifos, nullptr),
 	max_burst_length_b(0)
 {
@@ -72,7 +72,7 @@ void ReturnSchedulingRcs2::setMaxBurstLength(vol_b_t length_b)
 
 
 bool ReturnSchedulingRcs2::schedule(const time_sf_t current_superframe_sf,
-                                    std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
+                                    std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                     uint32_t &remaining_allocation)
 {
 	if(remaining_allocation > max_allocation)
@@ -109,7 +109,7 @@ bool ReturnSchedulingRcs2::schedulePacket(const time_sf_t current_superframe_sf,
                                           unsigned int &complete_frames_count,
                                           vol_b_t &frame_length_b,
                                           vol_b_t &remaining_allocation_b,
-                                          std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
+                                          std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                           Rt::Ptr<DvbRcsFrame> &incomplete_dvb_frame,
                                           Rt::Ptr<NetPacket> encap_packet)
 {
@@ -214,7 +214,7 @@ bool ReturnSchedulingRcs2::schedulePacket(const time_sf_t current_superframe_sf,
 			    complete_frames_count + 1);
 
 			// Store DVB-RCS2 frame with completed frames
-			complete_dvb_frames->push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
+			complete_dvb_frames.push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
 			complete_frames_count++;
 			remaining_allocation_b -= std::min(frame_length_b, remaining_allocation_b);
 			LOG(this->log_scheduling, LEVEL_DEBUG,
@@ -259,7 +259,7 @@ bool ReturnSchedulingRcs2::schedulePacket(const time_sf_t current_superframe_sf,
 
 
 bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
-                                       std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
+                                       std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                        vol_b_t &remaining_allocation_b)
 {
 	Rt::Ptr<DvbRcsFrame> incomplete_dvb_frame = Rt::make_ptr<DvbRcsFrame>(nullptr);
@@ -312,27 +312,27 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 		return false;
 	}
 
-	for (auto&& fifo_it: this->dvb_fifos)
+	for (auto&& fifo_it: *(this->dvb_fifos))
 	{
 		if (!remaining_allocation_b)
 		{
 			break;
 		}
 
-		DvbFifo *fifo = fifo_it.second;
-		if (fifo->getAccessType() == ForwardOrReturnAccessType{ReturnAccessType::saloha})
+		DvbFifo &fifo = *(fifo_it.second);
+		if (fifo.getAccessType() == ForwardOrReturnAccessType{ReturnAccessType::saloha})
 		{
 			// not the good fifo
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 			    "SF#%u: ignore MAC FIFO %s  "
 			    "not the right access type (%d)\n",
 			    current_superframe_sf,
-			    fifo->getName(),
-			    fifo->getAccessType());
+			    fifo.getName(),
+			    fifo.getAccessType());
 			continue;
 		}
 
-		for (auto &&elem: *fifo)
+		for (auto &&elem: fifo)
 		{
 			// FIFO with awaiting data
 			LOG(this->log_scheduling, LEVEL_DEBUG,
@@ -341,8 +341,8 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    "%u awaiting packets (remaining "
 			    "allocation = %d kbits)\n",
 			    current_superframe_sf,
-			    fifo->getName(),
-			    fifo->getCurrentSize(),
+			    fifo.getName(),
+			    fifo.getCurrentSize(),
 			    remaining_allocation_b / 1000);
 
 			Rt::Ptr<NetPacket> encap_packet = elem->releaseElem<NetPacket>();
@@ -389,7 +389,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    complete_frames_count + 1);
 
 			// Store DVB-RCS2 frame with completed frames
-			complete_dvb_frames->push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
+			complete_dvb_frames.push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
 			complete_frames_count++;
 			remaining_allocation_b = (vol_b_t)std::max((int)(remaining_allocation_b - frame_length_b), 0);
 			LOG(this->log_scheduling, LEVEL_DEBUG,

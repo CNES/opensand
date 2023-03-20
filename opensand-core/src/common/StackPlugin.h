@@ -78,7 +78,7 @@ public:
 		/**
 		 * @brief StackPacketHandler destructor
 		 */
-		virtual ~StackPacketHandler();
+		virtual ~StackPacketHandler() = default;
 
 		/**
 		 * @brief get the packet length if constant
@@ -199,13 +199,12 @@ public:
 		/**
 		 * @brief StackContext destructor
 		 */
-		virtual ~StackContext();
+		virtual ~StackContext() = default;
 
 		/**
 		 * Encapsulate some packets into one or several packets.
 		 * The function returns a context ID and expiration time map.
 		 * It's the caller charge to arm the timers to manage contextis expiration.
-		 * It's also the caller charge to delete the returned NetBurst after use.
 		 *
 		 * @param burst        the packets to encapsulate
 		 * @param time_contexts a map of time and context ID where:
@@ -229,7 +228,6 @@ public:
 
 		/**
 		 * Deencapsulate some packets into one or several packets.
-		 * It's the caller charge to delete the returned NetBurst after use.
 		 *
 		 * @param burst   the stack packets to deencapsulate
 		 * @return        a list of packets
@@ -255,7 +253,7 @@ public:
 		 * @param pkt_hdl  The encapsulated packet handler
 		 * @return true if this type of packet can be encapsulated, false otherwise
 		 */
-		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl);
+		virtual bool setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl);
 
 		/**
 		 * @brief Update statistics periodically
@@ -296,7 +294,7 @@ public:
 
 	protected:
 		/// the current upper encapsulation protocol EtherType
-		StackPlugin::StackPacketHandler *current_upper;
+		std::shared_ptr<StackPlugin::StackPacketHandler> current_upper;
 
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
@@ -315,21 +313,21 @@ public:
 	/**
 	 * @brief StackPlugin destructor
 	 */
-	virtual ~StackPlugin();
+	virtual ~StackPlugin() = default;
 
 	/**
 	 * @brief Get the encapsulation context
 	 *
 	 * @return the context
 	 */
-	StackContext *getContext() const;
+	std::shared_ptr<StackContext> getContext() const;
 
 	/**
 	 * @brief Get the encapsulation packet handler
 	 *
 	 * @return the packet handler
 	 */
-	StackPacketHandler *getPacketHandler() const;
+	std::shared_ptr<StackPacketHandler> getPacketHandler() const;
 
 	/**
 	 * @brief Get The plugin name
@@ -347,8 +345,8 @@ public:
 	static OpenSandPlugin *create(const std::string &name)
 	{
 		Plugin *plugin = new Plugin();
-		Context *context = new Context(*plugin);
-		Handler *handler = new Handler(*plugin);
+		auto context = std::make_shared<Context>(*plugin);
+		auto handler = std::make_shared<Handler>(*plugin);
 		plugin->context = context;
 		plugin->packet_handler = handler;
 		plugin->name = name;
@@ -386,17 +384,14 @@ protected:
 	std::vector<std::string> upper;
 
 	/// The context
-	StackContext *context;
+	std::shared_ptr<StackContext> context;
 
 	/// The packet handler
-	StackPacketHandler *packet_handler;
+	std::shared_ptr<StackPacketHandler> packet_handler;
 
 	/// Output Logs
 	std::shared_ptr<OutputLog> log;
 };
-
-
-using stack_contexts_t = std::vector<StackPlugin::StackContext *>;
 
 
 /// Define the function that will create the plugin class

@@ -44,20 +44,12 @@
  * Create an empty set of satellite carrier channels
  */
 sat_carrier_channel_set::sat_carrier_channel_set(tal_id_t tal_id):
-	std::vector < UdpChannel * >(),
+	std::vector<std::unique_ptr<UdpChannel>>(),
 	tal_id(tal_id)
 {
 	auto output = Output::Get();
 	this->log_init = output->registerLog(LEVEL_WARNING, "Sat_Carrier.init");
 	this->log_sat_carrier = output->registerLog(LEVEL_WARNING, "Sat_Carrier.Channel");
-}
-
-sat_carrier_channel_set::~sat_carrier_channel_set()
-{
-	std::vector < UdpChannel * >::iterator it;
-
-	for(it = this->begin(); it != this->end(); it++)
-		delete(*it);
 }
 
 
@@ -82,27 +74,26 @@ bool sat_carrier_channel_set::readCarrier(const std::string &local_ip_addr,
 
 	// create a new udp channel configure it, with information from file
 	// and insert it in the channels vector
-	UdpChannel *channel = new UdpChannel("Sat_Carrier",
-	                                     gw_id,
-	                                     carrier_id,
-	                                     is_input,
-	                                     !is_input,
-	                                     carrier_port,
-	                                     carrier_multicast,
-	                                     local_ip_addr,
-	                                     carrier_ip,
-	                                     carrier.udp_stack,
-	                                     carrier.udp_rmem,
-	                                     carrier.udp_wmem);
+	auto channel = std::make_unique<UdpChannel>("Sat_Carrier",
+	                                            gw_id,
+	                                            carrier_id,
+	                                            is_input,
+	                                            !is_input,
+	                                            carrier_port,
+	                                            carrier_multicast,
+	                                            local_ip_addr,
+	                                            carrier_ip,
+	                                            carrier.udp_stack,
+	                                            carrier.udp_rmem,
+	                                            carrier.udp_wmem);
 
 	if(!channel->isInit())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create UDP channel %d\n", carrier_id);
-		delete channel;
 		return false;
 	}
-	this->push_back(channel);
+	this->push_back(std::move(channel));
 
 	return true;
 }

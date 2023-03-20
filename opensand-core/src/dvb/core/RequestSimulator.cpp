@@ -85,10 +85,6 @@ RequestSimulator::~RequestSimulator()
 	}
 	
 	// delete fifos
-	for (auto &&[qos, fifo]: this->dvb_fifos)
-	{
-		delete fifo;
-	}
 	this->dvb_fifos.clear();
 }
 

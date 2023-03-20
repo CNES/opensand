@@ -109,7 +109,7 @@ void BlockLanAdaptation::generateConfiguration()
 bool BlockLanAdaptation::onInit()
 {
 	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
-	LanAdaptationPlugin::LanAdaptationContext *context = plugin->getContext();
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext> context = plugin->getContext();
 	if(!context->setUpperPacketHandler(nullptr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

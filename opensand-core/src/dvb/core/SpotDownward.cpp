@@ -57,9 +57,9 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            time_us_t fwd_down_frame_duration,
                            time_us_t ret_up_frame_duration,
                            time_ms_t stats_period,
-                           EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           StFmtSimuList *input_sts,
-                           StFmtSimuList *output_sts):
+                           std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+                           std::shared_ptr<StFmtSimuList> input_sts,
+                           std::shared_ptr<StFmtSimuList> output_sts):
 	DvbChannel(),
 	DvbFmt(),
 	dama_ctrl(nullptr),
@@ -106,38 +106,15 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 SpotDownward::~SpotDownward()
 {
 	this->categories.clear();
-
-	delete this->dama_ctrl;
-
-	for (auto& it : this->scheduling)
-	{
-		delete it.second;
-	}
 	this->scheduling.clear();
-
 	this->complete_dvb_frames.clear();
-
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for (auto& it : this->fwd_fmt_groups)
-	{
-		delete it.second;
-	}
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for (auto& it : this->ret_fmt_groups)
-	{
-		delete it.second;
-	}
+	this->fwd_fmt_groups.clear();
+	this->ret_fmt_groups.clear();
 
 	// delete fifos
 	for (auto &&[label, fifos] : this->dvb_fifos)
 	{
-		for (auto &&[qos, fifo]: fifos)
-		{
-			delete fifo;
-		}
-		fifos.clear();
+		fifos->clear();
 	}
 	this->dvb_fifos.clear();
 
@@ -212,8 +189,7 @@ void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParam
 
 bool SpotDownward::onInit()
 {
-	if(!this->initPktHdl(EncapSchemeList::RETURN_UP,
-	                     &this->up_return_pkt_hdl))
+	if(!this->initPktHdl(EncapSchemeList::RETURN_UP, this->up_return_pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed get packet handler\n");
@@ -228,15 +204,14 @@ bool SpotDownward::onInit()
 	}
 
 	// Initialization of the modcod def
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
-	                            &this->rcs_modcod_def,
+	                            this->rcs_modcod_def,
 	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -314,7 +289,7 @@ bool SpotDownward::initMode()
 	                                         this->s2_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
-	                                         &this->default_category,
+	                                         this->default_category,
 	                                         this->fwd_fmt_groups))
 	{
 		return false;
@@ -327,11 +302,10 @@ bool SpotDownward::initMode()
 		bool is_vcm_carriers = false;
 		bool is_acm_carriers = false;
 		bool is_vcm_fifo = false;
-		fifos_t fifos;
+		std::shared_ptr<fifos_t> fifos = std::make_shared<fifos_t>();
 		std::string label;
-		Scheduling *schedule;
 
-		TerminalCategoryDama *cat = cat_it.second;
+		std::shared_ptr<TerminalCategoryDama> cat = cat_it.second;
 		label = cat->getLabel();
 		if(!this->initFifo(fifos))
 		{
@@ -339,12 +313,12 @@ bool SpotDownward::initMode()
 			    "failed initialize fifos for category %s\n", label.c_str());
 			return false;
 		}
-		this->dvb_fifos.insert({label, fifos});
+		this->dvb_fifos.emplace(label, fifos);
 
 		// check if there is VCM carriers in this category
 		for (auto&& carriers: cat->getCarriersGroups())
 		{
-			if(carriers->getVcmCarriers().size() > 1)
+			if(carriers.getVcmCarriers().size() > 1)
 			{
 				is_vcm_carriers = true;
 			}
@@ -354,7 +328,7 @@ bool SpotDownward::initMode()
 			}
 		}
 
-		for (auto&& [qos, fifo]: fifos)
+		for (auto&& [qos, fifo]: *fifos)
 		{
 			if(fifo->getAccessType() == ForwardAccessType::vcm)
 			{
@@ -384,20 +358,23 @@ bool SpotDownward::initMode()
 			}
 		}
 
-		schedule =  new ForwardSchedulingS2(this->fwd_down_frame_duration,
-		                                    this->pkt_hdl,
-		                                    this->dvb_fifos.at(label),
-		                                    this->output_sts,
-		                                    this->s2_modcod_def,
-		                                    cat, this->spot_id,
-		                                    true, this->mac_id, "");
-		if(!schedule)
+		try
+		{
+			auto schedule =  std::make_unique<ForwardSchedulingS2>(this->fwd_down_frame_duration,
+		                                                           this->pkt_hdl,
+		                                                           this->dvb_fifos.at(label),
+		                                                           this->output_sts,
+		                                                           this->s2_modcod_def,
+		                                                           cat, this->spot_id,
+		                                                           true, this->mac_id, "");
+			this->scheduling.emplace(label, std::move(schedule));
+		}
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed initialize forward scheduling for category %s\n", label.c_str());
 			return false;
 		}
-		this->scheduling.emplace(label, schedule);
 	}
 
 	return true;
@@ -415,7 +392,7 @@ bool SpotDownward::initDama()
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
-	TerminalCategoryDama *dc_default_category = nullptr;
+	std::shared_ptr<TerminalCategoryDama> dc_default_category = nullptr;
 
 	auto Conf = OpenSandModelConf::Get();
 
@@ -474,7 +451,7 @@ bool SpotDownward::initDama()
 	                                         this->rcs_modcod_def,
 	                                         dc_categories,
 	                                         dc_terminal_affectation,
-	                                         &dc_default_category,
+	                                         dc_default_category,
 	                                         this->ret_fmt_groups))
 	{
 		return false;
@@ -511,7 +488,7 @@ bool SpotDownward::initDama()
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
-		this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+		this->dama_ctrl = std::make_unique<DamaCtrlRcs2Legacy>(this->spot_id);
 	}
 	else
 	{
@@ -537,28 +514,23 @@ bool SpotDownward::initDama()
 	                                dc_terminal_affectation,
 	                                dc_default_category,
 	                                this->input_sts,
-	                                this->rcs_modcod_def,
-	                                (this->simulate == none_simu) ?
-	                                false : true))
+	                                &this->rcs_modcod_def,
+	                                this->simulate != none_simu))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Dama Controller Initialization failed.\n");
-		goto release_dama;
+		return false;
 	}
 
 	if(!this->dama_ctrl->init())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the DAMA controller\n");
-		goto release_dama;
+		return false;
 	}
 	this->dama_ctrl->setRecordFile(this->event_file);
 
 	return true;
-
-release_dama:
-	delete this->dama_ctrl;
-	return false;
 }
 
 
@@ -598,7 +570,7 @@ bool SpotDownward::initCarrierIds()
 }
 
 
-bool SpotDownward::initFifo(fifos_t &fifos)
+bool SpotDownward::initFifo(std::shared_ptr<fifos_t> fifos)
 {
 	unsigned int default_fifo_prio = 0;
 	std::map<std::string, int> fifo_ids;
@@ -666,13 +638,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 			goto err_fifo_release;
 		}
 
-		DvbFifo *fifo = new DvbFifo(fifo_priority, fifo_name, fifo_access_type, fifo_size);
+		auto fifo = std::make_unique<DvbFifo>(fifo_priority, fifo_name, fifo_access_type, fifo_size);
 
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Fifo priority = %u, FIFO name %s, size %u, "
 		    "access type %d\n",
 		    fifo->getPriority(),
-		    fifo->getName().c_str(),
+		    fifo->getName(),
 		    fifo->getMaxSize(),
 		    fifo->getAccessType());
 
@@ -687,17 +659,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 			this->default_fifo_id = fifo_id;
 		}
 
-		fifos.emplace(fifo_id, fifo);
+		fifos->emplace(fifo_id, std::move(fifo));
 	}
 
 	return true;
 
 err_fifo_release:
-	for (auto &&[qos, fifo]: fifos)
-	{
-		delete fifo;
-	}
-	fifos.clear();
+	fifos->clear();
 	return false;
 }
 
@@ -738,10 +706,10 @@ bool SpotDownward::initRequestSimulation()
 		}
 
 		this->simulate = file_simu;
-		this->request_simu = new FileSimulator(this->spot_id,
-		                                       this->mac_id,
-		                                       &this->event_file,
-		                                       simulation_file);
+		this->request_simu = std::make_unique<FileSimulator>(this->spot_id,
+		                                                     this->mac_id,
+		                                                     &this->event_file,
+		                                                     simulation_file);
 	}
 	else if(str_config == "Random")
 	{
@@ -789,15 +757,15 @@ bool SpotDownward::initRequestSimulation()
 		}
 
 		this->simulate = random_simu;
-		this->request_simu = new RandomSimulator(this->spot_id,
-		                                         this->mac_id,
-		                                         &this->event_file,
-		                                         simu_st,
-		                                         simu_rt,
-		                                         simu_rbdc,
-		                                         simu_vbdc,
-		                                         simu_cr,
-		                                         simu_interval);
+		this->request_simu = std::make_unique<RandomSimulator>(this->spot_id,
+		                                                       this->mac_id,
+		                                                       &this->event_file,
+		                                                       simu_st,
+		                                                       simu_rt,
+		                                                       simu_rbdc,
+		                                                       simu_vbdc,
+		                                                       simu_cr,
+		                                                       simu_interval);
 	}
 	else
 	{
@@ -822,7 +790,7 @@ bool SpotDownward::initOutput()
 
 	for (auto &&[cat_label, fifos]: dvb_fifos)
 	{
-		for (auto &&[qos_id, fifo]: fifos)
+		for (auto &&[qos_id, fifo]: *fifos)
 		{
 			std::string fifo_name = fifo->getName();
 
@@ -917,10 +885,10 @@ bool SpotDownward::handleEncapPacket(Rt::Ptr<NetPacket> packet)
 		return false;
 	}
 
-	auto fifo_it = fifos_it->second.find(fifo_priority);
-	if(fifo_it == fifos_it->second.end())
+	auto fifo_it = fifos_it->second->find(fifo_priority);
+	if(fifo_it == fifos_it->second->end())
 	{
-		fifo_it = fifos_it->second.find(this->default_fifo_id);
+		fifo_it = fifos_it->second->find(this->default_fifo_id);
 	}
 
 	if(!this->pushInFifo(*(fifo_it->second), std::move(packet), time_ms_t::zero()))
@@ -1028,7 +996,7 @@ void SpotDownward::updateStatistics()
 
 	for (auto &&[cat_label, fifos]: dvb_fifos)
 	{
-		for (auto &&[qos_id, fifo]: fifos)
+		for (auto &&[qos_id, fifo]: *fifos)
 		{
 			fifo->getStatsCxt(fifo_stat);
 
@@ -1178,14 +1146,11 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 	// schedule encapsulation packets
 	// TODO In regenerative mode we should schedule in frame_timer ??
 	// do not schedule on all categories, in regenerative we only schedule on the GW category
-	for (auto&& it : this->scheduling)
+	for (auto&& [label, scheduler]: this->scheduling)
 	{
 		uint32_t remaining_alloc_sym = 0;
-		std::string label = it.first;
-		Scheduling *scheduler = it.second;
-
 		if(!scheduler->schedule(this->fwd_frame_counter,
-		                        &this->complete_dvb_frames,
+		                        this->complete_dvb_frames,
 		                        remaining_alloc_sym))
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
@@ -1260,9 +1225,9 @@ bool SpotDownward::handleSac(Rt::Ptr<DvbFrame> dvb_frame)
 }
 
 
-bool SpotDownward::applyPepCommand(PepRequest *pep_request)
+bool SpotDownward::applyPepCommand(std::unique_ptr<PepRequest> pep_request)
 {
-	if(this->dama_ctrl->applyPepCommand(pep_request))
+	if(this->dama_ctrl->applyPepCommand(std::move(pep_request)))
 	{
 		LOG(this->log_receive_channel, LEVEL_NOTICE,
 		    "PEP request successfully "
@@ -1280,7 +1245,7 @@ bool SpotDownward::applyPepCommand(PepRequest *pep_request)
 }
 
 
-bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
+bool SpotDownward::applySvnoCommand(std::unique_ptr<SvnoRequest> svno_request)
 {
 	svno_request_type_t req_type = svno_request->getType();
 	band_t band = svno_request->getBand();
@@ -1344,7 +1309,7 @@ bool SpotDownward::addCniExt()
 	// Create list of first packet from FIFOs
 	for(auto&& [label, fifos]: this->dvb_fifos)
 	{
-		for(auto&& [qos, fifo] : fifos)
+		for(auto&& [qos, fifo] : *fifos)
 		{
 			for(auto elem_it = fifo->wbegin(); elem_it != fifo->wend(); ++elem_it)
 			{
@@ -1440,8 +1405,9 @@ bool SpotDownward::addCniExt()
 				return false;
 			}
 
+			fifos_t &fifos = *(fifos_it->second);
 			// highest priority fifo
-			(fifos_it->second)[0]->push(std::move(scpc_packet), time_ms_t::zero());
+			fifos[0]->push(std::move(scpc_packet), time_ms_t::zero());
 			LOG(this->log_send_channel, LEVEL_DEBUG,
 			    "SF #%d: adding empty packet into FIFO NM\n",
 			    this->super_frame_counter);

@@ -36,13 +36,14 @@
 
 
 #include <map>
+#include <memory>
 #include "OpenSandCore.h"
 
 
 class DvbFifo;
 
 
-using fifos_t = std::map<qos_t, DvbFifo *>;
+using fifos_t = std::map<qos_t, std::unique_ptr<DvbFifo>>;
 
 
 #endif

@@ -46,7 +46,7 @@
 class DamaAgentRcs2Legacy: public DamaAgentRcs2
 {
 public:
-	DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modoco_def);
+	DamaAgentRcs2Legacy(const FmtDefinitionTable &ret_modoco_def);
 	virtual ~DamaAgentRcs2Legacy();
 
 protected:

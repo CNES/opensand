@@ -70,16 +70,6 @@ BlockDvbNcc::BlockDvbNcc(const std::string &name, dvb_specific specific):
 }
 
 
-BlockDvbNcc::~BlockDvbNcc()
-{
-	delete this->input_sts;
-	this->input_sts = nullptr;
-
-	delete this->output_sts;
-	this->output_sts = nullptr;
-}
-
-
 void BlockDvbNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
 	SpotDownward::generateConfiguration(disable_ctrl_plane);
@@ -104,20 +94,26 @@ bool BlockDvbNcc::initListsSts()
 {
 	if (!this->input_sts)
 	{
-		this->input_sts = new StFmtSimuList("in");
-	}
-	if(!this->input_sts)
-	{
-		return false;
+		try
+		{
+			this->input_sts = std::make_shared<StFmtSimuList>("in");
+		}
+		catch (const std::bad_alloc&)
+		{
+			return false;
+		}
 	}
 
 	if(!this->output_sts)
 	{
-		this->output_sts = new StFmtSimuList("out");
-	}
-	if(!this->output_sts)
-	{
-		return false;
+		try
+		{
+			this->output_sts = std::make_shared<StFmtSimuList>("out");
+		}
+		catch (const std::bad_alloc&)
+		{
+			return false;
+		}
 	}
 
 	// input and output sts are shared between up and down
@@ -154,12 +150,6 @@ Rt::DownwardChannel<BlockDvbNcc>::DownwardChannel(const std::string &name, dvb_s
 }
 
 
-Rt::DownwardChannel<BlockDvbNcc>::~DownwardChannel()
-{
-	delete this->spot;
-}
-
-
 bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 {
 	// get the common parameters
@@ -182,14 +172,21 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 	LOG(this->log_init, LEVEL_DEBUG,
 	    "Create downward spot with ID %u\n", spot_id);
 
-	this->spot = new SpotDownward(this->spot_id,
-	                              this->mac_id,
-	                              this->fwd_down_frame_duration,
-	                              this->ret_up_frame_duration,
-	                              this->stats_period_ms,
-	                              this->pkt_hdl,
-	                              this->input_sts,
-	                              this->output_sts);
+	try
+	{
+		this->spot = std::make_unique<SpotDownward>(this->spot_id,
+		                                            this->mac_id,
+		                                            this->fwd_down_frame_duration,
+		                                            this->ret_up_frame_duration,
+		                                            this->stats_period_ms,
+		                                            this->pkt_hdl,
+		                                            this->input_sts,
+		                                            this->output_sts);
+	}
+	catch (const std::bad_alloc&)
+	{
+		this->spot = nullptr;
+	}
 
 	if (!spot || !spot->onInit()) {
 		LOG(this->log_init, LEVEL_ERROR,
@@ -561,13 +558,13 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const TimerEvent& event)
 		// it is time to apply the command sent by the external
 		// PEP component
 
-		PepRequest *pep_request;
+		std::unique_ptr<PepRequest> pep_request;
 
 		LOG(this->log_receive, LEVEL_NOTICE,
 		    "apply PEP requests now\n");
-		while((pep_request = this->pep_interface.getNextPepRequest()) != nullptr)
+		while((pep_request = this->pep_interface.getNextPepRequest()))
 		{
-			spot->applyPepCommand(pep_request);
+			spot->applyPepCommand(std::move(pep_request));
 		}
 	}
 
@@ -673,7 +670,7 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const NetSocketEvent& event)
 		// SVNO component, let's apply the resources
 		// allocations/releases they contain
 
-		SvnoRequest *request = this->svno_interface.getNextSvnoRequest();
+		std::unique_ptr<SvnoRequest> request = this->svno_interface.getNextSvnoRequest();
 		while(request != nullptr)
 		{
 			if(!spot)
@@ -683,13 +680,12 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const NetSocketEvent& event)
 				return false;
 			}
 
-			if(!spot->applySvnoCommand(request))
+			if(!spot->applySvnoCommand(std::move(request)))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "Cannot apply SVNO interface request\n");
 				return false;
 			}
-			delete request;
 			request = this->svno_interface.getNextSvnoRequest();
 		}
 	}
@@ -832,22 +828,23 @@ Rt::UpwardChannel<BlockDvbNcc>::UpwardChannel(const std::string &name, dvb_speci
 }
 
 
-Rt::UpwardChannel<BlockDvbNcc>::~UpwardChannel()
-{
-	delete this->spot;
-}
-
-
 bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 {
 	LOG(this->log_init, LEVEL_DEBUG,
 	    "Create upward spot with ID %u\n", spot_id);
 
 	// TODO: check if disable_control_plane is needed here
-	this->spot = new SpotUpward(this->spot_id,
-	                            this->mac_id,
-	                            this->input_sts,
-	                            this->output_sts);
+	try
+	{
+		this->spot = std::make_unique<SpotUpward>(this->spot_id,
+		                                          this->mac_id,
+		                                          this->input_sts,
+		                                          this->output_sts);
+	}
+	catch (const std::bad_alloc&)
+	{
+		this->spot = nullptr;
+	}
 
 	if(!spot || !spot->onInit())
 	{

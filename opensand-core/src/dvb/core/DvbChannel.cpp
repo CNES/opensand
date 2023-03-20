@@ -113,7 +113,7 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 }
 
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
-                            EncapPlugin::EncapPacketHandler **pkt_hdl)
+                            std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl)
 {
 	std::string encap_name;
 	EncapPlugin *plugin;
@@ -149,7 +149,7 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 		return false;
 	}
 
-	*pkt_hdl = plugin->getPacketHandler();
+	pkt_hdl = plugin->getPacketHandler();
 	if(!pkt_hdl)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -158,12 +158,12 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
-	    (*pkt_hdl)->getName().c_str());
+	    pkt_hdl->getName().c_str());
 
 	return true;
 }
 
-bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
+bool DvbChannel::initScpcPktHdl(std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl)
 {
 	std::vector<std::string> encap_stack;
 	std::string encap_name;
@@ -191,7 +191,7 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 		return false;
 	}
 
-	*pkt_hdl = plugin->getPacketHandler();
+	pkt_hdl = plugin->getPacketHandler();
 	if(!pkt_hdl)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -200,7 +200,7 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
-	    (*pkt_hdl)->getName().c_str());
+	    pkt_hdl->getName().c_str());
 
 	return true;
 }
@@ -223,7 +223,7 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 	    "frame duration set to %uμs\n",
 		this->ret_up_frame_duration.count());
 
-	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl))
+	if(!this->initPktHdl(encap_schemes, this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize packet handler\n");
@@ -290,30 +290,18 @@ bool DvbChannel::doSendStats(void)
 /***** DvbFmt ****/
 DvbFmt::DvbFmt():
 	input_sts(nullptr),
-	s2_modcod_def(nullptr),
+	s2_modcod_def(),
 	output_sts(nullptr),
-	rcs_modcod_def(nullptr),
+	rcs_modcod_def(),
 	log_fmt(nullptr)
 {
 	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fmt.Channel");
 }
 
-DvbFmt::~DvbFmt()
-{
-	if(this->s2_modcod_def)
-	{
-		delete this->s2_modcod_def;
-	}
-	if(this->rcs_modcod_def)
-	{
-		delete this->rcs_modcod_def;
-	}
-}
 
-bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length)
+bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable &modcod_def, vol_sym_t req_burst_length)
 {
 	auto Conf = OpenSandModelConf::Get();
-	*modcod_def = new FmtDefinitionTable();
 	std::vector<OpenSandModelConf::fmt_definition_parameters> modcod_params;
 
 	switch(def)
@@ -327,11 +315,11 @@ bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modco
 		}
 		for(auto& param : modcod_params)
 		{
-			if(!(*modcod_def)->add(new FmtDefinition(param.id,
-			                                         param.modulation_type,
-			                                         param.coding_type,
-			                                         param.spectral_efficiency,
-			                                         param.required_es_no)))
+			if(!modcod_def.add(std::make_unique<FmtDefinition>(param.id,
+			                                                   param.modulation_type,
+			                                                   param.coding_type,
+			                                                   param.spectral_efficiency,
+			                                                   param.required_es_no)))
 			{
 				LOG(this->log_fmt, LEVEL_ERROR,
 				    "failed to create MODCOD table for S2 waveforms\n");
@@ -348,12 +336,12 @@ bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modco
 		}
 		for(auto& param : modcod_params)
 		{
-			if(!(*modcod_def)->add(new FmtDefinition(param.id,
-			                                         param.modulation_type,
-			                                         param.coding_type,
-			                                         param.spectral_efficiency,
-			                                         param.required_es_no,
-			                                         req_burst_length)))
+			if(!modcod_def.add(std::make_unique<FmtDefinition>(param.id,
+			                                                   param.modulation_type,
+			                                                   param.coding_type,
+			                                                   param.spectral_efficiency,
+			                                                   param.required_es_no,
+			                                                   req_burst_length)))
 			{
 				LOG(this->log_fmt, LEVEL_ERROR,
 				    "failed to create MODCOD table for RCS2 waveforms\n");
@@ -369,51 +357,49 @@ bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modco
 	}
 }
 
-bool DvbFmt::addInputTerminal(tal_id_t id,
-                              const FmtDefinitionTable *const modcod_def)
+bool DvbFmt::addInputTerminal(tal_id_t id, const FmtDefinitionTable &modcod_def)
 {
 	// set less robust modcod at init
-	fmt_id_t modcod = modcod_def->getMaxId();
+	fmt_id_t modcod = modcod_def.getMaxId();
 	this->input_sts->addTerminal(id, modcod, modcod_def);
 	return true;
 }
 
 
-bool DvbFmt::addOutputTerminal(tal_id_t id,
-                               const FmtDefinitionTable *const modcod_def)
+bool DvbFmt::addOutputTerminal(tal_id_t id, const FmtDefinitionTable &modcod_def)
 {
 	// set less robust modcod at init
-	fmt_id_t modcod = modcod_def->getMaxId();
+	fmt_id_t modcod = modcod_def.getMaxId();
 	this->output_sts->addTerminal(id, modcod, modcod_def);
 	return true;
 }
 
 
-bool DvbFmt::delTerminal(tal_id_t st_id, StFmtSimuList *sts)
+bool DvbFmt::delTerminal(tal_id_t st_id, StFmtSimuList &sts)
 {
-	return sts->delTerminal(st_id);
+	return sts.delTerminal(st_id);
 }
 
 
 bool DvbFmt::delInputTerminal(tal_id_t id)
 {
-	return this->delTerminal(id, this->input_sts);
+	return this->delTerminal(id, *(this->input_sts));
 }
 
 
 bool DvbFmt::delOutputTerminal(tal_id_t id)
 {
-	return this->delTerminal(id, this->output_sts);
+	return this->delTerminal(id, *(this->output_sts));
 }
 
 
-void DvbFmt::setInputSts(StFmtSimuList *new_input_sts)
+void DvbFmt::setInputSts(std::shared_ptr<StFmtSimuList> new_input_sts)
 {
 	this->input_sts = new_input_sts;
 }
 
 
-void DvbFmt::setOutputSts(StFmtSimuList *new_output_sts)
+void DvbFmt::setOutputSts(std::shared_ptr<StFmtSimuList> new_output_sts)
 {
 	this->output_sts = new_output_sts;
 }
@@ -466,7 +452,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 	return this->output_sts->getCniHasChanged(tal_id);
 }
 
-Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
                                               Rt::Ptr<NetPacket> packet,
                                               tal_id_t source,
                                               tal_id_t dest,
@@ -545,10 +531,10 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
                           std::string section,
                           AccessType access_type,
                           time_us_t duration,
-                          const FmtDefinitionTable *fmt_def,
+                          const FmtDefinitionTable &fmt_def,
                           TerminalCategories<T> &categories,
                           TerminalMapping<T> &terminal_affectation,
-                          T **default_category,
+                          std::shared_ptr<T> &default_category,
                           fmt_groups_t &fmt_groups)
 {
 	// Get the value of the bandwidth
@@ -565,11 +551,11 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 	for (auto& carrier : spot.carriers) {
 		bool is_vcm = carrier.format_ratios.size() > 1;
 		for (auto& format_ratios : carrier.format_ratios) {
-			FmtGroup *group = nullptr;
+			std::shared_ptr<FmtGroup> group = nullptr;
 			std::string fmt_ids = format_ratios.first;
 			if (carrier.access_type == access_type) {
 				// we won't initialize FMT group here for other access
-				group = new FmtGroup(++group_id, fmt_ids, fmt_def);
+				group = std::make_shared<FmtGroup>(++group_id, fmt_ids, fmt_def);
 				fmt_groups[group_id] = group;
 
 				auto modcod_amount = group->getFmtIds().size();
@@ -600,16 +586,16 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 			// we also create categories with wrong access type because:
 			//  - we may have many access types in the category
 			//  - we need to get all carriers for band computation
-			T *category;
+			std::shared_ptr<T> category;
 			auto cat_iter = categories.find(name);
 			if(cat_iter == categories.end())
 			{
-				category = new T(name, access_type);
-				categories[name] = category;
+				category = std::make_shared<T>(name, access_type);
+				categories.emplace(name, category);
 			}
 			else
 			{
-				category = dynamic_cast<T *>(cat_iter->second);
+				category = cat_iter->second;
 			}
 			category->addCarriersGroup(carrier_id,
 			                           group, ratio,
@@ -632,16 +618,15 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 	// delete category with no carriers corresponding to the access type
 	while(cat_iter != categories.end())
 	{
-		T *category = (*cat_iter).second;
+		std::shared_ptr<T> category = cat_iter->second;
 		// getCarriersNumber returns the number of carriers with the desired
 		// access type only
 		if(!category->getCarriersNumber())
 		{
 			LOG(this->log_init_channel, LEVEL_INFO,
 			    "Skip category %s with no carriers with desired access type\n",
-			    category->getLabel().c_str());
+			    category->getLabel());
 			categories.erase(cat_iter++);
-			delete category;
 		}
 		else
 		{
@@ -669,39 +654,35 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 	}
 
 	// Look for associated category
-	*default_category = nullptr;
+	default_category = nullptr;
 	cat_iter = categories.find(default_category_name);
 	if(cat_iter != categories.end())
 	{
-		*default_category = (*cat_iter).second;
+		default_category = cat_iter->second;
 	}
-	if(*default_category == nullptr)
+	if(default_category == nullptr)
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Section %s, could not find category %s, "
 		    "no default category for access type %u\n",
-		    section.c_str(),
-		    default_category_name.c_str(), access_type);
+		    section,
+		    default_category_name,
+		    access_type);
 	}
 	else
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "ST default category: %s in %s\n",
-		    (*default_category)->getLabel().c_str(),
-		    section.c_str());
+		    default_category->getLabel(),
+		    section);
 	}
 
 	for (auto& terminal : terminals)
 	{
 		tal_id_t tal_id = terminal.first;
 		std::string name = terminal.second.second;
-		T *category = nullptr;
 		cat_iter = categories.find(name);
-		if (cat_iter != categories.end())
-		{
-			category = cat_iter->second;
-		}
-		if (category == nullptr)
+		if (cat_iter == categories.end())
 		{
 			LOG(this->log_init_channel, LEVEL_NOTICE,
 			    "Could not find category %s for terminal %u affectation, "
@@ -709,11 +690,11 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 			    name.c_str(), tal_id);
 			// keep the NULL affectation for this terminal to avoid
 			// setting default category
-			terminal_affectation[tal_id] = nullptr;
+			terminal_affectation.emplace(tal_id, nullptr);
 		}
 		else
 		{
-			terminal_affectation[tal_id] = category;
+			terminal_affectation.emplace(tal_id, cat_iter->second);
 			LOG(this->log_init_channel, LEVEL_INFO,
 			    "%s: terminal %u will be affected to category %s\n",
 			    section.c_str(), tal_id, name.c_str());
@@ -724,24 +705,24 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 }
 template bool DvbChannel::initBand(
 		const OpenSandModelConf::spot &spot,
-	   	std::string section,
-	   	AccessType access_type,
-	   	time_us_t duration,
-	   	const FmtDefinitionTable *fmt_def,
-	   	TerminalCategories<TerminalCategoryDama> &categories,
-	   	TerminalMapping<TerminalCategoryDama> &terminal_affectation,
-	   	TerminalCategoryDama **default_category,
-	   	fmt_groups_t &fmt_groups);
+		std::string section,
+		AccessType access_type,
+		time_us_t duration,
+		const FmtDefinitionTable &fmt_def,
+		TerminalCategories<TerminalCategoryDama> &categories,
+		TerminalMapping<TerminalCategoryDama> &terminal_affectation,
+		std::shared_ptr<TerminalCategoryDama> &default_category,
+		fmt_groups_t &fmt_groups);
 template bool DvbChannel::initBand(
 		const OpenSandModelConf::spot &spot,
-	   	std::string section,
-	   	AccessType access_type,
-	   	time_us_t duration,
-	   	const FmtDefinitionTable *fmt_def,
-	   	TerminalCategories<TerminalCategorySaloha> &categories,
-	   	TerminalMapping<TerminalCategorySaloha> &terminal_affectation,
-	   	TerminalCategorySaloha **default_category,
-	   	fmt_groups_t &fmt_groups);
+		std::string section,
+		AccessType access_type,
+		time_us_t duration,
+		const FmtDefinitionTable &fmt_def,
+		TerminalCategories<TerminalCategorySaloha> &categories,
+		TerminalMapping<TerminalCategorySaloha> &terminal_affectation,
+		std::shared_ptr<TerminalCategorySaloha> &default_category,
+		fmt_groups_t &fmt_groups);
 
 
 template<class T>
@@ -755,10 +736,8 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	// compute weighted sum
 	for (auto&& category_it : categories)
 	{
-		T *category = category_it.second;
-
 		// Compute weighted sum in ks/s since available bandplan is in kHz.
-		weighted_sum_ksymps += category->getWeightedSum();
+		weighted_sum_ksymps += category_it.second->getWeightedSum();
 	}
 
 	LOG(this->log_init_channel, LEVEL_DEBUG,
@@ -775,7 +754,7 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	for (auto&& category_it : categories)
 	{
 		unsigned int carriers_number = 0;
-		T *category = category_it.second;
+		std::shared_ptr<T> category = category_it.second;
 		unsigned int ratio = category->getRatio();
 
 		carriers_number = round(
@@ -801,14 +780,14 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 }
 template bool DvbChannel::computeBandplan(
 		freq_khz_t available_bandplan_khz,
-	   	double roll_off,
-	   	time_us_t duration,
-	   	TerminalCategories<TerminalCategoryDama> &categories);
+		double roll_off,
+		time_us_t duration,
+		TerminalCategories<TerminalCategoryDama> &categories);
 template bool DvbChannel::computeBandplan(
 		freq_khz_t available_bandplan_khz,
-	   	double roll_off,
-	   	time_us_t duration,
-	   	TerminalCategories<TerminalCategorySaloha> &categories);
+		double roll_off,
+		time_us_t duration,
+		TerminalCategories<TerminalCategorySaloha> &categories);
 
 
 template<class T>
@@ -819,7 +798,7 @@ bool DvbChannel::allocateBand(time_us_t duration,
 {
 	// Category SNO (the default one)
 	std::string cat_sno_label ("SNO");
-	typename std::map<std::string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
+	auto cat_sno_it = categories.find(cat_sno_label);
 	if(cat_sno_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -827,10 +806,10 @@ bool DvbChannel::allocateBand(time_us_t duration,
 		    cat_sno_label.c_str());
 		return false;
 	}
-	T* cat_sno = cat_sno_it->second;
+	std::shared_ptr<T> cat_sno = cat_sno_it->second;
 
 	// The category we are interesting on
-	typename std::map<std::string, T*>::iterator cat_it = categories.find(cat_label);
+	auto cat_it = categories.find(cat_label);
 	if(cat_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -838,11 +817,10 @@ bool DvbChannel::allocateBand(time_us_t duration,
 		    cat_label.c_str());
 		return false; //TODO or create it ?
 	}
-	T* cat = cat_it->second;
+	std::shared_ptr<T> cat = cat_it->second;
 
 	// Fmt
-	const FmtDefinitionTable* fmt_definition_table;
-	const FmtGroup* cat_fmt_group = cat->getFmtGroup();
+	std::shared_ptr<const FmtGroup> cat_fmt_group = cat->getFmtGroup();
 
 	unsigned int id;
 	rate_symps_t new_rs;
@@ -851,13 +829,9 @@ bool DvbChannel::allocateBand(time_us_t duration,
 	rate_symps_t rs_needed;
 	std::map<rate_symps_t, unsigned int> carriers;
 
-
-	// Get the FMT Definition Table
-	fmt_definition_table = cat_fmt_group->getModcodDefinitions();
-
 	// Get the new total symbol rate
 	id = cat_fmt_group->getMaxFmtId();
-	new_rs = fmt_definition_table->kbitsToSym(id, new_rate_kbps);
+	new_rs = cat_fmt_group->getModcodDefinitions().kbitsToSym(id, new_rate_kbps);
 
 	// Get the old total symbol rate
 	old_rs = cat->getTotalSymbolRate();
@@ -892,14 +866,14 @@ bool DvbChannel::allocateBand(time_us_t duration,
 }
 template bool DvbChannel::allocateBand(
 		time_us_t duration,
-	   	std::string cat_label,
-	   	rate_kbps_t new_rate_kbps,
-	   	TerminalCategories<TerminalCategoryDama> &categories);
+		std::string cat_label,
+		rate_kbps_t new_rate_kbps,
+		TerminalCategories<TerminalCategoryDama> &categories);
 template bool DvbChannel::allocateBand(
 		time_us_t duration,
-	   	std::string cat_label,
-	   	rate_kbps_t new_rate_kbps,
-	   	TerminalCategories<TerminalCategorySaloha> &categories);
+		std::string cat_label,
+		rate_kbps_t new_rate_kbps,
+		TerminalCategories<TerminalCategorySaloha> &categories);
 
 
 template<class T>
@@ -910,7 +884,7 @@ bool DvbChannel::releaseBand(time_us_t duration,
 {
 	// Category SNO (the default one)
 	std::string cat_sno_label ("SNO");
-	typename std::map<std::string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
+	auto cat_sno_it = categories.find(cat_sno_label);
 	if(cat_sno_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -918,10 +892,10 @@ bool DvbChannel::releaseBand(time_us_t duration,
 		    cat_sno_label.c_str());
 		return false;
 	}
-	T* cat_sno = cat_sno_it->second;
+	std::shared_ptr<T> cat_sno = cat_sno_it->second;
 
 	// The category we are interesting on
-	typename std::map<std::string, T*>::iterator cat_it = categories.find(cat_label);
+	auto cat_it = categories.find(cat_label);
 	if(cat_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -929,11 +903,10 @@ bool DvbChannel::releaseBand(time_us_t duration,
 		    cat_label.c_str());
 		return false;
 	}
-	T* cat = cat_it->second;
+	std::shared_ptr<T> cat = cat_it->second;
 
 	// Fmt
-	const FmtDefinitionTable* fmt_definition_table;
-	const FmtGroup* cat_fmt_group = cat->getFmtGroup();
+	std::shared_ptr<const FmtGroup> cat_fmt_group = cat->getFmtGroup();
 
 	unsigned int id;
 	rate_symps_t new_rs;
@@ -941,13 +914,9 @@ bool DvbChannel::releaseBand(time_us_t duration,
 	rate_symps_t rs_unneeded;
 	std::map<rate_symps_t, unsigned int> carriers;
 
-
-	// Get the FMT Definition Table
-	fmt_definition_table = cat_fmt_group->getModcodDefinitions();
-
 	// Get the new total symbol rate
 	id = cat_fmt_group->getMaxFmtId();
-	new_rs = fmt_definition_table->kbitsToSym(id, new_rate_kbps);
+	new_rs = cat_fmt_group->getModcodDefinitions().kbitsToSym(id, new_rate_kbps);
 
 	// Get the old total symbol rate
 	old_rs = cat->getTotalSymbolRate();
@@ -975,18 +944,18 @@ bool DvbChannel::releaseBand(time_us_t duration,
 }
 template bool DvbChannel::releaseBand(
 		time_us_t duration,
-	   	std::string cat_label,
-	   	rate_kbps_t new_rate_kbps,
-	   	TerminalCategories<TerminalCategoryDama> &categories);
+		std::string cat_label,
+		rate_kbps_t new_rate_kbps,
+		TerminalCategories<TerminalCategoryDama> &categories);
 template bool DvbChannel::releaseBand(
 		time_us_t duration,
-	   	std::string cat_label,
-	   	rate_kbps_t new_rate_kbps,
-	   	TerminalCategories<TerminalCategorySaloha> &categories);
+		std::string cat_label,
+		rate_kbps_t new_rate_kbps,
+		TerminalCategories<TerminalCategorySaloha> &categories);
 
 
 template<class T>
-bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
+bool DvbChannel::carriersTransferCalculation(std::shared_ptr<T> cat, rate_symps_t &rate_symps,
                                              std::map<rate_symps_t, unsigned int> &carriers)
 {
 	unsigned int num_carriers;
@@ -1007,16 +976,17 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 	{
 		if(carriers_ite1 == carriers_available.rend())
 		{
+			carriers[carriers_ite2->first] += 1;
+			/*
 			if(carriers.find(carriers_ite2->first) == carriers.end())
 			{
-				carriers.insert(std::make_pair<rate_symps_t, unsigned int>(
-				                   (rate_symps_t) carriers_ite2->first,
-				                   (unsigned int) 1));
+				carriers.emplace(carriers_ite2->first, 1U);
 			}
 			else
 			{
 				carriers.find(carriers_ite2->first)->second += 1;
 			}
+			*/
 			rate_symps -= carriers_ite2->first; // rate should be negative now
 			carriers_available.find(carriers_ite2->first)->second -= 1;
 			// Erase the smaller carriers (because they are wasted)
@@ -1048,9 +1018,7 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 			num_carriers = carriers_ite1->second;
 		}
 		carriers_available.find(carriers_ite1->first)->second -= num_carriers;
-		carriers.insert(std::make_pair<rate_symps_t, unsigned int>(
-		                    (rate_symps_t) carriers_ite1->first,
-		                    (unsigned int) num_carriers));
+		carriers.emplace(carriers_ite1->first, num_carriers);
 		rate_symps -= (carriers_ite1->first * num_carriers);
 		if(num_carriers != carriers_ite1->second)
 		{
@@ -1062,17 +1030,18 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 	return true;
 }
 template bool DvbChannel::carriersTransferCalculation(
-		TerminalCategoryDama* cat,
-	   	rate_symps_t &rate_symps,
-	   	std::map<rate_symps_t, unsigned int> &carriers);
+		std::shared_ptr<TerminalCategoryDama> cat,
+		rate_symps_t &rate_symps,
+		std::map<rate_symps_t, unsigned int> &carriers);
 template bool DvbChannel::carriersTransferCalculation(
-		TerminalCategorySaloha* cat,
-	   	rate_symps_t &rate_symps,
-	   	std::map<rate_symps_t, unsigned int> &carriers);
+		std::shared_ptr<TerminalCategorySaloha> cat,
+		rate_symps_t &rate_symps,
+		std::map<rate_symps_t, unsigned int> &carriers);
 
 
 template<class T>
-bool DvbChannel::carriersTransfer(time_us_t duration, T* cat1, T* cat2,
+bool DvbChannel::carriersTransfer(time_us_t duration,
+                                  std::shared_ptr<T> cat1, std::shared_ptr<T> cat2,
                                   std::map<rate_symps_t , unsigned int> carriers)
 {
 	unsigned int highest_id;
@@ -1080,10 +1049,9 @@ bool DvbChannel::carriersTransfer(time_us_t duration, T* cat1, T* cat2,
 
 	// Allocation and deallocation of carriers
 	highest_id = cat2->getHighestCarrierId();
-	for(std::map<rate_symps_t, unsigned int>::iterator it = carriers.begin();
-	    it != carriers.end(); it++)
+	for (auto &&[carriers_rate, carriers_count]: carriers)
 	{
-		if(it->second == 0)
+		if(carriers_count == 0)
 		{
 			LOG(this->log_init_channel, LEVEL_INFO,
 			    "Empty carriers group\n");
@@ -1091,7 +1059,7 @@ bool DvbChannel::carriersTransfer(time_us_t duration, T* cat1, T* cat2,
 		}
 
 		// Deallocation of SNO carriers
-		if(!cat1->deallocateCarriers(it->first, it->second, associated_ratio))
+		if(!cat1->deallocateCarriers(carriers_rate, carriers_count, associated_ratio))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Wrong calculation of the needed carriers");
@@ -1101,8 +1069,8 @@ bool DvbChannel::carriersTransfer(time_us_t duration, T* cat1, T* cat2,
 		// Allocation of cat carriers
 		highest_id++;
 		cat2->addCarriersGroup(highest_id, cat2->getFmtGroup(),
-		                       it->second, associated_ratio,
-		                       it->first, cat2->getDesiredAccess(),
+		                       carriers_count, associated_ratio,
+		                       carriers_rate, cat2->getDesiredAccess(),
 		                       duration);
 	}
 
@@ -1110,11 +1078,11 @@ bool DvbChannel::carriersTransfer(time_us_t duration, T* cat1, T* cat2,
 }
 template bool DvbChannel::carriersTransfer(
 		time_us_t duration,
-	   	TerminalCategoryDama* cat1,
-	   	TerminalCategoryDama* cat2,
-	   	std::map<rate_symps_t , unsigned int> carriers);
+		std::shared_ptr<TerminalCategoryDama> cat1,
+		std::shared_ptr<TerminalCategoryDama> cat2,
+		std::map<rate_symps_t , unsigned int> carriers);
 template bool DvbChannel::carriersTransfer(
 		time_us_t duration,
-	   	TerminalCategorySaloha* cat1,
-	   	TerminalCategorySaloha* cat2,
-	   	std::map<rate_symps_t , unsigned int> carriers);
+		std::shared_ptr<TerminalCategorySaloha> cat1,
+		std::shared_ptr<TerminalCategorySaloha> cat2,
+		std::map<rate_symps_t , unsigned int> carriers);

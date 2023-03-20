@@ -64,9 +64,9 @@ public:
 	             time_us_t fwd_down_frame_duration,
 	             time_us_t ret_up_frame_duration,
 	             time_ms_t stats_period,
-	             EncapPlugin::EncapPacketHandler *pkt_hdl,
-	             StFmtSimuList *input_sts,
-	             StFmtSimuList *output_sts);
+	             std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+	             std::shared_ptr<StFmtSimuList> input_sts,
+	             std::shared_ptr<StFmtSimuList> output_sts);
 
 	~SpotDownward();
 
@@ -154,14 +154,14 @@ public:
 	 * @param pep_request the pep request
 	 * @return true on success, false otherwise
 	 */
-	bool applyPepCommand(PepRequest *pep_request);
+	bool applyPepCommand(std::unique_ptr<PepRequest> pep_request);
 
 	/**
 	 * @briel apply SVNO command
 	 * @param svno_request the SVNO request
 	 * @return true on success, false otherwise
 	 */
-	bool applySvnoCommand(SvnoRequest *svno_request);
+	bool applySvnoCommand(std::unique_ptr<SvnoRequest> svno_request);
 
 	/**
 	 * @brief Build a TTP
@@ -215,7 +215,7 @@ protected:
 	 * @param  The FIFOs to initialize
 	 * @return  true on success, false otherwise
 	 */
-	bool initFifo(fifos_t &fifos);
+	bool initFifo(std::shared_ptr<fifos_t> fifos);
 
 	/**
 	 * @brief Initialize the statistics
@@ -253,10 +253,10 @@ protected:
 	bool addCniExt();
 
 	/// The DAMA controller
-	DamaCtrlRcs2 *dama_ctrl;
+	std::unique_ptr<DamaCtrlRcs2> dama_ctrl;
 
 	/// The uplink or forward scheduling per category
-	std::map<std::string, Scheduling*> scheduling;
+	std::map<std::string, std::unique_ptr<Scheduling>> scheduling;
 
 	/// counter for forward frames
 	time_sf_t fwd_frame_counter;
@@ -277,7 +277,7 @@ protected:
 
 	/* Fifos */
 	/// FIFOs per MAX priority to manage different queues for each category
-	std::map<std::string, fifos_t> dvb_fifos;
+	std::map<std::string, std::shared_ptr<fifos_t>> dvb_fifos;
 	/// the default MAC fifo index = fifo with the smallest priority
 	unsigned int default_fifo_id;
 
@@ -291,14 +291,11 @@ protected:
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 
 	/// The default terminal category for forward band
-	TerminalCategoryDama *default_category;
+	std::shared_ptr<TerminalCategoryDama> default_category;
 
 	/// The up/return packet handler
-	EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> up_return_pkt_hdl;
 
-	// TODO remove FMT groups from attributes
-	// TODO we may create a class that inherit from fmt_groups_t (map) with
-	//      a destructor that erases the map elements
 	/// FMT groups for down/forward
 	fmt_groups_t fwd_fmt_groups;
 
@@ -315,7 +312,7 @@ protected:
 	/// timer used for applying resources allocations received from PEP
 	Rt::event_id_t pep_cmd_apply_timer;
 
-	RequestSimulator *request_simu;
+	std::unique_ptr<RequestSimulator> request_simu;
 
 	/// parameters for request simulation
 	FILE *event_file;

@@ -68,8 +68,9 @@
 #include "BlockDvbTal.h"
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
-
+#include "DvbS2Std.h"
 #include "PacketSwitch.h"
+
 
 EntitySt::EntitySt(tal_id_t instance_id): Entity("st" + std::to_string(instance_id), instance_id)
 {

@@ -37,14 +37,9 @@
 
 
 PhysicStd::PhysicStd(std::string type,
-                     EncapPlugin::EncapPacketHandler *pkt_hdl):
+                     std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
 	type(type),
 	packet_handler(pkt_hdl)
-{
-}
-
-
-PhysicStd::~PhysicStd()
 {
 }
 

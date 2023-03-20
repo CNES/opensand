@@ -65,21 +65,21 @@ public:
 	 *
 	 * @param converter  The unit converter to compute slots number
 	 */
-	void computeSlotsNumber(UnitConverter *converter);
+	void computeSlotsNumber(UnitConverter &converter);
 
 	/**
 	 * @brief Get the number of slots in the terminal category
 	 *
 	 * @return the number of slots in the terminal category
 	 */
-	unsigned int getSlotsNumber(void) const;
+	unsigned int getSlotsNumber() const;
 
 	/**
 	 * @brief Get the slots in the category
 	 *
 	 * @return the slots from all carriers
 	 */
-	std::map<unsigned int, Slot *> getSlots(void) const;
+	std::map<unsigned int, std::shared_ptr<Slot>> getSlots() const;
 
 	/**
 	 * @brief Get the packets that can be transmitted to
@@ -87,26 +87,26 @@ public:
 	 *
 	 * @return the accepted packets
 	 */
-	saloha_packets_data_t *getAcceptedPackets(void);
+	saloha_packets_data_t &getAcceptedPackets();
 
 	/**
 	 * @brief increment the number of received packets
 	 */
-	void increaseReceivedPacketsNbr(void);
+	void increaseReceivedPacketsNbr();
 
 	/**
 	 * @brief Get the number of received packets
 	 */
-	unsigned int getReceivedPacketsNbr(void) const;
+	unsigned int getReceivedPacketsNbr() const;
 
 	/**
 	 * @brief Reset the number of received packets
 	 */
-	void resetReceivedPacketsNbr(void);
+	void resetReceivedPacketsNbr();
 
 private:
 	/// A FIFO containing packet to be transmitted to encapsulation block
-	saloha_packets_data_t *accepted_packets;
+	saloha_packets_data_t accepted_packets;
 
 	/// The number of received packets
 	unsigned int received_packets_nbr;

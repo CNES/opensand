@@ -60,7 +60,7 @@ protected:
 	bool is_parent_init;
 
 	/// The encap packet handler
-	EncapPlugin::EncapPacketHandler *pkt_hdl;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl;
 
 public:
 	/**
@@ -82,7 +82,7 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool initParent(time_us_t frame_duration,
-	                EncapPlugin::EncapPacketHandler *const pkt_hdl);
+	                std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
 
 	/**
 	 * Handle a received Slotted Aloha frame
