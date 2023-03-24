@@ -121,6 +121,7 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 	switch(encap_schemes)
 	{
 		case EncapSchemeList::FORWARD_DOWN:
+		case EncapSchemeList::RETURN_SCPC:
 			encap_name = "GSE";
 			break;
 
@@ -163,47 +164,6 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 	return true;
 }
 
-bool DvbChannel::initScpcPktHdl(std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl)
-{
-	std::vector<std::string> encap_stack;
-	std::string encap_name;
-	EncapPlugin *plugin;
-
-	// Get SCPC encapsulation name stack
-	if (!OpenSandModelConf::Get()->getScpcEncapStack(encap_stack) || encap_stack.size() <= 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot get SCPC encapsulation names\n");
-		return false;
-	}
-	encap_name = encap_stack.back();
-
-	// if GSE is imposed
-	// (e.g. if Tal is in SCPC mode or for receiving GSE packet in the GW)
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "New packet handler for ENCAP type = %s\n", encap_name.c_str());
-
-	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot get plugin for %s encapsulation\n",
-		    encap_name.c_str());
-		return false;
-	}
-
-	pkt_hdl = plugin->getPacketHandler();
-	if(!pkt_hdl)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot get %s packet handler\n", encap_name.c_str());
-		return false;
-	}
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "encapsulation scheme = %s\n",
-	    pkt_hdl->getName().c_str());
-
-	return true;
-}
 
 bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 {

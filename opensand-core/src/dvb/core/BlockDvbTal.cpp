@@ -1143,7 +1143,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	//TODO: veritfy that 2ST are not using the same carrier and category
 
 	// Initialise Encapsulation scheme
-	if(!this->initScpcPktHdl(this->pkt_hdl))
+	if(!this->initPktHdl(EncapSchemeList::RETURN_SCPC, this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler\n");

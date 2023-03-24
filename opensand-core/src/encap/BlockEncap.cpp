@@ -303,8 +303,8 @@ bool BlockEncap::onInit()
 
 		if (scpc_enabled)
 		{
-			if (!this->getSCPCEncapContext(lan_plugin, up_return_ctx,
-			                               "return/up"))
+			if (!this->getEncapContext(EncapSchemeList::RETURN_SCPC,
+			                           lan_plugin, up_return_ctx))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Cannot get Return Encapsulation context");
@@ -314,8 +314,7 @@ bool BlockEncap::onInit()
 		else
 		{
 			if (!this->getEncapContext(EncapSchemeList::RETURN_UP,
-			                           lan_plugin, up_return_ctx,
-			                           "return/up"))
+			                           lan_plugin, up_return_ctx))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Cannot get Up/Return Encapsulation context");
@@ -327,8 +326,8 @@ bool BlockEncap::onInit()
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "SCPC mode available - BlockEncap");
-		if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx_scpc,
-		                              "return/up")) 
+		if(!this->getEncapContext(EncapSchemeList::RETURN_SCPC,
+		                              lan_plugin, up_return_ctx_scpc))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot get SCPC Up/Return Encapsulation context");
@@ -336,8 +335,7 @@ bool BlockEncap::onInit()
 		}
 
 		if(!this->getEncapContext(EncapSchemeList::RETURN_UP, 
-		                          lan_plugin, up_return_ctx,
-		                          "return/up")) 
+		                          lan_plugin, up_return_ctx))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot get Up/Return Encapsulation context");
@@ -352,8 +350,7 @@ bool BlockEncap::onInit()
 	}
 
 	if(!this->getEncapContext(EncapSchemeList::FORWARD_DOWN,
-	                          lan_plugin, down_forward_ctx,
-	                          "forward/down")) 
+	                          lan_plugin, down_forward_ctx))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot get Down/Forward Encapsulation context");
@@ -367,7 +364,7 @@ bool BlockEncap::onInit()
 	{
 		// reorder reception context to get the deencapsulation contexts in the
 		// right order
-		reverse(down_forward_ctx.begin(), down_forward_ctx.end());
+		std::reverse(down_forward_ctx.begin(), down_forward_ctx.end());
 		
 		this->downward.setContext(up_return_ctx);
 		this->upward.setContext(down_forward_ctx);
@@ -376,8 +373,8 @@ bool BlockEncap::onInit()
 	{
 		// reorder reception context to get the deencapsulation contexts in the
 		// right order
-		reverse(up_return_ctx.begin(), up_return_ctx.end());
-		reverse(up_return_ctx_scpc.begin(), up_return_ctx_scpc.end());
+		std::reverse(up_return_ctx.begin(), up_return_ctx.end());
+		std::reverse(up_return_ctx_scpc.begin(), up_return_ctx_scpc.end());
 		
 		this->downward.setContext(down_forward_ctx);
 		this->upward.setContext(up_return_ctx);
@@ -644,19 +641,25 @@ bool Rt::UpwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
 
 bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
                                  LanAdaptationPlugin *l_plugin,
-                                 encap_contexts_t &ctx,
-                                 const char *link_type)
+                                 encap_contexts_t &ctx)
 {
-	EncapPlugin *plugin;
+	std::string link_type;
 	std::vector<std::string> encapsulations;
 	switch(scheme_list)
 	{
 		case EncapSchemeList::RETURN_UP:
 			encapsulations.push_back("RLE");
+			link_type = "return/up";
+			break;
+
+		case EncapSchemeList::RETURN_SCPC:
+			encapsulations.push_back("GSE");
+			link_type = "return/up";
 			break;
 
 		case EncapSchemeList::FORWARD_DOWN:
 			encapsulations.push_back("GSE");
+			link_type = "forward/down";
 			break;
 
 		default:
@@ -671,56 +674,6 @@ bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
 	// get all the encapsulation to use upper to lower
 	for(auto& encap_name : encapsulations)
 	{
-		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s encapsulation\n",
-			    encap_name.c_str());
-			return false;
-		}
-
-		std::shared_ptr<EncapPlugin::EncapContext> context = plugin->getContext();
-		ctx.push_back(context);
-		if(!context->setUpperPacketHandler(upper_encap->getPacketHandler()))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "upper encapsulation type %s is not supported "
-			    "for %s encapsulation",
-			    upper_encap->getName().c_str(),
-			    context->getName().c_str());
-			return false;
-		}
-		upper_encap = plugin;
-		
-		LOG(this->log_init, LEVEL_INFO,
-		    "add %s encapsulation layer: %s\n",
-		    upper_encap->getName().c_str(), link_type);
-	}
-	return true;
-}
-
-
-bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
-                                     encap_contexts_t &ctx,
-                                     const char *link_type)
-{
-
-	// Get SCPC encapsulation context
-	std::vector<std::string> scpc_encap;
-	if (!OpenSandModelConf::Get()->getScpcEncapStack(scpc_encap) ||
-		scpc_encap.size() <= 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-			"cannot get SCPC encapsulation names\n");
-		return false;
-	}
-
-	StackPlugin *upper_encap = l_plugin;
-
-	// get all the encapsulation to use upper to lower
-	for(auto &&encap_name : scpc_encap)
-	{
-
 		EncapPlugin *plugin;
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
@@ -737,16 +690,15 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "
 			    "for %s encapsulation",
-			    upper_encap->getName().c_str(),
-			    context->getName().c_str());
+			    upper_encap->getName(),
+			    context->getName());
 			return false;
 		}
 		upper_encap = plugin;
 		
 		LOG(this->log_init, LEVEL_INFO,
 		    "add %s encapsulation layer: %s\n",
-		    upper_encap->getName().c_str(), link_type);
+		    upper_encap->getName(), link_type);
 	}
-
 	return true;
 }

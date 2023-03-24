@@ -116,6 +116,7 @@ enum class InternalMessageType : uint8_t
 enum class EncapSchemeList
 {
 	RETURN_UP,
+	RETURN_SCPC,
 	FORWARD_DOWN,
 	TRANSPARENT_NO_SCHEME,
 };

@@ -261,6 +261,7 @@ bool Rle::Context::init()
 
 Rt::Ptr<NetBurst> Rle::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &)
 {
+	/*
 	Rt::Ptr<NetBurst> encap_burst = Rt::make_ptr<NetBurst>(nullptr);
 
 	// Create a new burst
@@ -305,6 +306,11 @@ Rt::Ptr<NetBurst> Rle::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::map<lo
 	}
 
 	return encap_burst;
+	*/
+	// Does nothing as of right now
+	// Will use the ??? method next to perform the chunking and encapsulation
+	// all at once when the modcod is known
+	return burst;
 }
 
 Rt::Ptr<NetBurst> Rle::Context::deencapsulate(Rt::Ptr<NetBurst> burst)

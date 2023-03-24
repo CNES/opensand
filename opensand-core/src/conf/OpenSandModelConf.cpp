@@ -1533,13 +1533,6 @@ bool OpenSandModelConf::getScpcEnabled(bool &scpc_enabled) const
 	return true;
 }
 
-bool OpenSandModelConf::getScpcEncapStack(std::vector<std::string> &encap_stack) const
-{
-	// encap_stack = std::vector<std::string>{"RLE", "GSE"};
-	encap_stack = std::vector<std::string>{"GSE"};
-	return true;
-}
-
 
 std::shared_ptr<OpenSANDConf::DataComponent> getEntityById(std::shared_ptr<OpenSANDConf::DataList> list, int id)
 {

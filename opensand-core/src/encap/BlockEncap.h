@@ -191,22 +191,7 @@ class BlockEncap: public Rt::Block<BlockEncap, EncapConfig>
 	 */
 	bool getEncapContext(EncapSchemeList scheme_list,
 	                     LanAdaptationPlugin *l_plugin,
-	                     encap_contexts_t &ctx,
-	                     const char *link_type);
-
-	/**
-	 *
-	 * Get the Encapsulation context of the SCPC Return link
-	 *
-	 * @param l_plugin         The LAN adaptation plugin
-	 * @param ctx              The encapsulation context for return link
-	 * @param link_type        The type of link: "return/up" or "forward/down"
-	 * @return                 Whether the Encapsulation context has been
-	 *                         correctly obtained or not
-	 */
-	bool getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
-	                         encap_contexts_t &ctx,
-	                         const char *link_type);
+	                     encap_contexts_t &ctx);
 
 	/// initialization method
 	bool onInit() override;

@@ -86,14 +86,6 @@ protected:
 	                std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl);
 
 	/**
-	 * @brief Read the encapsulation shcemes to get packet handler
-	 *
-	 * @param pkt_hdl          The packet handler corresponding to the encapsulation name
-	 * @return true on success, false otherwise
-	 */
-	bool initScpcPktHdl(std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl);
-
-	/**
 	 * @brief Read the common configuration parameters
 	 *
 	 * @param encap_schemes The section in configuration file for encapsulation

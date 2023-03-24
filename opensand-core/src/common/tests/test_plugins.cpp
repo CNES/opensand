@@ -49,6 +49,8 @@
 #include "Plugin.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
+#include "Ethernet.h"
+#include "PacketSwitch.h"
 
 #include <opensand_output/Output.h>
 
@@ -126,6 +128,9 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
                       bool compare, std::string name,
                       lan_contexts_t lan_contexts,
                       encap_contexts_t encap_contexts);
+static bool test_lan_adapt(std::string src_filename,
+                           std::string folder,
+                           bool compare);
 static void test_encap_and_decap(
 	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl,
 	lan_contexts_t lan_contexts,
@@ -204,7 +209,101 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	if(!test_lan_adapt(src_filename, folder, compare))
+	{
+		return EXIT_FAILURE;
+	}
+
 	return EXIT_SUCCESS;
+}
+
+
+static bool test_lan_adapt(std::string src_filename,
+                           std::string folder,
+                           bool compare)
+{
+	lan_contexts_t contexts;
+	std::vector<std::string> failure;
+	unsigned int nbr_tests = 0;
+
+	// load the plugins
+	if(!Plugin::loadPlugins(false))
+	{
+		ERROR("cannot load the plugins\n");
+		return false;
+	}
+
+	// There is now a single lan adaptation plugin
+	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext> context = plugin->getContext();
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl = plugin->getPacketHandler();
+	std::string name = plugin->getName();
+	std::string name_low = name;
+	std::transform(name.begin(), name.end(), name_low.begin(), ::tolower);
+	auto found = name_low.find("/");
+	while(found != std::string::npos)
+	{
+		name_low.replace(found, 1, "_");
+		found = name_low.find("/", found);
+	}
+
+	if(!context->setUpperPacketHandler(nullptr))
+	{
+		ERROR("failed to set upper packet src_handler for %s context\n", name.c_str());
+		failure.push_back(name);
+	}
+	else
+	{
+		contexts.push_back(context);
+
+		// LanAdaptationContext initialisation
+		auto packet_switch = std::make_shared<TerminalPacketSwitch>(1, 0);
+		SarpTable *sarp_table = packet_switch->getSarpTable();
+
+		// Add Ethernet entries in SARP table
+		// TODO get these value in capture
+		// for icmp28 test
+		auto src_mac = std::make_unique<MacAddress>(std::string("00:B0:D0:C7:C1:9D"));
+		sarp_table->add(std::move(src_mac), 0);
+		auto dst_mac = std::make_unique<MacAddress>(std::string("00:13:72:32:3d:bc"));
+		sarp_table->add(std::move(dst_mac), 1);
+		// for icmp64 test
+		src_mac = std::make_unique<MacAddress>(std::string("00:50:04:2d:f3:30"));
+		sarp_table->add(std::move(src_mac), 0);
+		dst_mac = std::make_unique<MacAddress>(std::string("00:04:76:0B:31:8b"));
+		sarp_table->add(std::move(dst_mac), 1);
+		for (auto &&context: contexts)
+		{
+			context->initLanAdaptationContext(1, packet_switch);
+		}
+
+		test_encap_and_decap(pkt_hdl, contexts, failure, src_filename, folder, compare);
+		nbr_tests += 1;
+	}
+
+	Plugin::releasePlugins();
+	if(nbr_tests == 0)
+	{
+		ERROR("No adequat plugin found\n");
+		return false;
+	}
+
+	bool success = failure.size() == 0;
+	if(success)
+	{
+		INFO("All tests were successful\n");
+	}
+	else
+	{
+		ERROR("The following tests failed:\n");
+		for (auto &&error: failure)
+		{
+			ERROR("  - %s\n", error.c_str());
+		}
+	}
+	Output::Get()->finalizeConfiguration();
+
+	return success;
 }
 
 
@@ -825,41 +924,38 @@ static bool open_pcap(std::string filename, pcap_t **handle,
                       uint32_t &link_len)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int link_layer_type;
-	bool success = false;
 
 	*handle = pcap_open_offline(filename.c_str(), errbuf);
-	if(*handle == NULL)
+	if(*handle == nullptr)
 	{
 		ERROR("failed to open the PCAP file: %s\n", errbuf);
-		goto error;
+		return false;
 	}
 
 	/* link layer in the dump must be supported */
-	link_layer_type = pcap_datalink(*handle);
+	int link_layer_type = pcap_datalink(*handle);
 	if(link_layer_type != DLT_EN10MB &&
 	   link_layer_type != DLT_LINUX_SLL &&
 	   link_layer_type != DLT_RAW)
 	{
-		ERROR("link layer type %d not supported in dump (supported = "
-		      "%d, %d, %d)\n", link_layer_type, DLT_EN10MB, DLT_LINUX_SLL,
-		      DLT_RAW);
-		goto close_input;
+		ERROR("link layer type %d not supported in dump (supported = %d, %d, %d)\n",
+		      link_layer_type, DLT_EN10MB, DLT_LINUX_SLL, DLT_RAW);
+		pcap_close(*handle);
+		return false;
 	}
 
 	if(link_layer_type == DLT_EN10MB)
+	{
 		link_len = ETHER_HDR_LEN;
+	}
 	else if(link_layer_type == DLT_LINUX_SLL)
+	{
 		link_len = LINUX_COOKED_HDR_LEN;
+	}
 	else /* DLT_RAW */
+	{
 		link_len = 0;
+	}
 
-	success = true;
-	return success;
-
-close_input:
-	pcap_close(*handle);
-error:
-	return success;
+	return true;
 }
-

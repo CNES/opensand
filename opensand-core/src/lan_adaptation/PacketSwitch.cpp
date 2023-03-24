@@ -101,7 +101,7 @@ bool GatewayPacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t 
 	return true;
 }
 
-bool GatewayPacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward)
+bool GatewayPacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t, bool &forward)
 {
 	tal_id_t dst_id;
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
