@@ -46,37 +46,64 @@
 #include "DvbFifo.h"
 
 
+enum class EventType
+{
+	none,
+	cr,
+	logon,
+	logoff,
+};
+
+
+static void in_deletor(std::istream* istream_ptr)
+{
+	if (istream_ptr && istream_ptr != &std::cin)
+	{
+		auto ifstream = static_cast<std::ifstream*>(istream_ptr);
+		ifstream->close();
+		delete ifstream;
+	}
+};
+
+
 FileSimulator::FileSimulator(spot_id_t spot_id,
                              tal_id_t mac_id,
-                             FILE** evt_file,
-                             std::string &str_config):
-	RequestSimulator(spot_id, mac_id, evt_file)
+                             std::ostream* &evt_file,
+                             const std::string &str_config):
+	RequestSimulator(spot_id, mac_id, evt_file),
+	simu_buffer(""),
+	simu_file(nullptr, in_deletor)
 {
+
 	if(str_config == "stdin")
 	{
-		this->simu_file = stdin;
+		this->simu_file.reset(&std::cin);
 	}
 	else
 	{
-		this->simu_file = fopen(str_config.c_str(), "r");
+		try
+		{
+			this->simu_file.reset(new std::ifstream(str_config));
+		}
+		catch (const std::bad_alloc&)
+		{
+		}
+		if (!this->simu_file || !(*this->simu_file))
+		{
+			// LOG(this->log_init, LEVEL_ERROR,
+			//     "%s\n", strerror(errno));
+			LOG(this->log_init, LEVEL_ERROR,
+			    "no simulation file will be used.\n");
+			this->simu_file.reset();
+		}
 	}
-	if(this->simu_file == NULL && str_config != "none")
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-				"%s\n", strerror(errno));
-		LOG(this->log_init, LEVEL_ERROR,
-				"no simulation file will be used.\n");
-	}
-	else
+
+	if(this->simu_file != nullptr)
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
-				"events simulated from %s.\n",
-				str_config.c_str());
+		    "events simulated from %s.\n",
+		    str_config.c_str());
 	}
-}
-
-FileSimulator::~FileSimulator()
-{
 }
 
 
@@ -84,10 +111,8 @@ FileSimulator::~FileSimulator()
 bool FileSimulator::simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
                                time_sf_t super_frame_counter)
 {
-	enum
-	{ none, cr, logon, logoff } event_selected;
+	EventType event_selected;
 
-	int resul;
 	time_sf_t sf_nr;
 	tal_id_t st_id;
 	uint32_t st_request;
@@ -96,128 +121,112 @@ bool FileSimulator::simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
 	vol_kb_t st_vbdc;
 	uint8_t cr_type;
 
-	if(this->simu_eof)
-	{
-		LOG(this->log_request_simulation, LEVEL_DEBUG,
-		    "End of file\n");
-		goto end;
-	}
-
 	sf_nr = 0;
-	while(sf_nr <= super_frame_counter)
+	while(!this->simu_eof)
 	{
-		if(4 ==
-		   sscanf(this->simu_buffer,
-		          "SF%hu CR st%hu cr=%u type=%" SCNu8,
-		          &sf_nr, &st_id, &st_request, &cr_type))
+		if(4 == sscanf(this->simu_buffer.c_str(),
+		               "SF%hu CR st%hu cr=%u type=%" SCNu8,
+		               &sf_nr, &st_id, &st_request, &cr_type))
 		{
-			event_selected = cr;
+			event_selected = EventType::cr;
 		}
-		else if(5 ==
-		        sscanf(this->simu_buffer,
-		               "SF%hu LOGON st%hu rt=%hu rbdc=%hu vbdc=%hu",
-		               &sf_nr, &st_id, &st_rt, &st_rbdc, &st_vbdc))
+		else if(5 == sscanf(this->simu_buffer.c_str(),
+		                    "SF%hu LOGON st%hu rt=%hu rbdc=%hu vbdc=%hu",
+		                    &sf_nr, &st_id, &st_rt, &st_rbdc, &st_vbdc))
 		{
-			event_selected = logon;
+			event_selected = EventType::logon;
 		}
-		else if(2 ==
-		        sscanf(this->simu_buffer, "SF%hu LOGOFF st%hu", &sf_nr, &st_id))
+		else if(2 == sscanf(this->simu_buffer.c_str(),
+		                    "SF%hu LOGOFF st%hu",
+		                    &sf_nr, &st_id))
 		{
-			event_selected = logoff;
+			event_selected = EventType::logoff;
 		}
 		else
 		{
-			event_selected = none;
+			event_selected = EventType::none;
+			st_id = BROADCAST_TAL_ID + 1;  // silence next warning
 		}
-		if(event_selected != none && st_id <= BROADCAST_TAL_ID)
+
+		if(sf_nr > super_frame_counter)
+			break;
+
+		if(st_id <= BROADCAST_TAL_ID)
 		{
 			LOG(this->log_request_simulation, LEVEL_WARNING,
 			    "Simulated ST%u ignored, IDs smaller than %u "
 			    "reserved for emulated terminals\n",
 			    st_id, BROADCAST_TAL_ID);
-			goto loop_step;
 		}
-		if(event_selected == none)
-			goto loop_step;
-		if(sf_nr < super_frame_counter)
-			goto loop_step;
-		if(sf_nr > super_frame_counter)
-			break;
-		switch (event_selected)
+		else if (sf_nr == super_frame_counter)
 		{
-			case cr:
+			switch (event_selected)
 			{
-				auto sac = Rt::make_ptr<Sac>(st_id);
-				sac->addRequest(0, to_enum<ReturnAccessType>(cr_type), st_request);
-				sac->setAcm(0xffff);
-				msgs.push_back(dvb_frame_downcast(std::move(sac)));
-				LOG(this->log_request_simulation, LEVEL_INFO,
-				    "SF#%u: send a simulated CR of type %u with "
-				    "value = %u for ST %hu\n",
-				    super_frame_counter, cr_type,
-				    st_request, st_id);
-				break;
-			}
-			case logon:
-			{
-				auto logon_req = Rt::make_ptr<LogonRequest>(st_id, st_rt, st_rbdc, st_vbdc);
-				msgs.push_back(dvb_frame_downcast(std::move(logon_req)));
-				
-				LOG(this->log_request_simulation, LEVEL_INFO,
-				    "SF#%u: send a simulated logon for ST %d\n",
-				    super_frame_counter, st_id);
-				break;
-			}
-			case logoff:
-			{
-				auto logoff_req = Rt::make_ptr<Logoff>(st_id);
-				msgs.push_back(dvb_frame_downcast(std::move(logoff_req)));
-				LOG(this->log_request_simulation, LEVEL_INFO,
-				    "SF#%u: send a simulated logoff for ST %d\n",
-				    super_frame_counter, st_id);
-				break;
-			}
-			default:
-				break;
-		}
-	 loop_step:
-		resul = -1;
-		while(resul < 1)
-		{
-			resul = fscanf(this->simu_file, "%254[^\n]\n", this->simu_buffer);
-			if(resul == 0)
-			{
-				int ret;
-				// No conversion occured, we simply skip the line
-				ret = fscanf(this->simu_file, "%*s");
-				if ((ret == 0) || (ret == EOF))
+				case EventType::cr:
 				{
-					return false;
+					auto sac = Rt::make_ptr<Sac>(st_id);
+					sac->addRequest(0, to_enum<ReturnAccessType>(cr_type), st_request);
+					sac->setAcm(0xffff);
+					msgs.push_back(dvb_frame_downcast(std::move(sac)));
+					LOG(this->log_request_simulation, LEVEL_INFO,
+					    "SF#%u: send a simulated CR of type %u with "
+					    "value = %u for ST %hu\n",
+					    super_frame_counter, cr_type,
+					    st_request, st_id);
+					break;
 				}
-			}
-			LOG(this->log_request_simulation, LEVEL_DEBUG,
-			    "fscanf result=%d: %s", resul, this->simu_buffer);
-			LOG(this->log_request_simulation, LEVEL_DEBUG,
-			    "frame %u\n", super_frame_counter);
-			if(resul == -1)
-			{
-				this->simu_eof = true;
-				LOG(this->log_request_simulation, LEVEL_DEBUG,
-				    "End of file.\n");
-				goto end;
+				case EventType::logon:
+				{
+					auto logon_req = Rt::make_ptr<LogonRequest>(st_id, st_rt, st_rbdc, st_vbdc);
+					msgs.push_back(dvb_frame_downcast(std::move(logon_req)));
+					LOG(this->log_request_simulation, LEVEL_INFO,
+					    "SF#%u: send a simulated logon for ST %d\n",
+					    super_frame_counter, st_id);
+					break;
+				}
+				case EventType::logoff:
+				{
+					auto logoff_req = Rt::make_ptr<Logoff>(st_id);
+					msgs.push_back(dvb_frame_downcast(std::move(logoff_req)));
+					LOG(this->log_request_simulation, LEVEL_INFO,
+					    "SF#%u: send a simulated logoff for ST %d\n",
+					    super_frame_counter, st_id);
+					break;
+				}
+				default:
+					break;
 			}
 		}
+
+		std::istream &stream = std::getline(*this->simu_file, this->simu_buffer);
+		if (stream.eof())
+		{
+			this->simu_eof = true;
+			break;
+		}
+
+		if (!stream)
+		{
+			return false;
+		}
+		LOG(this->log_request_simulation, LEVEL_DEBUG,
+		    "fscanf result is: %s", this->simu_buffer);
+		LOG(this->log_request_simulation, LEVEL_DEBUG,
+		    "frame %u\n", super_frame_counter);
 	}
 
-end:
-	fflush(this->event_file);
+	if(this->simu_eof)
+	{
+		LOG(this->log_request_simulation, LEVEL_DEBUG,
+		    "End of file\n");
+	}
+	this->event_file->flush();
 	return true;
 }
 
 
 bool FileSimulator::stopSimulation()
 {
-	fclose(this->simu_file);
-	this->simu_file = nullptr;
+	this->simu_file = std::unique_ptr<std::istream, void(*)(std::istream*)>(nullptr, [](std::istream*){});
 	return true;
 }

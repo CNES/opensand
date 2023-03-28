@@ -708,7 +708,7 @@ bool SpotDownward::initRequestSimulation()
 		this->simulate = file_simu;
 		this->request_simu = std::make_unique<FileSimulator>(this->spot_id,
 		                                                     this->mac_id,
-		                                                     &this->event_file,
+		                                                     this->event_file,
 		                                                     simulation_file);
 	}
 	else if(str_config == "Random")
@@ -759,7 +759,7 @@ bool SpotDownward::initRequestSimulation()
 		this->simulate = random_simu;
 		this->request_simu = std::make_unique<RandomSimulator>(this->spot_id,
 		                                                       this->mac_id,
-		                                                       &this->event_file,
+		                                                       this->event_file,
 		                                                       simu_st,
 		                                                       simu_rt,
 		                                                       simu_rbdc,

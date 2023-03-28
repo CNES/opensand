@@ -44,14 +44,28 @@
 #include "Except.h"
 
 
+static void out_deletor(std::ostream* ostream_ptr)
+{
+	if (ostream_ptr)
+	{
+		ostream_ptr->flush();
+		if (ostream_ptr != &std::cout && ostream_ptr != &std::cerr)
+		{
+			auto ofstream = static_cast<std::ofstream*>(ostream_ptr);
+			ofstream->close();
+			delete ofstream;
+		}
+	}
+};
+
+
 RequestSimulator::RequestSimulator(spot_id_t spot_id,
                                    tal_id_t mac_id,
-                                   FILE** evt_file):
+                                   std::ostream* &evt_file):
 	spot_id(spot_id),
 	mac_id(mac_id),
 	dvb_fifos(),
-	event_file(nullptr),
-	simu_file(nullptr),
+	event_file(nullptr, out_deletor),
 	simu_st(-1),
 	simu_rt(-1),
 	simu_max_rbdc(-1),
@@ -67,23 +81,13 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 	this->log_init = output->registerLog(LEVEL_WARNING, Format("Spot_%d.InitRequestSimulation", this->spot_id));
 	this->log_request_simulation = output->registerLog(LEVEL_WARNING, Format("Spot_%d.RequestSimulation", this->spot_id));
 
-	ASSERT(this->initRequestSimulation(), "Failure to initialise requests simulation");
-	*evt_file = this->event_file;
-	
+	auto initialized = this->initRequestSimulation();
+	ASSERT(initialized, "Failure to initialise requests simulation");
+	evt_file = this->event_file.get();
 }
 
 RequestSimulator::~RequestSimulator()
 {
-	if(this->event_file)
-	{
-		fflush(this->event_file);
-		fclose(this->event_file);
-	}
-	if(this->simu_file)
-	{
-		fclose(this->simu_file);
-	}
-	
 	// delete fifos
 	this->dvb_fifos.clear();
 }
@@ -102,8 +106,6 @@ void RequestSimulator::generateConfiguration()
 
 bool RequestSimulator::initRequestSimulation()
 {
-	std::fill(std::begin(this->simu_buffer), std::end(this->simu_buffer), '\0');
-
 	// Get and open the event file
 	std::string evt_type;
 	auto ncc = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
@@ -116,30 +118,35 @@ bool RequestSimulator::initRequestSimulation()
 
 	if(evt_type == "stdout")
 	{
-		this->event_file = stdout;
+		this->event_file.reset(&std::cout);
 	}
 	else if(evt_type == "stderr")
 	{
-		this->event_file = stderr;
+		this->event_file.reset(&std::cerr);
 	}
 	else if(evt_type != "none")
 	{
-		this->event_file = fopen(evt_type.c_str(), "a");
-		if(this->event_file == nullptr)
+		try
 		{
+			this->event_file.reset(new std::ofstream(evt_type, std::ios::app));
+		}
+		catch (const std::bad_alloc&)
+		{
+		}
+		if(!this->event_file || !(*this->event_file))
+		{
+			//LOG(this->log_init, LEVEL_ERROR,
+			    //"%s\n", strerror(errno));
 			LOG(this->log_init, LEVEL_ERROR,
-			    "%s\n", strerror(errno));
+			    "no record file will be used for event\n");
+			this->event_file.reset();
 		}
 	}
-	if(this->event_file == nullptr && evt_type != "none")
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "no record file will be used for event\n");
-	}
-	else if(this->event_file != nullptr)
+
+	if(this->event_file != nullptr)
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
-		    "events recorded in %s.\n", evt_type.c_str());
+		    "events recorded in %s.\n", evt_type);
 	}
 
 	return true;

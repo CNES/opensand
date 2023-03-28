@@ -338,8 +338,10 @@ bool DamaCtrl::hereIsLogon(Rt::Ptr<LogonRequest> logon)
 		    tal_id, category->getLabel().c_str());
 		if(tal_id > BROADCAST_TAL_ID)
 		{
-			DC_RECORD_EVENT("LOGON st%d rt=%u rbdc=%u vbdc=%u", logon->getMac(),
-			                logon->getRtBandwidth(), max_rbdc_kbps, max_vbdc_kb);
+			this->record_event("LOGON st", logon->getMac(),
+			                   " rt=", logon->getRtBandwidth(),
+			                   " rbdc=", max_rbdc_kbps,
+			                   " vbdc=", max_vbdc_kb);
 		}
 		
 		// Output probes and stats
@@ -414,7 +416,7 @@ bool DamaCtrl::hereIsLogoff(Rt::Ptr<Logoff> logoff)
 
 	if(tal_id > BROADCAST_TAL_ID)
 	{
-		DC_RECORD_EVENT("LOGOFF st%d", tal_id);
+		this->record_event("LOGOFF st", tal_id);
 	}
 
 	return true;
@@ -543,10 +545,10 @@ bool DamaCtrl::computeTerminalsAllocations()
 	return true;
 }
 
-void DamaCtrl::setRecordFile(FILE *event_stream)
+void DamaCtrl::setRecordFile(std::ostream *event_stream)
 {
 	this->event_file = event_stream;
-	DC_RECORD_EVENT("%s", "# --------------------------------------\n");
+	this->record_event("# --------------------------------------\n");
 }
 
 // TODO disable timers on probes if output is disabled

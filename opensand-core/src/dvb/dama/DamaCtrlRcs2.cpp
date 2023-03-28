@@ -135,8 +135,9 @@ bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)
 
 				if(tal_id > BROADCAST_TAL_ID)
 				{
-					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kb, to_underlying(cr_info.type));
+					this->record_event("CR st", tal_id,
+					                   " cr=", request_kb,
+					                   " type=", to_underlying(cr_info.type));
 				}
 				break;
 
@@ -162,8 +163,9 @@ bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)
 				this->enable_rbdc = true;
 				if(tal_id > BROADCAST_TAL_ID)
 				{
-					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kbps, to_underlying(cr_info.type));
+					this->record_event("CR st", tal_id,
+					                   " cr=", request_kb,
+					                   " type=", to_underlying(cr_info.type));
 				}
 				break;
 

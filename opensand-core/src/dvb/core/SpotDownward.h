@@ -315,7 +315,7 @@ protected:
 	std::unique_ptr<RequestSimulator> request_simu;
 
 	/// parameters for request simulation
-	FILE *event_file;
+	std::ostream* event_file;
 	Simulate simulate;
 
 	// Output probes and stats

@@ -46,7 +46,7 @@
 
 RandomSimulator::RandomSimulator(spot_id_t spot_id,
                                  tal_id_t mac_id,
-                                 FILE** evt_file,
+                                 std::ostream* &evt_file,
                                  int simu_st,
                                  int simu_rt,
                                  int simu_max_rbdc,
@@ -70,11 +70,7 @@ RandomSimulator::RandomSimulator(spot_id_t spot_id,
 	    this->simu_st, this->simu_rt, this->simu_max_rbdc,
 	    this->simu_max_vbdc, this->simu_cr,
 	    this->simu_interval);
-	srandom(times(NULL));
-}
-
-RandomSimulator::~RandomSimulator()
-{
+	srandom(times(nullptr));
 }
 
 

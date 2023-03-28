@@ -177,7 +177,7 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "missing parameter 'return link frame duration'\n");
-		goto error;
+		return false;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "frame duration set to %uμs\n",
@@ -187,7 +187,7 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize packet handler\n");
-		goto error;
+		return false;
 	}
 
 	// statistics timer
@@ -195,12 +195,10 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "missing parameter 'statistics period'\n");
-		goto error;
+		return false;
 	}
 
 	return true;
-error:
-	return false;
 }
 
 

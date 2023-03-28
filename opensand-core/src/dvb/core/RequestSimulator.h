@@ -37,13 +37,12 @@
 #define REQUEST_SIMULATOR_H
 
 #include <list>
+#include <memory>
+#include <fstream>
 
 #include "OpenSandCore.h"
 #include "DvbFrame.h"
 #include "DvbFifoTypes.h"
-
-
-constexpr const std::size_t SIMU_BUFF_LEN = 255;
 
 
 class OutputLog;
@@ -62,8 +61,8 @@ class RequestSimulator
 public:
 	RequestSimulator(spot_id_t spot_id,
 	                 tal_id_t mac_id,
-	                 FILE** evt_file);
-	~RequestSimulator();
+	                 std::ostream* &evt_file);
+	virtual ~RequestSimulator();
 
 	static void generateConfiguration();
 	
@@ -97,8 +96,7 @@ protected:
 	fifos_t dvb_fifos;
 
 	/// parameters for request simulation
-	FILE *event_file;
-	FILE *simu_file;
+	std::unique_ptr<std::ostream, void(*)(std::ostream*)> event_file;
 	long simu_st;
 	long simu_rt;
 	long simu_max_rbdc;
@@ -106,7 +104,6 @@ protected:
 	long simu_cr;
 	long simu_interval;
 	bool simu_eof;
-	char simu_buffer[SIMU_BUFF_LEN];
 
 	// Output logs and events
 	std::shared_ptr<OutputLog> log_request_simulation;

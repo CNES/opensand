@@ -36,17 +36,19 @@
 #ifndef FILE_SIMULATOR_H
 #define FILE_SIMULATOR_H
 
+
+#include <string>
+
 #include "RequestSimulator.h"
 
 
 class FileSimulator: public RequestSimulator
 {
-public:
+ public:
 	FileSimulator(spot_id_t spot_id,
 	              tal_id_t mac_id,
-	              FILE** evt_file,
-	              std::string &str_config);
-	~FileSimulator();
+	              std::ostream* &evt_file,
+	              const std::string &str_config);
 	
 	/**
 	 * Simulate event based on an input file
@@ -60,6 +62,10 @@ public:
 	 * @return true on success, false otherwise
 	 */ 
 	bool stopSimulation();
+
+ protected:
+	std::string simu_buffer;
+	std::unique_ptr<std::istream, void(*)(std::istream*)> simu_file;
 };
 
 #endif

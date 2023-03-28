@@ -167,7 +167,7 @@ public:
 	 *
 	 * @param event_stream  The events file
 	 */
-	virtual void setRecordFile(FILE * event_stream);
+	virtual void setRecordFile(std::ostream *event_stream);
 
 	/**
 	 * @brief    Get a pointer to the categories
@@ -360,7 +360,9 @@ protected:
 	bool simulated;
 
 	/// if set to other than NULL, the fd where recording events
-	FILE *event_file;
+	std::ostream* event_file;
+	template<typename Arg, typename... Args>
+	void record_event(Arg&& arg, Args&&... args);
 
 	/// Output probe and stats
 
@@ -431,13 +433,15 @@ protected:
 };
 
 
-#define DC_RECORD_EVENT(fmt,args...) \
-{ \
-	if (this->event_file != NULL) \
-	{ \
-		fprintf(this->event_file, "SF%u " fmt "\n", \
-		        this->current_superframe_sf, ##args); \
-	} \
+template<typename Arg, typename... Args>
+void DamaCtrl::record_event(Arg&& arg, Args&&... args)
+{
+	if (this->event_file)
+	{
+		(*event_file) << "SF" << this->current_superframe_sf << ' ' << std::forward<Arg>(arg);
+		(((*event_file) << std::forward<Args>(args)), ...);
+		(*event_file) << "\n";
+	}
 }
 
 
