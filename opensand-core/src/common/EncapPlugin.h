@@ -193,8 +193,7 @@ public:
 
 		/**
 		 * Flush the encapsulation context identified by context_id (after a context
-		 * expiration for example). It's the caller charge to delete the returned
-		 * NetBurst after use.
+		 * expiration for example).
 		 *
 		 * @param context_id  the context to flush
 		 * @return            a list of encapsulation packets

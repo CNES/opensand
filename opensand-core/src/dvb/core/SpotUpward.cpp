@@ -456,7 +456,6 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 
 	if(msg_type == EmulatedMessageType::BbFrame)
 	{
-		// decode the first packet in frame to be able to get source terminal ID
 		if(!this->reception_std_scpc)
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
@@ -466,7 +465,6 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 		}
 		std = this->reception_std_scpc.get();
 	}
-	// TODO factorize if SCPC modcod handling is the same as for regenerative case
 	// Update stats
 	this->l2_from_sat_bytes += frame->getPayloadLength();
 

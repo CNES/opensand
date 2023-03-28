@@ -308,9 +308,6 @@ Rt::Ptr<NetBurst> Gse::Context::encapsulate(Rt::Ptr<NetBurst> burst,
 
 	for(auto&& packet : *burst)
 	{
-		uint32_t context_id;
-		long time = 0;
-
 		// packet must be valid
 		if(!packet)
 		{
@@ -319,9 +316,10 @@ Rt::Ptr<NetBurst> Gse::Context::encapsulate(Rt::Ptr<NetBurst> burst,
 			continue;
 		}
 
-		context_id = ((packet->getSrcTalId() & 0x1f) << 8) |
-		             ((packet->getDstTalId() & 0x1f) << 3) |
-		             (packet->getQos() & 0x07);
+		long time = 0;
+		uint32_t context_id = ((packet->getSrcTalId() & 0x1f) << 8) |
+		                      ((packet->getDstTalId() & 0x1f) << 3) |
+		                      (packet->getQos() & 0x07);
 
 		LOG(this->log, LEVEL_INFO,
 		    "encapsulate a %zu-byte packet of type 0x%04x "
@@ -357,7 +355,7 @@ Rt::Ptr<NetBurst> Gse::Context::encapsulate(Rt::Ptr<NetBurst> burst,
 		{
 			continue;
 		}
-		time_contexts.insert(std::make_pair(time, context_id));
+		time_contexts.emplace(time, context_id);
 	}
 
 	return gse_packets;
@@ -1005,7 +1003,7 @@ Rt::Ptr<NetBurst> Gse::Context::flush(int context_id)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot allocate memory for burst of GSE packets\n");
-		goto drop;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 
 	LOG(this->log, LEVEL_INFO,
@@ -1013,9 +1011,9 @@ Rt::Ptr<NetBurst> Gse::Context::flush(int context_id)
 	    context_id);
 
 	{
-		GseIdentifier identifier{(context_id >> 8) & 0x1f,
-		                         (context_id >> 3) & 0x1f,
-		                         context_id & 0x07};
+		GseIdentifier identifier{static_cast<uint8_t>((context_id >> 8) & 0x1f),
+		                         static_cast<uint8_t>((context_id >> 3) & 0x1f),
+		                         static_cast<uint8_t>(context_id & 0x07)};
 		LOG(this->log, LEVEL_INFO,
 		    "Associated identifier: Src TAL Id = %u, Dst TAL Id = %u, QoS = %u\n",
 		    identifier.getSrcTalId(),
@@ -1029,7 +1027,7 @@ Rt::Ptr<NetBurst> Gse::Context::flush(int context_id)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "encapsulation context does not exist\n");
-		goto erase_burst;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 	else
 	{
@@ -1074,7 +1072,7 @@ Rt::Ptr<NetBurst> Gse::Context::flush(int context_id)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "Cannot set label for GSE packet\n");
-		goto drop;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 	// Get the frag Id
 	frag_id = Gse::getFragId(context_it->second);
@@ -1088,7 +1086,7 @@ Rt::Ptr<NetBurst> Gse::Context::flush(int context_id)
 		LOG(this->log, LEVEL_ERROR,
 		    "Fail to duplicated context data (%s), drop packets\n",
 		    gse_get_status(status));
-		goto erase_burst;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 
 	if((src_tal_id & 0x1f) != src_tal_id)
@@ -1118,7 +1116,7 @@ Rt::Ptr<NetBurst> Gse::Context::flush(int context_id)
 		LOG(this->log, LEVEL_ERROR,
 		    "Fail to store packet in GSE encapsulation context (%s), "
 		    "drop packet\n", gse_get_status(status));
-		goto erase_burst;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 
 	counter = 0;
@@ -1191,8 +1189,6 @@ clean:
 			    gse_get_status(status));
 		}
 	}
-erase_burst:
-drop:
 	return Rt::make_ptr<NetBurst>(nullptr);
 }
 

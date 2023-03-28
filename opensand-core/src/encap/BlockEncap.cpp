@@ -201,8 +201,6 @@ bool Rt::UpwardChannel<BlockEncap>::onEvent(const MessageEvent &event)
 	InternalMessageType msg_type = to_enum<InternalMessageType>(event.getMessageType());
 	if(msg_type == InternalMessageType::link_up)
 	{
-		encap_contexts_t::iterator encap_it;
-
 		// 'link up' message received => forward it to upper layer
 		Ptr<T_LINK_UP> link_up_msg = event.getMessage<T_LINK_UP>();
 		LOG(this->log_receive, LEVEL_INFO,
@@ -423,21 +421,19 @@ bool Rt::DownwardChannel<BlockEncap>::onTimer(event_id_t timer_id)
 	    "%zu encapsulation packets flushed\n",
 	    burst->size());
 
-	if(burst->size() <= 0)
+	if(burst->size() > 0)
 	{
-		return true;
-	}
+		// send the message to the lower layer
+		if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "cannot send burst to lower layer failed\n");
+			return false;
+		}
 
-	// send the message to the lower layer
-	if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "cannot send burst to lower layer failed\n");
-		return false;
+		LOG(this->log_receive, LEVEL_INFO,
+		    "encapsulation burst sent to the lower layer\n");
 	}
-
-	LOG(this->log_receive, LEVEL_INFO,
-	    "encapsulation burst sent to the lower layer\n");
 
 	return true;
 }
@@ -475,13 +471,13 @@ bool Rt::DownwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
 	}
 
 	// set encapsulate timers if needed
-	for(auto&& time_iter : time_contexts)
+	for(auto&& [context_delay, context_timer_id] : time_contexts)
 	{
 		// check if there is already a timer armed for the context
 		bool found = false;
 		for(auto&& it : this->timers)
 		{
-			if (it.second == time_iter.second)
+			if (it.second == context_timer_id)
 			{
 				found = true;
 				break;
@@ -489,26 +485,24 @@ bool Rt::DownwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
 		}
 
 		// set a new timer if no timer was found and timer is not null
-		if(!found && time_iter.first != 0)
+		if(!found && context_delay != 0)
 		{
 			event_id_t timer;
 			std::ostringstream name;
 
-			name << "context_" << time_iter.second;
-			timer = this->addTimerEvent(name.str(),
-			                            time_iter.first,
-			                            false);
+			name << "context_" << context_timer_id;
+			timer = this->addTimerEvent(name.str(), context_delay, false);
 
-			this->timers.emplace(timer, time_iter.second);
+			this->timers.emplace(timer, context_timer_id);
 			LOG(this->log_receive, LEVEL_INFO,
 			    "timer for context ID %d armed with %ld ms\n",
-			    time_iter.second, time_iter.first);
+			    context_timer_id, context_delay);
 		}
 		else
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "timer already set for context ID %d\n",
-			    time_iter.second);
+			    context_timer_id);
 		}
 	}
 
@@ -524,7 +518,7 @@ bool Rt::DownwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
 	{
 		LOG(this->log_receive, LEVEL_INFO,
 		    "encapsulation packet of type %s (QoS = %d)\n",
-		    burst->front()->getName().c_str(),
+		    burst->front()->getName(),
 		    burst->front()->getQos());
 	}
 

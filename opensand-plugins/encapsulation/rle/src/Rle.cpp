@@ -308,7 +308,7 @@ Rt::Ptr<NetBurst> Rle::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::map<lo
 	return encap_burst;
 	*/
 	// Does nothing as of right now
-	// Will use the ??? method next to perform the chunking and encapsulation
+	// Will use the encapNextPacket method next to perform the chunking and encapsulation
 	// all at once when the modcod is known
 	return burst;
 }

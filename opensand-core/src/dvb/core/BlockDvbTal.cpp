@@ -805,24 +805,34 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 		return false;
 	}
 
-	if(dama_algo == "Legacy")
+	try
 	{
-		LOG(this->log_init, LEVEL_NOTICE,
-		    "SF#%u: create Legacy DAMA agent\n",
-		    this->super_frame_counter);
-
-		this->dama_agent = std::make_unique<DamaAgentRcs2Legacy>(this->rcs_modcod_def);
-	}
-	/*else if(dama_algo == "RrmQos")
-	{
-		LOG(this->log_init, LEVEL_NOTICE,
-		    "SF#%u: create RrmQos DAMA agent\n",
-		    this->super_frame_counter);
-
-		if(this->return_link_std == DVB_RCS)
+		if(dama_algo == "Legacy")
 		{
-			this->dama_agent = std::make_unique<DamaAgentRcsRrmQos>(this->rcs_modcod_def);
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "SF#%u: create Legacy DAMA agent\n",
+			    this->super_frame_counter);
+
+			this->dama_agent = std::make_unique<DamaAgentRcs2Legacy>(this->rcs_modcod_def);
 		}
+		/*else if(dama_algo == "RrmQos")
+		{
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "SF#%u: create RrmQos DAMA agent\n",
+			    this->super_frame_counter);
+
+			if(this->return_link_std == DVB_RCS)
+			{
+				this->dama_agent = std::make_unique<DamaAgentRcsRrmQos>(this->rcs_modcod_def);
+			}
+			else
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "cannot create DAMA agent: algo named '%s' is not "
+				    "managed by current MAC layer\n", dama_algo.c_str());
+				return false;
+			}
+		}*/
 		else
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -830,16 +840,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 			    "managed by current MAC layer\n", dama_algo.c_str());
 			return false;
 		}
-	}*/
-	else
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot create DAMA agent: algo named '%s' is not "
-		    "managed by current MAC layer\n", dama_algo.c_str());
-		return false;
 	}
-
-	if(this->dama_agent == nullptr)
+	catch(const std::bad_alloc&)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create DAMA agent\n");
@@ -2247,8 +2249,6 @@ bool Rt::UpwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 		LOG(this->log_receive, LEVEL_DEBUG,
 		    "SF#%u: failed to handle received DVB frame\n",
 		    this->super_frame_counter);
-		// a problem occured, trace is made in onRcvDVBFrame()
-		// carry on simulation
 		return false;
 	}
 
@@ -2467,8 +2467,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 
 			// Update stats
 			auto message_length = dvb_frame->getMessageLength();
-			this->l2_from_sat_bytes += message_length;
-			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
+			this->l2_from_sat_bytes += message_length - sizeof(T_DVB_HDR);
 
 			// Set the real modcod of the ST
 			this->reception_std->setRealModcod(this->getCurrentModcodIdInput(this->tal_id));
