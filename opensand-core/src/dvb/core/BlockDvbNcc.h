@@ -224,6 +224,9 @@ class Rt::DownwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels
 	/// Delay for allocation requests from PEP (in ms)
 	int pep_alloc_delay;
 
+	/// Expiration timers for SCPC encapsulation contexts
+	std::map<event_id_t, int> scpc_timers;
+
 	std::unique_ptr<SpotDownward> spot;
 
 	// Frame interval

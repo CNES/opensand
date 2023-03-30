@@ -134,7 +134,7 @@ bool BlockDvbNcc::initListsSts()
 
 // TODO lot of duplicated code for fifos between ST and GW
 Rt::DownwardChannel<BlockDvbNcc>::DownwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{},
+	DvbChannel{specific.upper_encap},
 	Channels::Downward<DownwardChannel<BlockDvbNcc>>{name},
 	DvbFmt{},
 	pep_interface{},
@@ -144,6 +144,7 @@ Rt::DownwardChannel<BlockDvbNcc>::DownwardChannel(const std::string &name, dvb_s
 	disable_control_plane{specific.disable_control_plane},
 	fwd_frame_counter{0},
 	fwd_timer{-1},
+	scpc_timers{},
 	spot{nullptr},
 	probe_frame_interval{nullptr}
 {
@@ -179,6 +180,7 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 		                                            this->fwd_down_frame_duration,
 		                                            this->ret_up_frame_duration,
 		                                            this->stats_period_ms,
+		                                            this->upper_encap,
 		                                            this->pkt_hdl,
 		                                            this->input_sts,
 		                                            this->output_sts);
@@ -465,7 +467,63 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const MessageEvent& event)
 	}
 	else
 	{
+		std::map<long, int> time_contexts;
 		auto burst = event.getMessage<NetBurst>();
+		std::string name = burst->name();
+		std::size_t size = burst->size();
+		LOG(this->log_receive, LEVEL_INFO,
+		    "encapsulate %zu %s packet(s)\n",
+		    size, name.c_str());
+
+		// encapsulate packet
+		for(auto&& context : this->ctx)
+		{
+			burst = context->encapsulate(std::move(burst), time_contexts);
+			if(!burst)
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "encapsulation failed in %s context\n",
+				    context->getName().c_str());
+				return false;
+			}
+		}
+
+		// set encapsulate timers if needed
+		for(auto&& [context_delay, context_timer_id] : time_contexts)
+		{
+			// check if there is already a timer armed for the context
+			bool found = false;
+			for(auto&& it : this->scpc_timers)
+			{
+				if (it.second == context_timer_id)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			// set a new timer if no timer was found and timer is not null
+			if(!found && context_delay != 0)
+			{
+				event_id_t timer;
+				std::ostringstream name;
+
+				name << "context_" << context_timer_id;
+				timer = this->addTimerEvent(name.str(), context_delay, false);
+
+				this->scpc_timers.emplace(timer, context_timer_id);
+				LOG(this->log_receive, LEVEL_INFO,
+				    "timer for context ID %d armed with %ld ms\n",
+				    context_timer_id, context_delay);
+			}
+			else
+			{
+				LOG(this->log_receive, LEVEL_INFO,
+				    "timer already set for context ID %d\n",
+				    context_timer_id);
+			}
+		}
+
 		LOG(this->log_receive_channel, LEVEL_INFO,
 		    "SF#%u: encapsulation burst received (%d packet(s))\n",
 		    super_frame_counter, burst->length());
@@ -565,6 +623,60 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const TimerEvent& event)
 		while((pep_request = this->pep_interface.getNextPepRequest()))
 		{
 			spot->applyPepCommand(std::move(pep_request));
+		}
+	}
+	else
+	{
+		LOG(this->log_receive, LEVEL_INFO,
+		    "emission timer received, flush corresponding emission "
+		    "context\n");
+
+		// find encapsulation context to flush
+		auto it = this->scpc_timers.find(event.getFd());
+		if(it == this->scpc_timers.end())
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "SF#%u: unknown timer event received %s\n",
+			    this->super_frame_counter, event.getName());
+			return false;
+		}
+
+		// context found
+		int id = it->second;
+		LOG(this->log_receive, LEVEL_INFO,
+		    "corresponding emission context found (ID = %d)\n",
+		    id);
+
+		// remove emission timer from the list
+		this->removeEvent(it->first);
+		this->scpc_timers.erase(it);
+
+		// flush the last encapsulation contexts
+		Ptr<NetBurst> burst = (this->ctx.back())->flush(id);
+		if(!burst)
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "flushing context %d failed\n", id);
+			return false;
+		}
+
+		auto burst_size = burst->size();
+		LOG(this->log_receive, LEVEL_INFO,
+		    "%zu encapsulation packets flushed\n",
+		    burst_size);
+
+		if(burst_size > 0)
+		{
+			// send the message to the lower layer
+			if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot send burst to lower layer failed\n");
+				return false;
+			}
+
+			LOG(this->log_receive, LEVEL_INFO,
+			    "encapsulation burst sent to the lower layer\n");
 		}
 	}
 
@@ -813,7 +925,7 @@ bool Rt::DownwardChannel<BlockDvbNcc>::handleLogonReq(Ptr<DvbFrame> dvb_frame)
 /*****************************************************************************/
 
 Rt::UpwardChannel<BlockDvbNcc>::UpwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{},
+	DvbChannel{specific.upper_encap},
 	Channels::Upward<UpwardChannel<BlockDvbNcc>>{name},
 	DvbFmt{},
 	mac_id{specific.mac_id},
@@ -838,6 +950,7 @@ bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 	{
 		this->spot = std::make_unique<SpotUpward>(this->spot_id,
 		                                          this->mac_id,
+		                                          this->upper_encap,
 		                                          this->input_sts,
 		                                          this->output_sts);
 	}
@@ -869,6 +982,9 @@ bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 	}
 	link_is_up->group_id = this->mac_id;
 	link_is_up->tal_id = this->mac_id;
+
+	this->setFilterTalId(BROADCAST_TAL_ID);
+	this->spot->setFilterTalId(BROADCAST_TAL_ID);
 
 	if(!this->enqueueMessage(std::move(link_is_up),
 	                         to_underlying(InternalMessageType::link_up)))
@@ -1018,7 +1134,7 @@ bool Rt::UpwardChannel<BlockDvbNcc>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 				    "failed to handle the frame\n");
 				return false;
 			}
-			if (burst != nullptr)
+			if (burst != nullptr && burst->size() > 0)
 			{
 				// send the message to the upper layer
 				if (!this->enqueueMessage(std::move(burst),

@@ -64,6 +64,7 @@ public:
 	             time_us_t fwd_down_frame_duration,
 	             time_us_t ret_up_frame_duration,
 	             time_ms_t stats_period,
+	             StackPlugin *upper_encap,
 	             std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
 	             std::shared_ptr<StFmtSimuList> input_sts,
 	             std::shared_ptr<StFmtSimuList> output_sts);
@@ -292,9 +293,6 @@ protected:
 
 	/// The default terminal category for forward band
 	std::shared_ptr<TerminalCategoryDama> default_category;
-
-	/// The up/return packet handler
-	std::shared_ptr<EncapPlugin::EncapPacketHandler> up_return_pkt_hdl;
 
 	/// FMT groups for down/forward
 	fmt_groups_t fwd_fmt_groups;

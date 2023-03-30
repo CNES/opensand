@@ -55,3 +55,12 @@ BlockDvb::BlockDvb()
 	Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");
 	Ttp::ttp_log = output->registerLog(LEVEL_WARNING, "Dvb.TTP");
 }
+
+
+void BlockDvb::generateConfiguration()
+{
+	Plugin::generatePluginsConfiguration(nullptr,
+	                                     PluginType::Encapsulation,
+	                                     "encapsulation_scheme",
+	                                     "Encapsulation Scheme");
+}

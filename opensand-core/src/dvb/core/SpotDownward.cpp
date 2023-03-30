@@ -57,10 +57,11 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            time_us_t fwd_down_frame_duration,
                            time_us_t ret_up_frame_duration,
                            time_ms_t stats_period,
+                           StackPlugin *upper_encap,
                            std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
                            std::shared_ptr<StFmtSimuList> input_sts,
                            std::shared_ptr<StFmtSimuList> output_sts):
-	DvbChannel(),
+	DvbChannel{upper_encap},
 	DvbFmt(),
 	dama_ctrl(nullptr),
 	scheduling(),
@@ -77,7 +78,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	categories(),
 	terminal_affectation(),
 	default_category(nullptr),
-	up_return_pkt_hdl(nullptr),
 	fwd_fmt_groups(),
 	ret_fmt_groups(),
 	cni(100),
@@ -189,13 +189,6 @@ void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParam
 
 bool SpotDownward::onInit()
 {
-	if(!this->initPktHdl(EncapSchemeList::RETURN_UP, this->up_return_pkt_hdl))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed get packet handler\n");
-		return false;
-	}
-
 	if(!this->initModcodDefinitionTypes())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -473,13 +466,6 @@ bool SpotDownward::initDama()
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section 'ncc': missing parameter 'dama_algorithm'\n");
-		return false;
-	}
-
-	if(!this->up_return_pkt_hdl)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "up return pkt hdl has not been initialized first.\n");
 		return false;
 	}
 

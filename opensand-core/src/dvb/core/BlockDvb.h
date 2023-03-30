@@ -61,12 +61,17 @@
 #include "OpenSandCore.h"
 
 
+class StackPlugin;
+
+
 struct dvb_specific
 {
 	tal_id_t mac_id;
 	spot_id_t spot_id;
 	bool disable_control_plane;
 	bool disable_acm_loop;
+	bool is_ground_entity;
+	StackPlugin *upper_encap;
 };
 
 
@@ -77,6 +82,8 @@ public:
 	 * @brief DVB block constructor
 	 */
 	BlockDvb();
+
+	static void generateConfiguration();
 };
 
 

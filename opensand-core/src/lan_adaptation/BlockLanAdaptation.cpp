@@ -119,7 +119,7 @@ bool BlockLanAdaptation::onInit()
 	}
 	LOG(this->log_init, LEVEL_INFO,
 	    "add lan adaptation: %s\n",
-	    plugin->getName().c_str());
+	    plugin->getName());
 
 	// create TAP virtual interface
 	int fd = -1;

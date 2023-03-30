@@ -69,7 +69,6 @@
 #include "SpotDownward.h"
 #include "BlockDvbNcc.h"
 #include "BlockDvbTal.h"
-#include "BlockEncap.h"
 #include "BlockInterconnect.h"
 #include "BlockLanAdaptation.h"
 #include "BlockPhysicalLayer.h"
@@ -77,6 +76,7 @@
 #include "BlockSatDispatcher.h"
 #include "BlockSatAsymetricHandler.h"
 #include "DvbS2Std.h"
+#include "Ethernet.h"
 
 
 EntitySat::EntitySat(tal_id_t instance_id):
@@ -230,6 +230,8 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 		dvb_spec.disable_acm_loop = false;
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = spot_id;
+		dvb_spec.is_ground_entity = false;
+		dvb_spec.upper_encap = Ethernet::constructPlugin();
 		if (!OpenSandModelConf::Get()->getControlPlaneDisabled(dvb_spec.disable_control_plane))
 		{
 			DFLTLOG(LEVEL_ERROR,
@@ -237,12 +239,6 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 			        this->getName().c_str());
 			return false;
 		}
-
-		EncapConfig encap_config;
-		encap_config.entity_id = instance_id;
-		encap_config.entity_type = destination == Component::gateway ? Component::terminal : Component::gateway;
-		encap_config.filter_packets = false;
-		encap_config.scpc_enabled = true;
 
 		PhyLayerConfig phy_config;
 		phy_config.mac_id = instance_id;
@@ -253,12 +249,10 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 		asym_config.phy_config = phy_config;
 		asym_config.is_transparent = is_transparent;
 
-		auto& block_encap = Rt::Rt::createBlock<BlockEncap>("Encap." + suffix, encap_config);
 		auto& block_dvb = Rt::Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
 		auto& block_asym = Rt::Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);
 
-		Rt::Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination, false});
-		Rt::Rt::connectBlocks(block_encap, block_dvb);
+		Rt::Rt::connectBlocks(block_sat_dispatch, block_dvb, {spot_id, destination, false});
 		Rt::Rt::connectBlocks(block_dvb, block_asym, false);
 		Rt::Rt::connectBlocks(block_sat_dispatch, block_asym, true, {spot_id, destination, true});
 		Rt::Rt::connectBlocks(block_asym, block_sc);
@@ -280,7 +274,7 @@ void defineProfileMetaModel()
 
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
-	BlockEncap::generateConfiguration();
+	BlockDvb::generateConfiguration();
 	BlockLanAdaptation::generateConfiguration();
 	GroundPhysicalChannel::generateConfiguration();
 

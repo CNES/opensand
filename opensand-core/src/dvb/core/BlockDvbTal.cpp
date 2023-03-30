@@ -219,7 +219,7 @@ bool BlockDvbTal::initListsSts()
 /*****************************************************************************/
 
 Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{},
+	DvbChannel{specific.upper_encap},
 	Channels::Downward<DownwardChannel<BlockDvbTal>>{name},
 	DvbFmt{},
 	mac_id{specific.mac_id},
@@ -239,6 +239,7 @@ Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_s
 	ret_fmt_groups{},
 	scpc_sched{nullptr},
 	scpc_frame_counter{0},
+	scpc_timers{},
 	carrier_id_ctrl{},
 	carrier_id_logon{},
 	carrier_id_data{},
@@ -1145,7 +1146,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	//TODO: veritfy that 2ST are not using the same carrier and category
 
 	// Initialise Encapsulation scheme
-	if(!this->initPktHdl(EncapSchemeList::RETURN_SCPC, this->pkt_hdl))
+	if(!this->initPktHdl(EncapSchemeList::RETURN_SCPC, this->pkt_hdl, this->ctx))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler\n");
@@ -1389,10 +1390,57 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const TimerEvent& event)
 	}
 	else
 	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "SF#%u: unknown timer event received %s\n",
-		    this->super_frame_counter, event.getName().c_str());
-		return false;
+		LOG(this->log_receive, LEVEL_INFO,
+		    "emission timer received, flush corresponding emission "
+		    "context\n");
+
+		// find encapsulation context to flush
+		auto it = this->scpc_timers.find(event.getFd());
+		if(it == this->scpc_timers.end())
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "SF#%u: unknown timer event received %s\n",
+			    this->super_frame_counter, event.getName());
+			return false;
+		}
+
+		// context found
+		int id = it->second;
+		LOG(this->log_receive, LEVEL_INFO,
+		    "corresponding emission context found (ID = %d)\n",
+		    id);
+
+		// remove emission timer from the list
+		this->removeEvent(it->first);
+		this->scpc_timers.erase(it);
+
+		// flush the last encapsulation contexts
+		Ptr<NetBurst> burst = (this->ctx.back())->flush(id);
+		if(!burst)
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "flushing context %d failed\n", id);
+			return false;
+		}
+
+		auto burst_size = burst->size();
+		LOG(this->log_receive, LEVEL_INFO,
+		    "%zu encapsulation packets flushed\n",
+		    burst_size);
+
+		if(burst_size > 0)
+		{
+			// send the message to the lower layer
+			if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot send burst to lower layer failed\n");
+				return false;
+			}
+
+			LOG(this->log_receive, LEVEL_INFO,
+			    "encapsulation burst sent to the lower layer\n");
+		}
 	}
 
 	return true;
@@ -1427,9 +1475,81 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 	unsigned int sa_offset = 0; // packet position (offset) in the burst
 
 	LOG(this->log_receive, LEVEL_INFO,
-	    "SF#%u: encapsulation burst received (%d "
-	    "packets)\n", this->super_frame_counter,
+	    "SF#%u: encapsulation burst received (%d packets)\n",
+	    this->super_frame_counter,
 	    sa_burst_size);
+
+	if (this->scpc_sched)
+	{
+		std::map<long, int> time_contexts;
+		std::string name = burst->name();
+		std::size_t size = burst->size();
+		LOG(this->log_receive, LEVEL_INFO,
+		    "encapsulate %zu %s packet(s)\n",
+		    size, name.c_str());
+		// encapsulate packet
+		for(auto&& context : this->ctx)
+		{
+			burst = context->encapsulate(std::move(burst), time_contexts);
+			if(!burst)
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "encapsulation failed in %s context\n",
+				    context->getName().c_str());
+				return false;
+			}
+		}
+
+		// set encapsulate timers if needed
+		for(auto&& [context_delay, context_timer_id] : time_contexts)
+		{
+			// check if there is already a timer armed for the context
+			bool found = false;
+			for(auto&& it : this->scpc_timers)
+			{
+				if (it.second == context_timer_id)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			// set a new timer if no timer was found and timer is not null
+			if(!found && context_delay != 0)
+			{
+				event_id_t timer;
+				std::ostringstream name;
+
+				name << "context_" << context_timer_id;
+				timer = this->addTimerEvent(name.str(), context_delay, false);
+
+				this->scpc_timers.emplace(timer, context_timer_id);
+				LOG(this->log_receive, LEVEL_INFO,
+				    "timer for context ID %d armed with %ld ms\n",
+				    context_timer_id, context_delay);
+			}
+			else
+			{
+				LOG(this->log_receive, LEVEL_INFO,
+				    "timer already set for context ID %d\n",
+				    context_timer_id);
+			}
+		}
+
+		// check burst validity
+		auto burst_size = burst->size();
+		if(burst_size > 0)
+		{
+			LOG(this->log_receive, LEVEL_INFO,
+			    "encapsulation packet of type %s (QoS = %d)\n",
+			    burst->front()->getName(),
+			    burst->front()->getQos());
+		}
+
+		LOG(this->log_receive, LEVEL_INFO,
+		    "%zu %s packet => %zu encapsulation packet(s)\n",
+		    size, name, burst_size);
+	}
 
 	// set each packet of the burst in MAC FIFO
 	for (auto&& packet : *burst)
@@ -2198,7 +2318,7 @@ void Rt::DownwardChannel<BlockDvbTal>::deletePackets()
 /*****************************************************************************/
 
 Rt::UpwardChannel<BlockDvbTal>::UpwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{},
+	DvbChannel{specific.upper_encap},
 	Channels::Upward<UpwardChannel<BlockDvbTal>>{name},
 	DvbFmt{},
 	reception_std{nullptr},
@@ -2206,7 +2326,8 @@ Rt::UpwardChannel<BlockDvbTal>::UpwardChannel(const std::string &name, dvb_speci
 	group_id{},
 	tal_id{},
 	gw_id{specific.spot_id},
-	is_scpc{specific.disable_control_plane},
+	is_scpc{!specific.is_ground_entity},
+	filter_packets{specific.is_ground_entity},
 	state{TalState::initializing},
 	probe_st_l2_from_sat{nullptr},
 	probe_st_received_modcod{nullptr},
@@ -2328,6 +2449,8 @@ bool Rt::UpwardChannel<BlockDvbTal>::onInit()
 		}
 		link_is_up->group_id = this->group_id;
 		link_is_up->tal_id = this->tal_id;
+
+		this->setFilterTalId(this->filter_packets ? this->tal_id : BROADCAST_TAL_ID);
 
 		if(!this->enqueueMessage(std::move(link_is_up),
 		                         to_underlying(InternalMessageType::link_up)))
@@ -2520,14 +2643,46 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 			}
 
 			// send the message to the upper layer
-			if (burst && !this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+			if (burst)
 			{
-				LOG(this->log_send, LEVEL_ERROR,
-				    "failed to send burst of packets to upper layer\n");
-				goto error;
+				auto nb_bursts = burst->size();
+				LOG(this->log_receive, LEVEL_INFO,
+				    "message contains a burst of %d %s packet(s)\n",
+				    nb_bursts, burst->name());
+
+				// iterate on all the deencapsulation contexts to get the ip packets
+				for(auto &&context: this->ctx)
+				{
+					burst = context->deencapsulate(std::move(burst));
+					if(!burst)
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "deencapsulation failed in %s context\n",
+						    context->getName().c_str());
+						goto error;
+					}
+					LOG(this->log_receive, LEVEL_INFO,
+					    "%d %s packet => %zu %s packet(s)\n",
+					    nb_bursts, context->getName(),
+					    burst->size(), burst->name());
+					nb_bursts = burst->size();
+				}
+
+				if(!nb_bursts)
+				{
+					break;
+				}
+
+				// send the burst to the upper layer
+				if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "failed to send burst of packets to upper layer\n");
+					goto error;
+				}
+				LOG(this->log_send, LEVEL_INFO,
+				    "burst sent to the upper layer\n");
 			}
-			LOG(this->log_send, LEVEL_INFO,
-			    "burst sent to the upper layer\n");
 			break;
 		}
 
@@ -2661,6 +2816,8 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvLogonResp(Ptr<DvbFrame> dvb_frame)
 	// Remember the id
 	this->group_id = logon_resp.getGroupId();
 	this->tal_id = logon_resp.getLogonId();
+
+	this->setFilterTalId(this->filter_packets ? this->tal_id : BROADCAST_TAL_ID);
 
 	if(!this->shareFrame(std::move(dvb_frame)))
 	{

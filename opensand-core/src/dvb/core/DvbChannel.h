@@ -64,7 +64,7 @@ class DvbFifo;
 class DvbChannel
 {
 public:
-	DvbChannel();
+	DvbChannel(StackPlugin *upper_encap);
 
 protected:
 	/**
@@ -83,7 +83,15 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool initPktHdl(EncapSchemeList encap_schemes,
-	                std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl);
+	                std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl,
+	                encap_contexts_t &ctx);
+
+	/**
+	 * @brief Forward filter terminal ID to the encapsulation contexts
+	 * 
+	 * @param filter	The terminal ID used to filter packets on
+	 */
+	virtual void setFilterTalId(tal_id_t filter);
 
 	/**
 	 * @brief Read the common configuration parameters
@@ -244,6 +252,8 @@ protected:
 
 	/// The encapsulation packet handler
 	std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl;
+	encap_contexts_t ctx;
+	StackPlugin *upper_encap;
 
 	/// The statistics period
 	time_ms_t stats_period_ms;

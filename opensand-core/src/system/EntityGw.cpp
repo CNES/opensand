@@ -66,11 +66,11 @@
 #include "BlockLanAdaptation.h"
 #include "BlockDvbNcc.h"
 #include "BlockSatCarrier.h"
-#include "BlockEncap.h"
 #include "BlockPhysicalLayer.h"
 #include "SpotUpward.h"
 #include "SpotDownward.h"
 #include "PacketSwitch.h"
+#include "Ethernet.h"
 
 
 EntityGw::EntityGw(tal_id_t instance_id): Entity("gw" + std::to_string(instance_id), instance_id)
@@ -90,15 +90,12 @@ bool EntityGw::createSpecificBlocks()
 		laspecific.tap_iface = this->tap_iface;
 		laspecific.packet_switch = std::make_shared<GatewayPacketSwitch>(this->instance_id);
 
-		EncapConfig encap_cfg;
-		encap_cfg.entity_id = this->instance_id;
-		encap_cfg.entity_type = Component::gateway;
-		encap_cfg.filter_packets = false;
-		
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = false;
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = instance_id;
+		dvb_spec.is_ground_entity = true;
+		dvb_spec.upper_encap = Ethernet::constructPlugin();
 
 		struct sc_specific scspecific;
 		scspecific.ip_addr = this->ip_address;
@@ -110,13 +107,11 @@ bool EntityGw::createSpecificBlocks()
 		phy_config.entity_type = Component::gateway;
 
 		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", laspecific);	
-		auto& block_encap = Rt::Rt::createBlock<BlockEncap>("Encap", encap_cfg);
 		auto& block_dvb = Rt::Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
 		auto& block_phy_layer = Rt::Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
 		auto& block_sat_carrier = Rt::Rt::createBlock<BlockSatCarrier>("Sat_Carrier", scspecific);
 
-		Rt::Rt::connectBlocks(block_lan_adaptation, block_encap);
-		Rt::Rt::connectBlocks(block_encap, block_dvb);
+		Rt::Rt::connectBlocks(block_lan_adaptation, block_dvb);
 		Rt::Rt::connectBlocks(block_dvb, block_phy_layer);
 		Rt::Rt::connectBlocks(block_phy_layer, block_sat_carrier);
 	}
@@ -157,7 +152,7 @@ void EntityGw::defineProfileMetaModel() const
 	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
 
 	BlockLanAdaptation::generateConfiguration();
-	BlockEncap::generateConfiguration();
+	BlockDvb::generateConfiguration();
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockPhysicalLayer::generateConfiguration();
 }

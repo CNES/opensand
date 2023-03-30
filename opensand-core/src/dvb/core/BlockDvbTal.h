@@ -169,6 +169,9 @@ class Rt::UpwardChannel<class BlockDvbTal>: public DvbChannel, public Channels::
 	// is the terminal scpc
 	bool is_scpc;
 
+	/// Should this entity filter packets based on their ID
+	bool filter_packets;
+
 	/// the current state of the ST
 	TalState state;
 
@@ -401,6 +404,9 @@ protected:
 
 	/// counter for SCPC frames
 	time_sf_t scpc_frame_counter;
+
+	/// Expiration timers for SCPC encapsulation contexts
+	std::map<event_id_t, int> scpc_timers;
 
 	/* carrier IDs */
 	uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission

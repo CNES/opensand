@@ -52,9 +52,10 @@
 
 SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,
+                       StackPlugin *upper_encap,
                        std::shared_ptr<StFmtSimuList> input_sts,
                        std::shared_ptr<StFmtSimuList> output_sts):
-	DvbChannel{},
+	DvbChannel{upper_encap},
 	DvbFmt{},
 	spot_id{spot_id},
 	mac_id{mac_id},
@@ -321,17 +322,7 @@ bool SpotUpward::initMode()
 	// to received BBFrames and to be able to deencapsulate GSE packets.
 	if(this->checkIfScpc())
 	{
-		std::shared_ptr<EncapPlugin::EncapPacketHandler> fwd_pkt_hdl;
-		std::vector<std::string> scpc_encap;
-
-		if(!this->initPktHdl(EncapSchemeList::FORWARD_DOWN, fwd_pkt_hdl))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "failed to get forward packet handler\n");
-			return false;
-		}
-
-		if(!this->initPktHdl(EncapSchemeList::RETURN_SCPC, this->scpc_pkt_hdl))
+		if(!this->initPktHdl(EncapSchemeList::RETURN_SCPC, this->scpc_pkt_hdl, this->scpc_ctx))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get packet handler for receiving GSE packets\n");
@@ -448,10 +439,22 @@ bool SpotUpward::checkIfScpc()
 }
 
 
+void SpotUpward::setFilterTalId(tal_id_t filter)
+{
+	this->DvbChannel::setFilterTalId(filter);
+
+	for (auto &&context: this->scpc_ctx)
+	{
+		context->setFilterTalId(filter);
+	}
+}
+
+
 bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 {
 	EmulatedMessageType msg_type = frame->getMessageType();
 	bool corrupted = frame->isCorrupted();
+	bool isScpc = false;
 	PhysicStd *std = this->reception_std.get();
 
 	if(msg_type == EmulatedMessageType::BbFrame)
@@ -464,6 +467,7 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 			return false;
 		}
 		std = this->reception_std_scpc.get();
+		isScpc = true;
 	}
 	// Update stats
 	this->l2_from_sat_bytes += frame->getPayloadLength();
@@ -525,6 +529,42 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 		}
 	}
 
+	// check burst validity
+	if(!burst)
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "burst is not valid\n");
+		return false;
+	}
+
+	auto nb_bursts = burst->size();
+	LOG(this->log_receive_channel, LEVEL_INFO,
+	    "message contains a burst of %d %s packet(s)\n",
+	    nb_bursts, burst->name());
+
+	auto &contexts = isScpc ? this->scpc_ctx : this->ctx;
+
+	// iterate on all the deencapsulation contexts to get the ip packets
+	for(auto&& context : contexts)
+	{
+		burst = context->deencapsulate(std::move(burst));
+		if(!burst)
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "deencapsulation failed in %s context\n",
+			    context->getName());
+			return false;
+		}
+		auto burst_size = burst->size();
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "%d %s packet => %zu %s packet(s)\n",
+		    nb_bursts, context->getName(),
+		    burst_size, burst->name());
+		nb_bursts = burst_size;
+	}
+
+	LOG(this->log_receive_channel, LEVEL_INFO,
+	    "burst of deencapsulated packets sent to the upper layer\n");
 	return true;
 }
 

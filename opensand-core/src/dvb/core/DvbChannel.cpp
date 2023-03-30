@@ -55,30 +55,13 @@
 std::shared_ptr<OutputLog> DvbChannel::dvb_fifo_log = nullptr;
 
 
-/**
- * @brief Check if a file exists
- *
- * @return true if the file is found, false otherwise
- */
-inline bool fileExists(const std::string &filename)
-{
-	if(access(filename.c_str(), R_OK) < 0)
-	{
-		DFLTLOG(LEVEL_ERROR,
-		        "cannot access '%s' file (%s)\n",
-		        filename.c_str(), strerror(errno));
-		return false;
-	}
-	return true;
-}
-
-
-DvbChannel::DvbChannel():
+DvbChannel::DvbChannel(StackPlugin *upper_encap):
 	req_burst_length(0),
 	super_frame_counter(0),
 	fwd_down_frame_duration(),
 	ret_up_frame_duration(),
 	pkt_hdl(nullptr),
+	upper_encap(upper_encap),
 	stats_period_ms(),
 	stats_period_frame(),
 	check_send_stats(0)
@@ -113,20 +96,20 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 }
 
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
-                            std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl)
+                            std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl,
+                            encap_contexts_t &ctx)
 {
-	std::string encap_name;
-	EncapPlugin *plugin;
-
+	ctx.clear();
+	std::vector<std::string> encap_names;
 	switch(encap_schemes)
 	{
 		case EncapSchemeList::FORWARD_DOWN:
 		case EncapSchemeList::RETURN_SCPC:
-			encap_name = "GSE";
+			encap_names.emplace_back("GSE");
 			break;
 
 		case EncapSchemeList::RETURN_UP:
-			encap_name = "RLE";
+			encap_names.emplace_back("RLE");
 			break;
 
 		case EncapSchemeList::TRANSPARENT_NO_SCHEME:
@@ -142,26 +125,52 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 			return false;
 	}
 
-	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
+	StackPlugin *upper_encap = this->upper_encap;
+	for (auto &&encap_name: encap_names)
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot get plugin for %s encapsulation\n",
-		    encap_name.c_str());
-		return false;
-	}
+		EncapPlugin *plugin;
+		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot get plugin for %s encapsulation\n",
+			    encap_name);
+			return false;
+		}
 
-	pkt_hdl = plugin->getPacketHandler();
-	if(!pkt_hdl)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot get %s packet handler\n", encap_name.c_str());
-		return false;
+		auto context = plugin->getContext();
+		ctx.push_back(context);
+		pkt_hdl = plugin->getPacketHandler();
+		if(!pkt_hdl)
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot get %s packet handler\n", encap_name.c_str());
+			return false;
+		}
+		if(!context->setUpperPacketHandler(upper_encap->getPacketHandler()))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "upper encapsulation type %s is not supported "
+			    "for %s encapsulation",
+			    upper_encap->getName(),
+			    context->getName());
+			return false;
+		}
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "encapsulation scheme = %s\n",
+		    pkt_hdl->getName());
+		upper_encap = plugin;
 	}
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "encapsulation scheme = %s\n",
-	    pkt_hdl->getName().c_str());
 
 	return true;
+}
+
+
+void DvbChannel::setFilterTalId(tal_id_t filter)
+{
+	for (auto &&context: this->ctx)
+	{
+		context->setFilterTalId(filter);
+	}
 }
 
 
@@ -183,7 +192,7 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 	    "frame duration set to %uμs\n",
 		this->ret_up_frame_duration.count());
 
-	if(!this->initPktHdl(encap_schemes, this->pkt_hdl))
+	if(!this->initPktHdl(encap_schemes, this->pkt_hdl, this->ctx))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize packet handler\n");
