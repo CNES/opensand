@@ -321,14 +321,6 @@ bool Rt::DownwardChannel<BlockDvbTal>::onInit()
 		return false;
 	}
 
-	// Initialization od fow_modcod_def (useful to send SAC)
-	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the up/return MODCOD definition file\n");
-		return false;
-	}
-
 	if (!this->disable_control_plane)
 	{
 		auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
@@ -2404,10 +2396,10 @@ bool Rt::UpwardChannel<BlockDvbTal>::onInit()
 		return false;
 	}
 
-	if(!this->initModcodSimu())
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of the Modcod Simu\n");
+		    "failed to initialize the down/forward MODCOD definition file\n");
 		return false;
 	}
 
@@ -2493,38 +2485,6 @@ bool Rt::UpwardChannel<BlockDvbTal>::initMode()
 	}
 
 	this->reception_std->setModcodDef(&this->s2_modcod_def);
-	return true;
-}
-
-
-bool Rt::UpwardChannel<BlockDvbTal>::initModcodSimu()
-{
-	// tal_id_t gw_id = 0;
-	// if(!OpenSandModelConf::Get()->getGwWithTalId(this->mac_id, gw_id))
-	// {
-	// 	LOG(this->log_init_channel, LEVEL_ERROR,
-	// 	    "couldn't find gw for tal %d",
-	// 	    this->mac_id);
-	// 	return false;
-	// }
-
-	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the down/forward MODCOD definition file\n");
-		return false;
-	}
-
-	if(this->is_scpc)
-	{
-		if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to initialize the up/return MODCOD definition file\n");
-			return false;
-		}
-	}
-
 	return true;
 }
 

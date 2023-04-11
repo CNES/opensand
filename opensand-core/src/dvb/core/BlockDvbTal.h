@@ -98,13 +98,6 @@ class Rt::UpwardChannel<class BlockDvbTal>: public DvbChannel, public Channels::
 	bool initMode();
 
 	/**
-	 * @brief Read configuration for the different files and open them
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initModcodSimu();
-
-	/**
 	 * @brief Initialize the output
 	 *
 	 * @return  true on success, false otherwise
