@@ -105,9 +105,10 @@ body {
 }
 
 /* Home Page Carousel */
-
+/* adding temporary margin to counteract .temporary-notice negative one */
 header.carousel {
     height: 50%;
+    margin-top: 75px;
 }
 
 header.carousel .item,
