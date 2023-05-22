@@ -32,11 +32,12 @@
  * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
-#include <Probe.h>
-
 #include <arpa/inet.h>
 #include <endian.h>
-#include <string.h>
+#include <cstring>
+#include <cstdint>
+
+#include "Probe.h"
 
 
 template<>

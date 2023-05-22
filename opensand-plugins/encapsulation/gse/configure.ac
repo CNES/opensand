@@ -34,6 +34,11 @@ AC_CHECK_FUNCS([])
 PKG_PROG_PKG_CONFIG
 CXXFLAGS="$CXXFLAGS -std=c++17"
 
+# check for opensand-output library
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = opensand_version])
+LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
+AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
+
 # check for gse library
 PKG_CHECK_MODULES([OPENSAND_GSE], [gse >= 1.2.0], [])
 LIBS="$OPENSAND_GSE_LIBS $LIBS"
