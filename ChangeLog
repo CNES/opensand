@@ -1,3 +1,8 @@
+2023-06-05 opensand-6.1.2
+
+   * Fix lan_adaptation initialization
+   * Fix compilation issues with G++ 13
+
 2022-03-13 opensand-6.1.1
 
    * Fix SCPC (again)
