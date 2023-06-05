@@ -154,7 +154,8 @@ def _extract_file_name(filepath: File) -> str:
 def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: File, profile: File=None, debug: bool=False):
     topology = _extract_file_name(topology)
     infrastructure = _extract_file_name(infrastructure)
-    profile = _extract_file_name(profile)
+    if profile is not None:
+        profile = _extract_file_name(profile)
 
     command = ['ip', 'netns', 'exec', f'{entity_kind}{entity_id}']
 

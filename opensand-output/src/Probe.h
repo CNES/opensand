@@ -36,13 +36,14 @@
 #ifndef _PROBE_H
 #define _PROBE_H
 
-#include "BaseProbe.h"
-#include "OutputMutex.h"
-
 #include <algorithm>
 #include <iostream>
 #include <cassert>
 #include <sstream>
+#include <cstdint>
+
+#include "BaseProbe.h"
+#include "OutputMutex.h"
 
 
 /**
