@@ -24,6 +24,6 @@ default:
 
 delegate_to_build_job:
   variables:
-    BRANCH: $CI_COMMIT_REF_NAME
+    BRANCH_NAME: $CI_COMMIT_REF_NAME
   stage: delegate
   trigger: opensand/opensand-ci
