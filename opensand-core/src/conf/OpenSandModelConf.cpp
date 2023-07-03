@@ -256,7 +256,6 @@ void OpenSandModelConf::createModels()
 	auto log_levels = infrastructure_model->getRoot()->addComponent("logs", "Logs");
 	log_levels->addComponent("init", "init")->addParameter("level", "Log Level", types->getType("log_level"));
 	log_levels->addComponent("lan_adaptation", "lan_adaptation")->addParameter("level", "Log Level", types->getType("log_level"));
-	log_levels->addComponent("encap", "encap")->addParameter("level", "Log Level", types->getType("log_level"));
 	log_levels->addComponent("dvb", "dvb")->addParameter("level", "Log Level", types->getType("log_level"));
 	log_levels->addComponent("physical_layer", "physical_layer")->addParameter("level", "Log Level", types->getType("log_level"));
 	log_levels->addComponent("sat_carrier", "sat_carrier")->addParameter("level", "Log Level", types->getType("log_level"));
@@ -996,7 +995,6 @@ bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels) co
 	static std::vector<std::string> log_names_loop{
 		"init",
 		"lan_adaptation",
-		"encap",
 		"dvb",
 		"physical_layer",
 		"sat_carrier",
