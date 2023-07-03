@@ -226,7 +226,7 @@ def create_default_infrastructure(meta_model):
     infrastructure = infra.get_root()
 
     logs = _get_component(infrastructure, 'logs')
-    for log in ('init', 'lan_adaptation', 'encap', 'dvb', 'physical_layer', 'sat_carrier'):
+    for log in ('init', 'lan_adaptation', 'dvb', 'physical_layer', 'sat_carrier'):
         _set_parameter(_get_component(logs, log), 'level', 'warning')
 
     entity = _get_component(infrastructure, 'entity')
