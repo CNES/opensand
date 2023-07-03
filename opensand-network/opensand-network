@@ -308,6 +308,42 @@ def command_line_parser() -> argparse.ArgumentParser:
             default='opensand_isl',
             help='Name of the ISL bridge')
 
+    def ip_address(value):
+        import ipaddress
+        parsed = ipaddress.ip_address(value)
+        return parsed.compressed
+
+    parser_eth = subparsers.add_parser(
+            'network', help='Setup interfaces to connect an terrestrial entity to a physical network')
+    parser_eth.add_argument(
+            'entity_kind',
+            choices=('st', 'gw'),
+            help='Type of the entity to connect')
+    parser_eth.add_argument(
+            'entity_id',
+            metavar='ID',
+            type=unsigned_byte,
+            help='ID of the entity to connect')
+    group_address = parser_eth.add_argument_group(
+            'By Address',
+            'Assign an address to a virtual interface connected to the '
+            'entity so you can route your traffic through it')
+    group_address.add_argument(
+            '--address', '-a',
+            type=ip_address,
+            help='Address to assign to the entity')
+    group_bridge = parser_eth.add_argument_group(
+            'By Bridge',
+            'Bind a physical interface to the entity so any traffic received '
+            'on this interface is automatically handled by the entity')
+    group_bridge.add_argument(
+            '--interface', '-i',
+            help='Physical interface to bind to the entity')
+    group_bridge.add_argument(
+            '--bridge-name', '--bridge', '-b',
+            help='Name of the bridge used to bind the entity '
+            'to the physical network, if the `-i` option is provided')
+
     parser_launch = subparsers.add_parser('launch', help='Run OpenSAND inside a netns')
     parser_launch.add_argument(
             '--debug', '--gdb',
