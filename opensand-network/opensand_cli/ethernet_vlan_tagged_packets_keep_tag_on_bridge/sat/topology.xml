@@ -17,7 +17,7 @@
           </roll_off>
           <forward_band>
             <item>
-              <symbol_rate>40000000.000000</symbol_rate>
+              <bandwidth>54000</bandwidth>
               <type>ACM</type>
               <wave_form>1-28</wave_form>
               <group>Standard</group>
@@ -25,7 +25,7 @@
           </forward_band>
           <return_band>
             <item>
-              <symbol_rate>40000000.000000</symbol_rate>
+              <bandwidth>48000</bandwidth>
               <type>DAMA</type>
               <wave_form>3-12</wave_form>
               <group>Standard</group>
