@@ -32,9 +32,6 @@
       <lan_adaptation>
         <level>warning</level>
       </lan_adaptation>
-      <encap>
-        <level>warning</level>
-      </encap>
       <dvb>
         <level>warning</level>
       </dvb>
