@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <model version="1.0.0">
   <root>
+    <control_plane>
+      <disable_control_plane>false</disable_control_plane>
+    </control_plane>
     <network>
       <qos_classes>
         <item>
@@ -46,11 +49,11 @@
       </qos_classes>
       <virtual_connections/>
       <qos_settings>
-        <lan_frame_type>802.1Q</lan_frame_type>
-        <sat_frame_type>802.1Q</sat_frame_type>
+        <lan_frame_type>Ethernet</lan_frame_type>
+        <sat_frame_type>Ethernet</sat_frame_type>
         <default_pcp>0</default_pcp>
       </qos_settings>
-      <fifos>
+      <gw_fifos>
         <item>
           <priority>0</priority>
           <name>NM</name>
@@ -81,7 +84,7 @@
           <capacity>6000</capacity>
           <access_type>ACM</access_type>
         </item>
-      </fifos>
+      </gw_fifos>
       <simulation>None</simulation>
       <fca>0</fca>
       <dama_algorithm>Legacy</dama_algorithm>
