@@ -226,7 +226,7 @@ def create_default_infrastructure(meta_model):
     infrastructure = infra.get_root()
 
     logs = _get_component(infrastructure, 'logs')
-    for log in ('init', 'lan_adaptation', 'encap', 'dvb', 'physical_layer', 'sat_carrier'):
+    for log in ('init', 'lan_adaptation', 'dvb', 'physical_layer', 'sat_carrier'):
         _set_parameter(_get_component(logs, log), 'level', 'warning')
 
     entity = _get_component(infrastructure, 'entity')
@@ -283,12 +283,12 @@ def create_default_topology(meta_model):
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
     forward_carrier = _create_list_item(spot, 'forward_band')
-    _set_parameter(forward_carrier, 'symbol_rate', 40e6)
+    _set_parameter(forward_carrier, 'bandwidth', 54000)
     _set_parameter(forward_carrier, 'type', 'ACM')
     _set_parameter(forward_carrier, 'wave_form', '1-28')
     _set_parameter(forward_carrier, 'group', 'Standard')
     return_carrier = _create_list_item(spot, 'return_band')
-    _set_parameter(return_carrier, 'symbol_rate', 40e6)
+    _set_parameter(return_carrier, 'bandwidth', 48000)
     _set_parameter(return_carrier, 'type', 'DAMA')
     _set_parameter(return_carrier, 'wave_form', '3-12')
     _set_parameter(return_carrier, 'group', 'Standard')
@@ -425,7 +425,7 @@ def create_scpc_topology(meta_model):
     spot = spots.get_item("0")
     
     return_carrier = _create_list_item(spot, 'return_band')
-    _set_parameter(return_carrier, 'symbol_rate', 40e6)
+    _set_parameter(return_carrier, 'bandwidth', 48000)
     _set_parameter(return_carrier, 'type', 'SCPC')
     _set_parameter(return_carrier, 'wave_form', '3-12')
     _set_parameter(return_carrier, 'group', 'Standard')

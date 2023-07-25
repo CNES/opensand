@@ -43,20 +43,26 @@
 #include "SpotUpward.h"
 #include "SpotDownward.h"
 #include "DvbRcsFrame.h"
+#include "NetBurst.h"
+#include "BBFrame.h"
+#include "Logon.h"
 #include "Sof.h"
+#include "Ttp.h"
 
 #include <errno.h>
+#include <cstring>
 #include <opensand_rt/TcpListenEvent.h>
 #include <opensand_rt/MessageEvent.h>
-
+#include <opensand_rt/TimerEvent.h>
 
 
 /*****************************************************************************/
 /*                                Block                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::BlockDvbNcc(const std::string &name, struct dvb_specific specific):
-	BlockDvb{name},
+BlockDvbNcc::BlockDvbNcc(const std::string &name, dvb_specific specific):
+	Rt::Block<BlockDvbNcc, dvb_specific>{name, specific},
+	BlockDvb{},
 	mac_id{specific.mac_id},
 	output_sts{nullptr},
 	input_sts{nullptr}
@@ -64,22 +70,14 @@ BlockDvbNcc::BlockDvbNcc(const std::string &name, struct dvb_specific specific):
 }
 
 
-BlockDvbNcc::~BlockDvbNcc()
-{
-	delete this->input_sts;
-	this->input_sts = nullptr;
-
-	delete this->output_sts;
-	this->output_sts = nullptr;
-}
-
 void BlockDvbNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
 	SpotDownward::generateConfiguration(disable_ctrl_plane);
 	SpotUpward::generateConfiguration(disable_ctrl_plane);
 }
 
-bool BlockDvbNcc::onInit(void)
+
+bool BlockDvbNcc::onInit()
 {
 	if(!this->initListsSts())
 	{
@@ -96,28 +94,34 @@ bool BlockDvbNcc::initListsSts()
 {
 	if (!this->input_sts)
 	{
-		this->input_sts = new StFmtSimuList("in");
-	}
-	if(!this->input_sts)
-	{
-		return false;
+		try
+		{
+			this->input_sts = std::make_shared<StFmtSimuList>("in");
+		}
+		catch (const std::bad_alloc&)
+		{
+			return false;
+		}
 	}
 
 	if(!this->output_sts)
 	{
-		this->output_sts = new StFmtSimuList("out");
-	}
-	if(!this->output_sts)
-	{
-		return false;
+		try
+		{
+			this->output_sts = std::make_shared<StFmtSimuList>("out");
+		}
+		catch (const std::bad_alloc&)
+		{
+			return false;
+		}
 	}
 
 	// input and output sts are shared between up and down
 	// and protected by a mutex
-	static_cast<Upward *>(this->upward)->setOutputSts(this->output_sts);
-	static_cast<Upward *>(this->upward)->setInputSts(this->input_sts);
-	static_cast<Downward *>(this->downward)->setOutputSts(this->output_sts);
-	static_cast<Downward *>(this->downward)->setInputSts(this->input_sts);
+	this->upward.setOutputSts(this->output_sts);
+	this->upward.setInputSts(this->input_sts);
+	this->downward.setOutputSts(this->output_sts);
+	this->downward.setInputSts(this->input_sts);
 
 	return true;
 }
@@ -129,26 +133,25 @@ bool BlockDvbNcc::initListsSts()
 
 
 // TODO lot of duplicated code for fifos between ST and GW
-BlockDvbNcc::Downward::Downward(const std::string &name, struct dvb_specific specific):
-	DvbDownward{name, specific},
+Rt::DownwardChannel<BlockDvbNcc>::DownwardChannel(const std::string &name, dvb_specific specific):
+	DvbChannel{specific.upper_encap},
+	Channels::Downward<DownwardChannel<BlockDvbNcc>>{name},
 	DvbFmt{},
 	pep_interface{},
 	svno_interface{},
 	mac_id{specific.mac_id},
 	spot_id{specific.spot_id},
+	disable_control_plane{specific.disable_control_plane},
 	fwd_frame_counter{0},
 	fwd_timer{-1},
+	scpc_timers{},
+	spot{nullptr},
 	probe_frame_interval{nullptr}
 {
 }
 
 
-BlockDvbNcc::Downward::~Downward()
-{
-}
-
-
-bool BlockDvbNcc::Downward::onInit(void)
+bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 {
 	// get the common parameters
 	if(!this->initDown())
@@ -170,14 +173,22 @@ bool BlockDvbNcc::Downward::onInit(void)
 	LOG(this->log_init, LEVEL_DEBUG,
 	    "Create downward spot with ID %u\n", spot_id);
 
-	this->spot = new SpotDownward(this->spot_id,
-	                              this->mac_id,
-	                              this->fwd_down_frame_duration_ms,
-	                              this->ret_up_frame_duration_ms,
-	                              this->stats_period_ms,
-	                              this->pkt_hdl,
-	                              this->input_sts,
-	                              this->output_sts);
+	try
+	{
+		this->spot = std::make_unique<SpotDownward>(this->spot_id,
+		                                            this->mac_id,
+		                                            this->fwd_down_frame_duration,
+		                                            this->ret_up_frame_duration,
+		                                            this->stats_period_ms,
+		                                            this->upper_encap,
+		                                            this->pkt_hdl,
+		                                            this->input_sts,
+		                                            this->output_sts);
+	}
+	catch (const std::bad_alloc&)
+	{
+		this->spot = nullptr;
+	}
 
 	if (!spot || !spot->onInit()) {
 		LOG(this->log_init, LEVEL_ERROR,
@@ -240,20 +251,36 @@ bool BlockDvbNcc::Downward::onInit(void)
 }
 
 
-bool BlockDvbNcc::Downward::initTimers(void)
+bool Rt::DownwardChannel<BlockDvbNcc>::initDown()
+{
+	// forward timer
+	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section 'links': missing parameter 'forward frame duration'\n");
+		return false;
+	}
+
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "forward timer set to %f\n",
+	    this->fwd_down_frame_duration);
+
+	return true;
+}
+
+
+bool Rt::DownwardChannel<BlockDvbNcc>::initTimers()
 {
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
-	this->fwd_timer = this->addTimerEvent("fwd_timer",
-	                                      this->fwd_down_frame_duration_ms);
+	this->fwd_timer = this->addTimerEvent("fwd_timer", ArgumentWrapper(this->fwd_down_frame_duration));
 
 	if (this->disable_control_plane)
 	{
 		return true;
 	}
 
-	this->frame_timer = this->addTimerEvent("frame",
-	                                        this->ret_up_frame_duration_ms);
+	this->frame_timer = this->addTimerEvent("frame", ArgumentWrapper(this->ret_up_frame_duration));
 
 	auto Conf = OpenSandModelConf::Get();
 
@@ -276,14 +303,15 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "ACM period set to %d ms\n",
+	    "ACM period set to %f ms\n",
 	    acm_period_ms);
 
 	// create timer
 	if(!spot)
 	{
 		LOG(this->log_init, LEVEL_WARNING,
-		    "Error when getting spot %d\n", spot_id);
+		    "Error when getting spot %d\n",
+		    spot_id);
 		return false;
 	}
 	spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
@@ -296,126 +324,467 @@ bool BlockDvbNcc::Downward::initTimers(void)
 }
 
 
-bool BlockDvbNcc::Downward::handleDvbFrame(DvbFrame *dvb_frame)
+bool Rt::DownwardChannel<BlockDvbNcc>::sendBursts(std::list<Ptr<DvbFrame>> *complete_frames,
+                                                  uint8_t carrier_id)
+{
+	bool status = true;
+
+	// send all complete DVB-RCS frames
+	LOG(this->log_send, LEVEL_DEBUG,
+	    "send all %zu complete DVB frames...\n",
+	    complete_frames->size());
+	for(auto&& frame: *complete_frames)
+	{
+		// Send DVB frames to lower layer
+		if(!this->sendDvbFrame(std::move(frame), carrier_id))
+		{
+			status = false;
+			continue;
+		}
+
+		LOG(this->log_send, LEVEL_INFO,
+		    "complete DVB frame sent to carrier %u\n", carrier_id);
+	}
+	// clear complete DVB frames
+	complete_frames->clear();
+
+	return status;
+}
+
+
+bool Rt::DownwardChannel<BlockDvbNcc>::sendDvbFrame(Ptr<DvbFrame> dvb_frame,
+                                                    uint8_t carrier_id)
+{
+	if(!dvb_frame)
+	{
+		LOG(this->log_send, LEVEL_ERROR,
+		    "frame is %p\n", dvb_frame.get());
+		return false;
+	}
+
+	dvb_frame->setCarrierId(carrier_id);
+
+	if(dvb_frame->getTotalLength() <= 0)
+	{
+		LOG(this->log_send, LEVEL_ERROR,
+		    "empty frame, header and payload are not present\n");
+		return false;
+	}
+
+	// send the message to the lower layer
+	// do not count carrier_id in len, this is the dvb_meta->hdr length
+	if(!this->enqueueMessage(std::move(dvb_frame), to_underlying(InternalMessageType::unknown)))
+	{
+		LOG(this->log_send, LEVEL_ERROR,
+		    "failed to send DVB frame to lower layer\n");
+		return false;
+	}
+	// TODO make a log_send_frame and a log_send_sig
+	LOG(this->log_send, LEVEL_INFO,
+	    "DVB frame sent to the lower layer\n");
+
+	return true;
+}
+
+
+bool Rt::DownwardChannel<BlockDvbNcc>::handleDvbFrame(Ptr<DvbFrame> dvb_frame)
 {
 	if (this->disable_control_plane)
 	{
-		bool result = this->sendDvbFrame(dvb_frame, spot->getCtrlCarrierId());
-		return result;
+		return this->sendDvbFrame(std::move(dvb_frame), spot->getCtrlCarrierId());
 	}
 
 	EmulatedMessageType msg_type = dvb_frame->getMessageType();
 	switch(msg_type)
 	{
 		case EmulatedMessageType::Sac: // when physical layer is enabled
-			return spot->handleSac(dvb_frame);
+			return spot->handleSac(std::move(dvb_frame));
 
 		case EmulatedMessageType::SessionLogonReq:
-			return this->handleLogonReq(dvb_frame, spot);
+			return this->handleLogonReq(std::move(dvb_frame));
 
 		case EmulatedMessageType::SessionLogoff:
-			return spot->handleLogoffReq(dvb_frame);
+			return spot->handleLogoffReq(std::move(dvb_frame));
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
 					"SF#%u: unknown type of DVB frame (%u), ignore\n",
 					this->super_frame_counter, msg_type);
-			delete dvb_frame;
 			return false;
 	}
 
-	delete dvb_frame;
 	return true;
 }
 
 
-bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
+bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const Event& event)
 {
-	switch(event->getType())
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const MessageEvent& event)
+{
+	InternalMessageType msg_type = to_enum<InternalMessageType>(event.getMessageType());
+
+	// first handle specific messages
+	if(msg_type == InternalMessageType::sig)
 	{
-		case EventType::Message:
+		auto dvb_frame = event.getMessage<DvbFrame>();
+		auto spot_id = dvb_frame->getSpot();
+		if (spot_id != this->spot_id)
 		{
-			auto msg_event = static_cast<const MessageEvent*>(event);
-			InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
+			LOG(this->log_receive, LEVEL_WARNING,
+			    "Spot %d trying to send a DvbFrame destined to spot %d\n",
+			    spot_id, spot_id);
+			return false;
+		}
 
-			// first handle specific messages
-			if(msg_type == InternalMessageType::sig)
+		if(!this->handleDvbFrame(std::move(dvb_frame)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Treatments failed at SF#%u\n",
+			    this->super_frame_counter);
+			return false;
+		}
+	}
+	else if(msg_type == InternalMessageType::saloha)
+	{
+		auto ack_frames = event.getMessage<std::list<Ptr<DvbFrame>>>();
+		auto spot_id = ack_frames->front()->getSpot();
+		if (spot_id != this->spot_id)
+		{
+			LOG(this->log_receive, LEVEL_WARNING,
+			    "Spot %d trying to send ACK frames destined to spot %d\n",
+			    spot_id, spot_id);
+			return false;
+		}
+
+		spot->handleSalohaAcks(std::move(ack_frames));
+	}
+	else
+	{
+		std::map<long, int> time_contexts;
+		auto burst = event.getMessage<NetBurst>();
+		std::string name = burst->name();
+		std::size_t size = burst->size();
+		LOG(this->log_receive, LEVEL_INFO,
+		    "encapsulate %zu %s packet(s)\n",
+		    size, name.c_str());
+
+		// encapsulate packet
+		for(auto&& context : this->ctx)
+		{
+			burst = context->encapsulate(std::move(burst), time_contexts);
+			if(!burst)
 			{
-				auto dvb_frame = static_cast<DvbFrame *>(msg_event->getData());
-				auto spot_id = dvb_frame->getSpot();
-				if (spot_id != this->spot_id)
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "Spot %d trying to send a DvbFrame destined to spot %d\n",
-					    spot_id, spot_id);
-					delete dvb_frame;
-					return false;
-				}
-
-				if(!this->handleDvbFrame(dvb_frame)) {
-					goto error;
-				}
-				break;
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "encapsulation failed in %s context\n",
+				    context->getName().c_str());
+				return false;
 			}
-			else if(msg_type == InternalMessageType::saloha)
-			{
-				auto ack_frames = static_cast<std::list<DvbFrame *> *>(msg_event->getData());
-				auto spot_id = ack_frames->front()->getSpot();
-				if (spot_id != this->spot_id)
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "Spot %d trying to send ACK frames destined to spot %d\n",
-					    spot_id, spot_id);
-					delete ack_frames;
-					return false;
-				}
+		}
 
-				spot->handleSalohaAcks(ack_frames);
-				delete ack_frames;
+		// set encapsulate timers if needed
+		for(auto&& [context_delay, context_timer_id] : time_contexts)
+		{
+			// check if there is already a timer armed for the context
+			bool found = false;
+			for(auto&& it : this->scpc_timers)
+			{
+				if (it.second == context_timer_id)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			// set a new timer if no timer was found and timer is not null
+			if(!found && context_delay != 0)
+			{
+				event_id_t timer;
+				std::ostringstream name;
+
+				name << "context_" << context_timer_id;
+				timer = this->addTimerEvent(name.str(), context_delay, false);
+
+				this->scpc_timers.emplace(timer, context_timer_id);
+				LOG(this->log_receive, LEVEL_INFO,
+				    "timer for context ID %d armed with %ld ms\n",
+				    context_timer_id, context_delay);
 			}
 			else
 			{
-				auto burst = static_cast<NetBurst *>(msg_event->getData());
-
-				LOG(this->log_receive_channel, LEVEL_INFO,
-				    "SF#%u: encapsulation burst received (%d packet(s))\n",
-				    super_frame_counter, burst->length());
-
-				// set each packet of the burst in MAC FIFO
-				for(auto&& pkt : *burst)
-				{
-					if(!spot->handleEncapPacket(std::move(pkt)))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "cannot push burst into fifo\n");
-						continue;
-					}
-				}
-				delete burst;
+				LOG(this->log_receive, LEVEL_INFO,
+				    "timer already set for context ID %d\n",
+				    context_timer_id);
 			}
-			break;
 		}
-		case EventType::Timer:
-		{
-			// receive the frame Timer event
-			LOG(this->log_receive, LEVEL_DEBUG,
-			    "timer event received on downward channel");
-			if(*event == this->frame_timer)
-			{
-				if(this->probe_frame_interval->isEnabled())
-				{
-					time_val_t time = event->getAndSetCustomTime();
-					this->probe_frame_interval->put(time/1000.f);
-				}
 
-				// we reached the end of a superframe
-				// beginning of a new one, send SOF and run allocation
-				// algorithms (DAMA)
-				// increase the superframe number and reset
-				// counter of frames per superframe
-				this->super_frame_counter++;
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "SF#%u: encapsulation burst received (%d packet(s))\n",
+		    super_frame_counter, burst->length());
+
+		// set each packet of the burst in MAC FIFO
+		for(auto&& pkt : *burst)
+		{
+			if(!spot->handleEncapPacket(std::move(pkt)))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot push burst into fifo\n");
+				continue;
+			}
+		}
+	}
+
+	return true;
+}
+
+
+// TODO factorize, some elements are exactly the same between NccInterface classes
+bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const TimerEvent& event)
+{
+	// receive the frame Timer event
+	LOG(this->log_receive, LEVEL_DEBUG,
+	    "timer event received on downward channel");
+	if(event == this->frame_timer)
+	{
+		if(this->probe_frame_interval->isEnabled())
+		{
+			time_val_t time = event.getAndSetCustomTime();
+			this->probe_frame_interval->put(time/1000.f);
+		}
+
+		// we reached the end of a superframe
+		// beginning of a new one, send SOF and run allocation
+		// algorithms (DAMA)
+		// increase the superframe number and reset
+		// counter of frames per superframe
+		this->super_frame_counter++;
+	}
+
+	if(!spot)
+	{
+		LOG(this->log_receive, LEVEL_WARNING,
+		    "Error when getting spot\n");
+		return false;
+	}
+
+	if(event == this->frame_timer)
+	{
+		// send Start Of Frame
+		this->sendSOF(spot->getSofCarrierId());
+
+		if(spot->checkDama())
+		{
+			return true;
+		}
+
+		// Update Fmt here for TTP
+		spot->updateFmt();
+
+		if(!spot->handleFrameTimer(this->super_frame_counter))
+		{
+			return false;
+		}
+
+		// send TTP computed by DAMA
+		this->sendTTP();
+	}
+	else if(event == this->fwd_timer)
+	{
+		if(!spot->handleFwdFrameTimer(++this->fwd_frame_counter))
+		{
+			return false;
+		}
+
+		// send the scheduled frames
+		if(!this->sendBursts(&spot->getCompleteDvbFrames(),
+		                     spot->getDataCarrierId()))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "failed to build and send DVB/BB "
+			    "frames\n");
+			return false;
+		}
+	}
+	else if(event == spot->getPepCmdApplyTimer())
+	{
+		// it is time to apply the command sent by the external
+		// PEP component
+
+		std::unique_ptr<PepRequest> pep_request;
+
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "apply PEP requests now\n");
+		while((pep_request = this->pep_interface.getNextPepRequest()))
+		{
+			spot->applyPepCommand(std::move(pep_request));
+		}
+	}
+	else
+	{
+		LOG(this->log_receive, LEVEL_INFO,
+		    "emission timer received, flush corresponding emission "
+		    "context\n");
+
+		// find encapsulation context to flush
+		auto it = this->scpc_timers.find(event.getFd());
+		if(it == this->scpc_timers.end())
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "SF#%u: unknown timer event received %s\n",
+			    this->super_frame_counter, event.getName());
+			return false;
+		}
+
+		// context found
+		int id = it->second;
+		LOG(this->log_receive, LEVEL_INFO,
+		    "corresponding emission context found (ID = %d)\n",
+		    id);
+
+		// remove emission timer from the list
+		this->removeEvent(it->first);
+		this->scpc_timers.erase(it);
+
+		// flush the last encapsulation contexts
+		Ptr<NetBurst> burst = (this->ctx.back())->flush(id);
+		if(!burst)
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "flushing context %d failed\n", id);
+			return false;
+		}
+
+		auto burst_size = burst->size();
+		LOG(this->log_receive, LEVEL_INFO,
+		    "%zu encapsulation packets flushed\n",
+		    burst_size);
+
+		if(burst_size > 0)
+		{
+			// send the message to the lower layer
+			if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot send burst to lower layer failed\n");
+				return false;
 			}
 
+			LOG(this->log_receive, LEVEL_INFO,
+			    "encapsulation burst sent to the lower layer\n");
+		}
+	}
+
+	return true;
+}
+
+
+bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const NetSocketEvent& event)
+{
+	if(event == this->pep_interface.getPepClientSocket())
+	{
+		// event received on PEP client socket
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "event received on PEP client socket\n");
+
+		// read the message sent by PEP or delete socket
+		// if connection is dead
+		tal_id_t tal_id;
+		if(!this->pep_interface.readPepMessage(event, tal_id))
+		{
+			LOG(this->log_receive, LEVEL_WARNING,
+			    "network problem encountered with PEP, "
+			    "connection was therefore closed\n");
+			// Free the socket
+			if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to clase socket: "
+				    "%s (%d)\n", strerror(errno), errno);
+			}
+			this->removeEvent(this->pep_interface.getPepClientSocket());
+			return false;
+		}
+		// we have received a set of commands from the
+		// PEP component, let's apply the resources
+		// allocations/releases they contain
+
+		if(!spot)
+		{
+			LOG(this->log_receive, LEVEL_WARNING,
+			    "Error when getting spot\n");
+			return false;
+		}
+
+		// set delay for applying the commands
+		if(this->pep_interface.getPepRequestType() == PEP_REQUEST_ALLOCATION)
+		{
+			if(!this->startTimer(spot->getPepCmdApplyTimer()))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot start pep timer");
+				return false;
+			}
+			LOG(this->log_receive, LEVEL_NOTICE,
+			    "PEP Allocation request, apply a %dms delay\n",
+			    pep_alloc_delay);
+		}
+		else if(this->pep_interface.getPepRequestType() == PEP_REQUEST_RELEASE)
+		{
+			this->raiseTimer(spot->getPepCmdApplyTimer());
+			LOG(this->log_receive, LEVEL_NOTICE,
+			    "PEP Release request, no delay to apply\n");
+		}
+		else
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "cannot determine request type!\n");
+			return false;
+		}
+		// Free the socket
+		if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to clase socket: "
+			    "%s (%d)\n", strerror(errno), errno);
+		}
+		this->removeEvent(this->pep_interface.getPepClientSocket());
+	}
+	else if(event == this->svno_interface.getSvnoClientSocket())
+	{
+		// event received on SVNO client socket
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "event received on SVNO client socket\n");
+
+		// read the message sent by SVNO or delete socket
+		// if connection is dead
+		if(!this->svno_interface.readSvnoMessage(event))
+		{
+			LOG(this->log_receive, LEVEL_WARNING,
+			    "network problem encountered with SVNO, "
+			    "connection was therefore closed\n");
+			// Free the socket
+			if(shutdown(this->svno_interface.getSvnoClientSocket(), SHUT_RDWR) != 0)
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to clase socket: "
+				    "%s (%d)\n", strerror(errno), errno);
+			}
+			this->removeEvent(this->svno_interface.getSvnoClientSocket());
+			return false;
+		}
+		// we have received a set of commands from the
+		// SVNO component, let's apply the resources
+		// allocations/releases they contain
+
+		std::unique_ptr<SvnoRequest> request = this->svno_interface.getNextSvnoRequest();
+		while(request != nullptr)
+		{
 			if(!spot)
 			{
 				LOG(this->log_receive, LEVEL_WARNING,
@@ -423,250 +792,69 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				return false;
 			}
 
-			if(*event == this->frame_timer)
+			if(!spot->applySvnoCommand(std::move(request)))
 			{
-				// send Start Of Frame
-				this->sendSOF(spot->getSofCarrierId());
-
-				if(spot->checkDama())
-				{
-					break;
-				}
-
-				// Update Fmt here for TTP
-				spot->updateFmt();
-
-				if(!spot->handleFrameTimer(this->super_frame_counter))
-				{
-					return false;
-				}
-
-				// send TTP computed by DAMA
-				this->sendTTP(spot);
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "Cannot apply SVNO interface request\n");
+				return false;
 			}
-			else if(*event == this->fwd_timer)
-			{
-				this->fwd_frame_counter++;
-				if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
-				{
-					return false;
-				}
-
-				// send the scheduled frames
-				if(!this->sendBursts(&spot->getCompleteDvbFrames(),
-				                     spot->getDataCarrierId()))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "failed to build and send DVB/BB "
-					    "frames\n");
-					return false;
-				}
-			}
-			else if(*event == spot->getPepCmdApplyTimer())
-			{
-				// it is time to apply the command sent by the external
-				// PEP component
-
-				PepRequest *pep_request;
-
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "apply PEP requests now\n");
-				while((pep_request = this->pep_interface.getNextPepRequest()) != NULL)
-				{
-					spot->applyPepCommand(pep_request);
-				}
-			}
-
-			break;
-		}
-		// TODO factorize, some elements are exactly the same between NccInterface classes
-		case EventType::NetSocket:
-		{
-			if(*event == this->pep_interface.getPepClientSocket())
-			{
-				tal_id_t tal_id;
-
-				// event received on PEP client socket
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on PEP client socket\n");
-
-				// read the message sent by PEP or delete socket
-				// if connection is dead
-				if(!this->pep_interface.readPepMessage((NetSocketEvent *)event, tal_id))
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "network problem encountered with PEP, "
-					    "connection was therefore closed\n");
-					// Free the socket
-					if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
-					{
-						LOG(this->log_init, LEVEL_ERROR,
-						    "failed to clase socket: "
-						    "%s (%d)\n", strerror(errno), errno);
-					}
-					this->removeEvent(this->pep_interface.getPepClientSocket());
-					return false;
-				}
-				// we have received a set of commands from the
-				// PEP component, let's apply the resources
-				// allocations/releases they contain
-
-				if(!spot)
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "Error when getting spot\n");
-					return false;
-				}
-
-				// set delay for applying the commands
-				if(this->pep_interface.getPepRequestType() == PEP_REQUEST_ALLOCATION)
-				{
-					if(!this->startTimer(spot->getPepCmdApplyTimer()))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "cannot start pep timer");
-						return false;
-					}
-					LOG(this->log_receive, LEVEL_NOTICE,
-					    "PEP Allocation request, apply a %dms delay\n",
-					    pep_alloc_delay);
-				}
-				else if(this->pep_interface.getPepRequestType() == PEP_REQUEST_RELEASE)
-				{
-					this->raiseTimer(spot->getPepCmdApplyTimer());
-					LOG(this->log_receive, LEVEL_NOTICE,
-					    "PEP Release request, no delay to apply\n");
-				}
-				else
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot determine request type!\n");
-					return false;
-				}
-				// Free the socket
-				if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "failed to clase socket: "
-					    "%s (%d)\n", strerror(errno), errno);
-				}
-				this->removeEvent(this->pep_interface.getPepClientSocket());
-			}
-			else if(*event == this->svno_interface.getSvnoClientSocket())
-			{
-				SvnoRequest *request;
-				// event received on SVNO client socket
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on SVNO client socket\n");
-
-				// read the message sent by SVNO or delete socket
-				// if connection is dead
-				if(!this->svno_interface.readSvnoMessage((NetSocketEvent *)event))
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "network problem encountered with SVNO, "
-					    "connection was therefore closed\n");
-					// Free the socket
-					if(shutdown(this->svno_interface.getSvnoClientSocket(), SHUT_RDWR) != 0)
-					{
-						LOG(this->log_init, LEVEL_ERROR,
-						    "failed to clase socket: "
-						    "%s (%d)\n", strerror(errno), errno);
-					}
-					this->removeEvent(this->svno_interface.getSvnoClientSocket());
-					return false;
-				}
-				// we have received a set of commands from the
-				// SVNO component, let's apply the resources
-				// allocations/releases they contain
-
-				request = this->svno_interface.getNextSvnoRequest();
-				while(request != NULL)
-				{
-					if(!spot)
-					{
-						LOG(this->log_receive, LEVEL_WARNING,
-						    "Error when getting spot\n");
-						return false;
-					}
-
-					if(!spot->applySvnoCommand(request))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "Cannot apply SVNO interface request\n");
-						return false;
-					}
-					delete request;
-					request = this->svno_interface.getNextSvnoRequest();
-				}
-			}
-			break;
-		}
-		case EventType::TcpListen:
-		{
-			if(*event == this->pep_interface.getPepListenSocket())
-			{
-				this->pep_interface.setSocketClient(((TcpListenEvent *)event)->getSocketClient());
-				this->pep_interface.setIsConnected(true);
-
-				// event received on PEP listen socket
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on PEP listen socket\n");
-
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "NCC is now connected to PEP\n");
-				// add a fd to handle events on the client socket
-				this->addNetSocketEvent("pep_client",
-				                        this->pep_interface.getPepClientSocket(),
-				                        200);
-			}
-			else if(*event == this->svno_interface.getSvnoListenSocket())
-			{
-				this->svno_interface.setSocketClient(((TcpListenEvent *)event)->getSocketClient());
-				this->svno_interface.setIsConnected(true);
-
-				// event received on SVNO listen socket
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on SVNO listen socket\n");
-
-				// create the client socket to receive messages
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "NCC is now connected to SVNO\n");
-				// add a fd to handle events on the client socket
-				this->addNetSocketEvent("svno_client",
-				                        this->svno_interface.getSvnoClientSocket(),
-				                        200);
-			}
-			break;
-		}
-		default:
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
-			return false;
+			request = this->svno_interface.getNextSvnoRequest();
 		}
 	}
-	return true;
 
-error:
-	LOG(this->log_receive, LEVEL_ERROR,
-	    "Treatments failed at SF#%u\n",
-	    this->super_frame_counter);
-	return false;
+	return true;
 }
 
 
-void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
+bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const TcpListenEvent& event)
 {
-	Sof *sof = new Sof(this->super_frame_counter);
+	if(event == this->pep_interface.getPepListenSocket())
+	{
+		this->pep_interface.setSocketClient(event.getSocketClient());
+		this->pep_interface.setIsConnected(true);
+
+		// event received on PEP listen socket
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "event received on PEP listen socket\n");
+
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "NCC is now connected to PEP\n");
+		// add a fd to handle events on the client socket
+		this->addNetSocketEvent("pep_client",
+		                        this->pep_interface.getPepClientSocket(),
+		                        200);
+	}
+	else if(event == this->svno_interface.getSvnoListenSocket())
+	{
+		this->svno_interface.setSocketClient(event.getSocketClient());
+		this->svno_interface.setIsConnected(true);
+
+		// event received on SVNO listen socket
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "event received on SVNO listen socket\n");
+
+		// create the client socket to receive messages
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "NCC is now connected to SVNO\n");
+		// add a fd to handle events on the client socket
+		this->addNetSocketEvent("svno_client",
+		                        this->svno_interface.getSvnoClientSocket(),
+		                        200);
+	}
+
+	return true;
+}
+
+
+void Rt::DownwardChannel<BlockDvbNcc>::sendSOF(unsigned int carrier_id)
+{
+	auto sof = make_ptr<Sof>(this->super_frame_counter);
 
 	// Send it
-	if(!this->sendDvbFrame(reinterpret_cast<DvbFrame *>(sof), carrier_id))
+	if(!this->sendDvbFrame(dvb_frame_downcast(std::move(sof)), carrier_id))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 				"Failed to call sendDvbFrame() for SOF\n");
-		delete sof;
 		return;
 	}
 
@@ -675,55 +863,53 @@ void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
 }
 
 
-void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
+void Rt::DownwardChannel<BlockDvbNcc>::sendTTP()
 {
-	Ttp *ttp = new Ttp(this->mac_id, this->super_frame_counter);
+	auto ttp = make_ptr<Ttp>(this->mac_id, this->super_frame_counter);
 
 	// Build TTP
-	if(!spot->buildTtp(ttp))
+	if(!this->spot->buildTtp(*ttp))
 	{
-		delete ttp;
 		LOG(this->log_send, LEVEL_DEBUG,
-				"Dama didn't build TTP\bn");
+		    "Dama didn't build TTP\bn");
 		return;
 	};
 
-	if(!this->sendDvbFrame(reinterpret_cast<DvbFrame *>(ttp), spot->getCtrlCarrierId()))
+	if(!this->sendDvbFrame(dvb_frame_downcast(std::move(ttp)),
+	                       this->spot->getCtrlCarrierId()))
 	{
-		delete ttp;
 		LOG(this->log_send, LEVEL_ERROR,
-				"Failed to send TTP\n");
+		    "Failed to send TTP\n");
 		return;
 	}
 
 	LOG(this->log_send, LEVEL_DEBUG,
-			"SF#%u: TTP sent\n", this->super_frame_counter);
+	    "SF#%u: TTP sent\n",
+	    this->super_frame_counter);
 }
 
 
-bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame, SpotDownward *spot)
+bool Rt::DownwardChannel<BlockDvbNcc>::handleLogonReq(Ptr<DvbFrame> dvb_frame)
 {
-	LogonRequest *logon_req = reinterpret_cast<LogonRequest *>(dvb_frame);
+	auto logon_req = dvb_frame_upcast<LogonRequest>(std::move(dvb_frame));
 	uint16_t mac = logon_req->getMac();
 
 	// Inform the Dama controller (for its own context)
-	if(!spot->handleLogonReq(logon_req))
+	if(!this->spot->handleLogonReq(std::move(logon_req)))
 	{
-		delete dvb_frame;
 		return false;
 	}
 
 	// TODO only used here tal_id and logon_id are the same
 	// may be we can simplify the constructor
-	LogonResponse *logon_resp = new LogonResponse(mac, this->mac_id, mac);
+	auto logon_resp = make_ptr<LogonResponse>(mac, this->mac_id, mac);
 
 	LOG(this->log_send, LEVEL_DEBUG,
 			"SF#%u: logon response sent to lower layer\n",
 			this->super_frame_counter);
 
-
-	if(!this->sendDvbFrame(reinterpret_cast<DvbFrame *>(logon_resp),
-	                       spot->getCtrlCarrierId()))
+	if(!this->sendDvbFrame(dvb_frame_downcast(std::move(logon_resp)),
+	                       this->spot->getCtrlCarrierId()))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 				"Failed send logon response\n");
@@ -734,43 +920,44 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame, SpotDownward *sp
 }
 
 
-// updateStats is pure virtual in BlockDvb not used in this case
-void BlockDvbNcc::Downward::updateStats(void)
-{
-}
-
-
 /*****************************************************************************/
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::Upward::Upward(const std::string &name, struct dvb_specific specific):
-	DvbUpward{name, specific},
+Rt::UpwardChannel<BlockDvbNcc>::UpwardChannel(const std::string &name, dvb_specific specific):
+	DvbChannel{specific.upper_encap},
+	Channels::Upward<UpwardChannel<BlockDvbNcc>>{name},
 	DvbFmt{},
 	mac_id{specific.mac_id},
 	spot_id{specific.spot_id},
+	spot{nullptr},
 	log_saloha{nullptr},
 	probe_gw_received_modcod{nullptr},
-	probe_gw_rejected_modcod{nullptr}
+	probe_gw_rejected_modcod{nullptr},
+	disable_control_plane{specific.disable_control_plane},
+	disable_acm_loop{specific.disable_acm_loop}
 {
 }
 
 
-BlockDvbNcc::Upward::~Upward()
-{
-}
-
-
-bool BlockDvbNcc::Upward::onInit(void)
+bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 {
 	LOG(this->log_init, LEVEL_DEBUG,
 	    "Create upward spot with ID %u\n", spot_id);
 
 	// TODO: check if disable_control_plane is needed here
-	this->spot = new SpotUpward(this->spot_id,
-	                            this->mac_id,
-	                            this->input_sts,
-	                            this->output_sts);
+	try
+	{
+		this->spot = std::make_unique<SpotUpward>(this->spot_id,
+		                                          this->mac_id,
+		                                          this->upper_encap,
+		                                          this->input_sts,
+		                                          this->output_sts);
+	}
+	catch (const std::bad_alloc&)
+	{
+		this->spot = nullptr;
+	}
 
 	if(!spot || !spot->onInit())
 	{
@@ -780,8 +967,13 @@ bool BlockDvbNcc::Upward::onInit(void)
 	}
 
 	// create and send a "link is up" message to upper layer
-	T_LINK_UP *link_is_up = new T_LINK_UP;
-	if(!link_is_up)
+	Ptr<T_LINK_UP> link_is_up = make_ptr<T_LINK_UP>(nullptr);
+
+	try
+	{
+		link_is_up = make_ptr<T_LINK_UP>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to allocate memory for link_is_up "
@@ -791,13 +983,14 @@ bool BlockDvbNcc::Upward::onInit(void)
 	link_is_up->group_id = this->mac_id;
 	link_is_up->tal_id = this->mac_id;
 
-	if(!this->enqueueMessage((void **)(&link_is_up),
-	                         sizeof(T_LINK_UP),
+	this->setFilterTalId(BROADCAST_TAL_ID);
+	this->spot->setFilterTalId(BROADCAST_TAL_ID);
+
+	if(!this->enqueueMessage(std::move(link_is_up),
 	                         to_underlying(InternalMessageType::link_up)))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to send link up message to upper layer\n");
-		delete link_is_up;
 		return false;
 	}
 
@@ -817,7 +1010,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 }
 
 
-bool BlockDvbNcc::Upward::initOutput(void)
+bool Rt::UpwardChannel<BlockDvbNcc>::initOutput()
 {
 	auto output = Output::Get();
 
@@ -838,34 +1031,53 @@ bool BlockDvbNcc::Upward::initOutput(void)
 }
 
 
-bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
+bool Rt::UpwardChannel<BlockDvbNcc>::shareFrame(Ptr<DvbFrame> frame)
 {
-	switch(event->getType())
+	if (this->disable_control_plane)
 	{
-		case EventType::Message:
+		if(!this->enqueueMessage(std::move(frame), to_underlying(InternalMessageType::sig)))
 		{
-			DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
-			if (!this->onRcvDvbFrame(dvb_frame))
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "Failed handling DVB Frame\n");
-				return false;
-			}
-		}
-		break;
-
-		default:
 			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
+			    "Unable to transmit frame to upper layer\n");
 			return false;
+		}
+	}
+	else
+	{
+		if(!this->shareMessage(std::move(frame), to_underlying(InternalMessageType::sig)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to opposite channel\n");
+			return false;
+		}
+	}
+	return true;
+}
+
+
+bool Rt::UpwardChannel<BlockDvbNcc>::onEvent(const Event& event)
+{
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BlockDvbNcc>::onEvent(const MessageEvent& event)
+{
+	if (!this->onRcvDvbFrame(event.getMessage<DvbFrame>()))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "Failed handling DVB Frame\n");
+		return false;
 	}
 
 	return true;
 }
 
 
-bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
+bool Rt::UpwardChannel<BlockDvbNcc>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 {
 	spot_id_t dest_spot = dvb_frame->getSpot();
 	if (dest_spot != this->spot_id)
@@ -873,7 +1085,6 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		LOG(this->log_receive, LEVEL_WARNING,
 		    "Spot %d received a DvbFrame destined to spot %d\n",
 		    spot_id, dest_spot);
-		delete dvb_frame;
 		return false;
 	}
 
@@ -884,13 +1095,13 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 
 	if(msg_type == EmulatedMessageType::BbFrame)
 	{
-		BBFrame *bbframe = *dvb_frame;
-		modcod_id = bbframe->getModcodId();
+		BBFrame& bbframe = dvb_frame_upcast<BBFrame>(*dvb_frame);
+		modcod_id = bbframe.getModcodId();
 	}
 	else if(msg_type == EmulatedMessageType::DvbBurst)
 	{
-		DvbRcsFrame *dvb_rcs_frame = *dvb_frame;
-		modcod_id = dvb_rcs_frame->getModcodId();
+		DvbRcsFrame& dvb_rcs_frame = dvb_frame_upcast<DvbRcsFrame>(*dvb_frame);
+		modcod_id = dvb_rcs_frame.getModcodId();
 	}
 	switch(msg_type)
 	{
@@ -901,7 +1112,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			if (!this->disable_control_plane)
 			{
 				// Update C/N0
-				spot->handleFrameCni(dvb_frame);
+				spot->handleFrameCni(*dvb_frame);
 			}
 
 			if(!dvb_frame->isCorrupted())
@@ -916,21 +1127,21 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 				this->probe_gw_received_modcod->put(0);
 			}
 
-			NetBurst *burst{nullptr};
-			if(!spot->handleFrame(dvb_frame, &burst))
+			Ptr<NetBurst> burst = make_ptr<NetBurst>(nullptr);
+			if(!spot->handleFrame(std::move(dvb_frame), burst))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to handle the frame\n");
 				return false;
 			}
-			if (burst != nullptr)
+			if (burst != nullptr && burst->size() > 0)
 			{
 				// send the message to the upper layer
-				if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
+				if (!this->enqueueMessage(std::move(burst),
+				                          to_underlying(InternalMessageType::decap_data)))
 				{
 					LOG(this->log_send, LEVEL_ERROR,
 					    "failed to send burst of packets to upper layer\n");
-					delete burst;
 					return false;
 				}
 				LOG(this->log_send, LEVEL_INFO,
@@ -942,13 +1153,13 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		case EmulatedMessageType::Sac:
 		{
 			// Update C/N0
-			spot->handleFrameCni(dvb_frame);
-			if(!spot->handleSac(dvb_frame))
+			spot->handleFrameCni(*dvb_frame);
+			if(!spot->handleSac(*dvb_frame))
 			{
 				return false;
 			}
 
-			if(!this->shareFrame(dvb_frame))
+			if(!this->shareFrame(std::move(dvb_frame)))
 			{
 				return false;
 			}
@@ -960,12 +1171,12 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			LOG(this->log_receive, LEVEL_INFO,
 			    "Logon Req\n");
 
-			if(!spot->onRcvLogonReq(dvb_frame))
+			if(!spot->onRcvLogonReq(*dvb_frame))
 			{
 				return false;
 			}
 
-			if(!this->shareFrame(dvb_frame))
+			if(!this->shareFrame(std::move(dvb_frame)))
 			{
 				return false;
 			}
@@ -976,7 +1187,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "Logoff Req\n");
-			if(!this->shareFrame(dvb_frame))
+			if(!this->shareFrame(std::move(dvb_frame)))
 			{
 				return false;
 			}
@@ -988,14 +1199,13 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		{
 			if (this->disable_control_plane)
 			{
-				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::sig));
+				return this->enqueueMessage(std::move(dvb_frame),
+				                            to_underlying(InternalMessageType::sig));
 			}
 			// nothing to do in this case
 			LOG(this->log_receive, LEVEL_DEBUG,
-			    "ignore TTP or logon response "
-			    "(type = %d)\n",
-			    dvb_frame->getMessageType());
-			delete dvb_frame;
+			    "ignore TTP or logon response (type = %d)\n",
+			    msg_type);
 			return true;
 		}
 		break;
@@ -1007,50 +1217,38 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 
 			if (this->disable_control_plane)
 			{
-				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::sig));
+				return this->enqueueMessage(std::move(dvb_frame),
+				                            to_underlying(InternalMessageType::sig));
 			}
 
-			std::list<DvbFrame *> *ack_frames{nullptr};
-			NetBurst *sa_burst{nullptr};
-
-			if(!spot->scheduleSaloha(dvb_frame, ack_frames, &sa_burst))
+			auto ack_frames = make_ptr<std::list<Ptr<DvbFrame>>>(nullptr);
+			auto sa_burst = make_ptr<NetBurst>(nullptr);
+			if(!spot->scheduleSaloha(std::move(dvb_frame), ack_frames, sa_burst))
 			{
 				return false;
 			}
-			delete dvb_frame;
 			
 			if(!ack_frames && !sa_burst)
 			{
 				// No slotted Aloha
 				break;
 			}
-			if (sa_burst && !this->enqueueMessage((void **)&sa_burst, 0, to_underlying(InternalMessageType::unknown)))
+			if (sa_burst && !this->enqueueMessage(std::move(sa_burst),
+			                                      to_underlying(InternalMessageType::unknown)))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "Failed to send encapsulation packets to upper"
 				    " layer\n");
-				if(ack_frames)
-				{
-					delete ack_frames;
-				}
 				return false;
 			}
 			if(ack_frames->size() &&
-			   !this->shareMessage((void **)&ack_frames,
-			                       sizeof(ack_frames),
+			   !this->shareMessage(std::move(ack_frames),
 			                       to_underlying(InternalMessageType::saloha)))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "Failed to send Slotted Aloha acks to opposite"
 				    " layer\n");
-				delete ack_frames;
 				return false;
-			}
-			// delete ack_frames if they are emtpy, else shareMessage
-			// would set ack_frames == NULL
-			if(ack_frames)
-			{
-				delete ack_frames;
 			}
 		}
 		break;
@@ -1058,15 +1256,14 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		// Slotted Aloha
 		case EmulatedMessageType::SalohaData:
 		{
-			if(!spot->handleSlottedAlohaFrame(dvb_frame))
+			if(!spot->handleSlottedAlohaFrame(std::move(dvb_frame)))
 			{
 				return false;
 			}
 
-			std::list<DvbFrame *> *ack_frames{nullptr};
-			NetBurst *sa_burst{nullptr};
-
-			if(!spot->scheduleSaloha(nullptr, ack_frames, &sa_burst))
+			auto ack_frames = make_ptr<std::list<Ptr<DvbFrame>>>(nullptr);
+			auto sa_burst = make_ptr<NetBurst>(nullptr);
+			if(!spot->scheduleSaloha(make_ptr<DvbFrame>(nullptr), ack_frames, sa_burst))
 			{
 				return false;
 			}
@@ -1077,15 +1274,12 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		{
 			if (this->disable_control_plane)
 			{
-				if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
+				if (!this->enqueueMessage(std::move(dvb_frame),
+				                          to_underlying(InternalMessageType::unknown)))
 				{
 					return false;
 				}
 				break;
-			}
-			else
-			{
-				delete dvb_frame;
 			}
 		}
 		break;
@@ -1095,7 +1289,6 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "unknown type (%d) of DVB frame\n",
 			    dvb_frame->getMessageType());
-			delete dvb_frame;
 			return false;
 		}
 		break;

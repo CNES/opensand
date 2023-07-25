@@ -33,21 +33,39 @@
  *
  */
 
-#include "RequestSimulator.h"
-#include "OpenSandModelConf.h"
+#include <errno.h>
+#include <cstring>
 
 #include <opensand_output/Output.h>
-#include <errno.h>
+
+#include "RequestSimulator.h"
+#include "DvbFifo.h"
+#include "OpenSandModelConf.h"
+#include "Except.h"
+
+
+static void out_deletor(std::ostream* ostream_ptr)
+{
+	if (ostream_ptr)
+	{
+		ostream_ptr->flush();
+		if (ostream_ptr != &std::cout && ostream_ptr != &std::cerr)
+		{
+			auto ofstream = static_cast<std::ofstream*>(ostream_ptr);
+			ofstream->close();
+			delete ofstream;
+		}
+	}
+};
 
 
 RequestSimulator::RequestSimulator(spot_id_t spot_id,
                                    tal_id_t mac_id,
-                                   FILE** evt_file):
+                                   std::ostream* &evt_file):
 	spot_id(spot_id),
 	mac_id(mac_id),
 	dvb_fifos(),
-	event_file(NULL),
-	simu_file(NULL),
+	event_file(nullptr, out_deletor),
 	simu_st(-1),
 	simu_rt(-1),
 	simu_max_rbdc(-1),
@@ -55,44 +73,22 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 	simu_cr(-1),
 	simu_interval(-1),
 	simu_eof(false),
-	log_request_simulation(NULL),
-	log_init(NULL)
+	log_request_simulation(nullptr),
+	log_init(nullptr)
 {
 	auto output = Output::Get();
 
-	this->log_init = output->registerLog(LEVEL_WARNING,
-	                                     "Spot_%d.InitRequestSimulation",
-	                                     this->spot_id);
-	this->log_request_simulation = output->registerLog(LEVEL_WARNING,
-	                                                   "Spot_%d.RequestSimulation",
-	                                                   this->spot_id);
+	this->log_init = output->registerLog(LEVEL_WARNING, Format("Spot_%d.InitRequestSimulation", this->spot_id));
+	this->log_request_simulation = output->registerLog(LEVEL_WARNING, Format("Spot_%d.RequestSimulation", this->spot_id));
 
-	if(!this->initRequestSimulation())
-	{
-		assert(0);
-	}
-	*evt_file = this->event_file;
-	
+	auto initialized = this->initRequestSimulation();
+	ASSERT(initialized, "Failure to initialise requests simulation");
+	evt_file = this->event_file.get();
 }
 
 RequestSimulator::~RequestSimulator()
 {
-	if(this->event_file)
-	{
-		fflush(this->event_file);
-		fclose(this->event_file);
-	}
-	if(this->simu_file)
-	{
-		fclose(this->simu_file);
-	}
-	
 	// delete fifos
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		delete (*it).second;
-	}
 	this->dvb_fifos.clear();
 }
 
@@ -110,8 +106,6 @@ void RequestSimulator::generateConfiguration()
 
 bool RequestSimulator::initRequestSimulation()
 {
-	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
-
 	// Get and open the event file
 	std::string evt_type;
 	auto ncc = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
@@ -124,30 +118,35 @@ bool RequestSimulator::initRequestSimulation()
 
 	if(evt_type == "stdout")
 	{
-		this->event_file = stdout;
+		this->event_file.reset(&std::cout);
 	}
 	else if(evt_type == "stderr")
 	{
-		this->event_file = stderr;
+		this->event_file.reset(&std::cerr);
 	}
 	else if(evt_type != "none")
 	{
-		this->event_file = fopen(evt_type.c_str(), "a");
-		if(this->event_file == NULL)
+		try
 		{
+			this->event_file.reset(new std::ofstream(evt_type, std::ios::app));
+		}
+		catch (const std::bad_alloc&)
+		{
+		}
+		if(!this->event_file || !(*this->event_file))
+		{
+			//LOG(this->log_init, LEVEL_ERROR,
+			    //"%s\n", strerror(errno));
 			LOG(this->log_init, LEVEL_ERROR,
-			    "%s\n", strerror(errno));
+			    "no record file will be used for event\n");
+			this->event_file.reset();
 		}
 	}
-	if(this->event_file == NULL && evt_type != "none")
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "no record file will be used for event\n");
-	}
-	else if(this->event_file != NULL)
+
+	if(this->event_file != nullptr)
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
-		    "events recorded in %s.\n", evt_type.c_str());
+		    "events recorded in %s.\n", evt_type);
 	}
 
 	return true;

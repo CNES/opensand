@@ -49,7 +49,7 @@ class NccSvnoInterface: public NccInterface
 {
 private:
 	/** The list of commands received from the SVNO component */
-	std::vector<SvnoRequest *> requests_list;
+	std::vector<std::unique_ptr<SvnoRequest>> requests_list;
 
 public:
 	/**** constructor/destructor ****/
@@ -70,7 +70,7 @@ public:
 	int getSvnoClientSocket();
 
 	/* get the list of SVNO requests */
-	SvnoRequest * getNextSvnoRequest();
+	std::unique_ptr<SvnoRequest> getNextSvnoRequest();
 
 
 	/**** socket management ****/
@@ -86,14 +86,14 @@ public:
 	 *            \li true if command is read and parsed successfully
 	 *            \li false if a problem is encountered
 	 */
-	bool readSvnoMessage(NetSocketEvent *const event);
+	bool readSvnoMessage(const Rt::NetSocketEvent& event);
 
 private:
 	/* parse a message sent by the SVNO component */
-	bool parseSvnoMessage(const char *message);
+	bool parseSvnoMessage(const Rt::Data& message);
 
 	/* parse one of the commands sent in a message by the SVNO component */
-	SvnoRequest * parseSvnoCommand(const char *cmd);
+	std::unique_ptr<SvnoRequest> parseSvnoCommand(const Rt::Data& cmd);
 };
 
 #endif

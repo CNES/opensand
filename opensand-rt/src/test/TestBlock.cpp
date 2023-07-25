@@ -65,6 +65,8 @@
 #include <opensand_output/Output.h>
 
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <cstdio>
 #include <cstring>
 #include <cassert>
@@ -80,15 +82,19 @@
 #endif
 
 
+// ####### Block #######
+
 TestBlock::TestBlock(const std::string &name):
-	Block(name)
+	Rt::Block<TestBlock>{name}
 {
 	LOG(this->log_rt, LEVEL_INFO, "Block %s created\n", name.c_str());
 }
 
+
 TestBlock::~TestBlock()
 {
 }
+
 
 bool TestBlock::onInit()
 {
@@ -96,94 +102,105 @@ bool TestBlock::onInit()
 
 	if(pipe(pipefd) != 0)
 	{
-		std::cerr << "error when opening pipe between upward and "
-		          << "downward channels" << std::endl;
+		std::cerr << "error when opening pipe between upward and downward channels" << std::endl;
 		return false;
 	}
-	((Downward *)this->downward)->setInputFd(pipefd[0]);
-	((Upward *)this->upward)->setOutputFd(pipefd[1]);
+
+	this->downward.setInputFd(pipefd[0]);
+	this->upward.setOutputFd(pipefd[1]);
 
 	return true;
 }
 
-void TestBlock::Upward::setOutputFd(int32_t fd)
+
+// ####### Upward #######
+
+Rt::UpwardChannel<TestBlock>::UpwardChannel (const std::string& name):
+	Channels::Upward<UpwardChannel<TestBlock>>{name},
+	nbr_timeouts{0},
+	output_fd{-1},
+	last_written(64, '\0')
+{
+}
+
+
+void Rt::UpwardChannel<TestBlock>::setOutputFd(int32_t fd)
 {
 	this->output_fd = fd;
 }
 
-bool TestBlock::Upward::onInit(void)
+
+bool Rt::UpwardChannel<TestBlock>::onInit(void)
 {
 	this->nbr_timeouts = 0;
 	//timer event every 100ms
 	this->addTimerEvent("test_timer", 100, true);
-	
 	return true;
 }
 
-bool TestBlock::Upward::onEvent(const RtEvent *const event)
+
+bool Rt::UpwardChannel<TestBlock>::onEvent(const Event& event)
 {
-	std::string error;
-	int res = 0;
-	
-	switch(event->getType())
+	std::cout << "Handling Unknown Event " << this->getName() << std::endl;
+	Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
+	return false;
+}
+
+
+bool Rt::UpwardChannel<TestBlock>::onEvent(const MessageEvent& event)
+{
+	std::cout << "Handling Message Event " << this->getName() << std::endl;
+	Ptr<Data> data = event.getMessage<Data>();
+	std::cout << "Data received from opposite channel in block: "
+	          << this->getName() << "; data: " << data->c_str() << std::endl;
+
+	std::string result(reinterpret_cast<const char*>(data->c_str()), data->size());
+	if(this->last_written != result)
 	{
-    case EventType::Timer:
-		{
-			// timer only on upward channel
-			this->nbr_timeouts++;
-			// test for duration
-			if(this->nbr_timeouts > 10)
-			{
-				// that is 2 seconds, should be enough to read the file, so stop the application
-				std::cout << "Stop test after 10 loops, pid = " << getpid() << std::endl;
-				kill(getpid(), SIGTERM);
-			}
-
-			time_val_t elapsed_time = event->getTimeFromTrigger();
-			long int elapsed_seconds = elapsed_time / 1000000,
-			         elapsed_microseconds = elapsed_time % 1000000;
-			sprintf(this->last_written, "%ld.%06ld",
-			        elapsed_seconds, elapsed_microseconds);
-
-			res = write(this->output_fd,
-			            this->last_written, strlen(this->last_written));
-			if(res == -1)
-			{
-				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                "cannot write on pipe");
-			}
-			std::cout << "Timer triggered in block: " << this->getName()
-			          << "; value: " << this->last_written << std::endl;
-		}
-		break;
-
-    case EventType::Message:
-		{
-      auto msg_event = static_cast<const MessageEvent*>(event);
-      std::size_t length = msg_event->getLength();
-			char *data = static_cast<char *>(msg_event->getData());
-			std::cout << "Data received from opposite channel in block: "
-			          << this->getName() << "; data: " << data << std::endl;
-
-			if(strncmp(this->last_written, (char*)data, length))
-			{
-				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                "wrong data received '%s' instead of '%s'",
-				                data, this->last_written);
-			}
-			bzero(this->last_written, 64);
-      delete [] data;
-		}
-		break;
-
-		default:
-			Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
-			return false;
+		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+		                    "wrong data received '%s' instead of '%s'",
+		                    data->c_str(), this->last_written.c_str());
 	}
+	this->last_written.clear();
+	this->last_written.resize(this->last_written.capacity());
+
 	return true;
 }
 
-TestBlock::Upward::~Upward()
+
+bool Rt::UpwardChannel<TestBlock>::onEvent(const TimerEvent& event)
+{
+	std::cout << "Handling Timer Event " << this->getName() << std::endl;
+	// timer only on upward channel
+	this->nbr_timeouts++;
+	// test for duration
+	if(this->nbr_timeouts > 10)
+	{
+		// that is 2 seconds, should be enough to read the file, so stop the application
+		std::cout << "Stop test after 10 loops, pid = " << getpid() << std::endl;
+		kill(getpid(), SIGTERM);
+	}
+
+	time_val_t elapsed_time = event.getTimeFromTrigger();
+	std::ostringstream formatter;
+	formatter << (elapsed_time / 1000000) << "." << std::setfill('0') << std::setw(6) << (elapsed_time % 1000000);
+	this->last_written = formatter.str();
+
+	int res = write(this->output_fd, this->last_written.data(), this->last_written.size());
+	if(res == -1)
+	{
+		std::cout << "Cannot write on pipe: " << this->getName() << std::endl;
+		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+		                    "cannot write on pipe");
+	}
+	std::cout << "Timer triggered in block: " << this->getName()
+	          << "; value: " << this->last_written << std::endl;
+
+	return true;
+}
+
+
+Rt::UpwardChannel<TestBlock>::~UpwardChannel ()
 {
 	if(this->output_fd >= 0)
 	{
@@ -191,49 +208,60 @@ TestBlock::Upward::~Upward()
 	}
 }
 
-void TestBlock::Downward::setInputFd(int32_t fd)
+
+// ####### Downward #######
+
+Rt::DownwardChannel<TestBlock>::DownwardChannel (const std::string& name):
+	Channels::Downward<DownwardChannel<TestBlock>>{name},
+	input_fd{-1}
+{
+}
+
+
+void Rt::DownwardChannel<TestBlock>::setInputFd(int32_t fd)
 {
 	this->input_fd = fd;
 }
 
-bool TestBlock::Downward::onInit(void)
+
+bool Rt::DownwardChannel<TestBlock>::onInit(void)
 {
 	// high priority to be sure to read it before another timer
 	this->addFileEvent("downward", this->input_fd, 64, 2);
 	return true;
 }
 
-bool TestBlock::Downward::onEvent(const RtEvent *const event)
+
+bool Rt::DownwardChannel<TestBlock>::onEvent(const Event& event)
 {
-	char *data;
-	size_t size;
-	switch(event->getType())
+	Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
+	return false;
+}
+
+
+bool Rt::DownwardChannel<TestBlock>::onEvent(const FileEvent& event)
+{
+	auto data = make_ptr<Data>(event.getData());
+
+	std::cout << "Data received on socket in block: " << this->getName()
+	          << "; data: " << data->c_str() << std::endl;
+
+	if(!this->shareMessage(std::move(data), 0))
 	{
-    case EventType::File:
-			size = ((FileEvent *)event)->getSize();
-			data = (char *)((FileEvent *)event)->getData();
-			std::cout << "Data received on socket in block: " << this->getName()
-			          << "; data: " << data << std::endl;
-			fflush(stdout);
-
-			if(!this->shareMessage((void **)&data, size))
-			{
-				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                "unable to transmit data to opposite channel");
-			}
-			break;
-
-		default:
-			Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
-			return false;
-
+		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+		                    "unable to transmit data to opposite channel");
 	}
+
 	return true;
 }
 
-TestBlock::Downward::~Downward()
+
+Rt::DownwardChannel<TestBlock>::~DownwardChannel ()
 {
 }
+
+
+// ####### Test #######
 
 int main(int argc, char **argv)
 {
@@ -242,17 +270,15 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_block");
 {
 #endif
-	std::string error;
-
 	std::cout << "Launch test" << std::endl;
 
-	Rt::createBlock<TestBlock>("test");
+	Rt::Rt::createBlock<TestBlock>("test");
 	
 	std::cout << "Start loop, please wait..." << std::endl;
-  Output::Get()->setLogLevel("", log_level_t::LEVEL_DEBUG);
+	Output::Get()->setLogLevel("", log_level_t::LEVEL_DEBUG);
 	Output::Get()->configureTerminalOutput();
 	Output::Get()->finalizeConfiguration();
-	if(!Rt::run(true))
+	if(!Rt::Rt::run(true))
 	{
 		ret = 1;
 		std::cerr << "Unable to run" << std::endl;

@@ -35,10 +35,14 @@
 #include <unistd.h>
 
 #include "RtEvent.h"
+#include "RtChannelBase.h"
 
 
-RtEvent::RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t priority):
-	type{type},
+namespace Rt
+{
+
+
+Event::Event(const std::string &name, int32_t fd, uint8_t priority):
 	name{name},
 	fd{fd},
 	priority{priority}
@@ -48,36 +52,41 @@ RtEvent::RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t pr
 }
 
 
-RtEvent::~RtEvent()
+Event::~Event()
 {
 	close(this->fd);
 }
 
-void RtEvent::setTriggerTime(void)
+
+void Event::setTriggerTime()
 {
-  this->trigger_time = std::chrono::high_resolution_clock::now();
+	this->trigger_time = std::chrono::high_resolution_clock::now();
 }
 
-void RtEvent::setCustomTime(void) const
+
+void Event::setCustomTime() const
 {
-  this->custom_time = std::chrono::high_resolution_clock::now();
+	this->custom_time = std::chrono::high_resolution_clock::now();
 }
 
-time_val_t RtEvent::getTimeFromTrigger(void) const
+
+time_val_t Event::getTimeFromTrigger() const
 {
 	auto time = std::chrono::high_resolution_clock::now();
 	auto duration = time - this->trigger_time;
 	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
 
-time_val_t RtEvent::getTimeFromCustom(void) const
+
+time_val_t Event::getTimeFromCustom() const
 {
 	auto time = std::chrono::high_resolution_clock::now();
 	auto duration = time - this->custom_time;
 	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
 
-time_val_t RtEvent::getAndSetCustomTime(void) const
+
+time_val_t Event::getAndSetCustomTime() const
 {
 	auto res = this->getTimeFromCustom();
 	this->setCustomTime();
@@ -85,21 +94,30 @@ time_val_t RtEvent::getAndSetCustomTime(void) const
 }
 
 
-bool RtEvent::operator <(const RtEvent& event) const
+bool Event::operator <(const Event& event) const
 {
 	long int delta = 100000000L * (this->priority - event.priority);
-  delta += std::chrono::duration_cast<std::chrono::microseconds>(this->trigger_time - event.trigger_time).count();
+	delta += std::chrono::duration_cast<std::chrono::microseconds>(this->trigger_time - event.trigger_time).count();
 	return delta < 0;		
 }
 
 
-bool RtEvent::operator ==(const event_id_t id) const
+bool Event::operator ==(const event_id_t id) const
 {
   return this->fd == id;
 }
 
 
-bool RtEvent::operator !=(const event_id_t id) const
+bool Event::operator !=(const event_id_t id) const
 {
 	return this->fd != id;
 }
+
+
+bool Event::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
+}
+
+
+};

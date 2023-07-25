@@ -47,7 +47,7 @@ NetContainer::NetContainer(const unsigned char *data, std::size_t length):
 }
 
 
-NetContainer::NetContainer(const Data &data, std::size_t length):
+NetContainer::NetContainer(const Rt::Data &data, std::size_t length):
 		data(data, 0, length),
 		name("unknown"),
 		header_length(0),
@@ -57,7 +57,7 @@ NetContainer::NetContainer(const Data &data, std::size_t length):
 }
 
 
-NetContainer::NetContainer(const Data &data):
+NetContainer::NetContainer(const Rt::Data &data):
 		data(data),
 		name("unknown"),
 		header_length(0),
@@ -88,7 +88,7 @@ std::string NetContainer::getName() const
 }
 
 
-Data NetContainer::getData() const
+Rt::Data NetContainer::getData() const
 {
 	return this->data;
 }
@@ -100,23 +100,23 @@ const uint8_t *NetContainer::getRawData() const
 
 uint8_t *NetContainer::getRawData()
 {
-	return &this->data[0];
+	return this->data.data();
 }
 
-Data NetContainer::getData(std::size_t pos) const
+Rt::Data NetContainer::getData(std::size_t pos) const
 {
 	return this->data.substr(pos, this->getTotalLength() - pos);
 }
 
 
-Data NetContainer::getPayload() const
+Rt::Data NetContainer::getPayload() const
 {
 	return this->data.substr(this->header_length,
 	                         this->getPayloadLength());
 }
 
 
-Data NetContainer::getPayload(std::size_t pos) const
+Rt::Data NetContainer::getPayload(std::size_t pos) const
 {
 	return this->data.substr(this->header_length + pos,
 	                         this->getPayloadLength());

@@ -51,7 +51,7 @@ DvbRcsFrame::DvbRcsFrame(const unsigned char *data, size_t length):
 }
 
 
-DvbRcsFrame::DvbRcsFrame(const Data &data):
+DvbRcsFrame::DvbRcsFrame(const Rt::Data &data):
 	DvbFrameTpl<T_DVB_ENCAP_BURST>(data)
 {
 	this->name = "DVB-RCS frame";
@@ -60,7 +60,7 @@ DvbRcsFrame::DvbRcsFrame(const Data &data):
 }
 
 
-DvbRcsFrame::DvbRcsFrame(const Data &data, size_t length):
+DvbRcsFrame::DvbRcsFrame(const Rt::Data &data, size_t length):
 	DvbFrameTpl<T_DVB_ENCAP_BURST>(data, length)
 {
 	this->name = "DVB-RCS frame";
@@ -73,8 +73,6 @@ DvbRcsFrame::DvbRcsFrame():
 	DvbFrameTpl<T_DVB_ENCAP_BURST>()
 {
 	this->name = "DVB-RCS frame";
-	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
-
 	// no data given as input, so create the DVB-RCS header
 	this->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
 	this->setMessageLength(sizeof(T_DVB_ENCAP_BURST));
@@ -86,19 +84,19 @@ DvbRcsFrame::~DvbRcsFrame()
 {
 }
 
-bool DvbRcsFrame::addPacket(NetPacket *packet)
+bool DvbRcsFrame::addPacket(const NetPacket &packet)
 {
 	if(!DvbFrameTpl<T_DVB_ENCAP_BURST>::addPacket(packet))
 	{
 		return false;
 	}
-	this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
+	this->setMessageLength(this->getMessageLength() + packet.getTotalLength());
 	this->frame()->qty_element = htons(this->num_packets);
 	return true;
 }
 
 // TODO not used => remove ?!
-void DvbRcsFrame::empty(void)
+void DvbRcsFrame::empty()
 {
 	// remove the payload
 	this->data.erase(sizeof(T_DVB_ENCAP_BURST));
@@ -110,7 +108,7 @@ void DvbRcsFrame::empty(void)
 }
 
 
-uint16_t DvbRcsFrame::getNumPackets(void) const
+uint16_t DvbRcsFrame::getNumPackets() const
 {
 	return ntohs(this->frame()->qty_element);
 }
@@ -120,7 +118,7 @@ void DvbRcsFrame::setModcodId(uint8_t modcod_id)
 	this->frame()->modcod = modcod_id;
 }
  
-uint8_t DvbRcsFrame::getModcodId(void) const
+uint8_t DvbRcsFrame::getModcodId() const
 {
 	return this->frame()->modcod;
 }

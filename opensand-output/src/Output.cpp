@@ -88,7 +88,6 @@ class Output::OutputSection : public OutputItem
 {
  public:
 	OutputSection(const std::string& name, const std::string& full_name) : OutputItem(name, full_name) {}
-	~OutputSection() { children.clear(); }
 
 	void setLogLevel(log_level_t level) {
 		for (auto& child : children) {
@@ -387,28 +386,6 @@ std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const 
 }
 
 
-std::shared_ptr<OutputEvent> Output::registerEvent(const char *identifier, ...)
-{
-	std::va_list args;
-	va_start(args, identifier);
-	std::string eventName = formatMessage(identifier, args);
-	va_end(args);
-
-	return Output::registerEvent(eventName);
-}
-
-
-std::shared_ptr<OutputLog> Output::registerLog(log_level_t default_display_level, const char* name, ...)
-{
-	std::va_list args;
-	va_start(args, name);
-	std::string logName = formatMessage(name, args);
-	va_end(args);
-
-	return Output::registerLog(default_display_level, logName);
-}
-
-
 std::string Output::getEntityName() const
 {
 	if (this->entityName.empty()) {
@@ -514,15 +491,6 @@ void Output::sendProbes(void)
 	for (auto& handler : probeHandlers) {
 		handler->emitStats(probesValues);
 	}
-}
-
-
-void Output::sendLog(log_level_t log_level, const char *msg_format, ...)
-{
-	std::va_list args;
-	va_start(args, msg_format);
-	defaultLog->vSendLog(log_level, msg_format, args);
-	va_end(args);
 }
 
 

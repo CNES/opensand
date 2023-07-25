@@ -37,16 +37,13 @@
 #ifndef DVB_FRAME_H
 #define DVB_FRAME_H
 
-#include <cstring>
+#include <arpa/inet.h>
+
+#include <opensand_rt/Ptr.h>
 
 #include "OpenSandFrames.h"
 #include "NetContainer.h"
 #include "NetPacket.h"
-
-
-class BBFrame;
-class DvbRcsFrame;
-class SlottedAlohaFrame;
 
 
 /**
@@ -67,6 +64,8 @@ protected:
 	uint8_t carrier_id;
 
 public:
+	using DvbHeaderType = T;
+
 	/**
 	 * Build a DVB frame
 	 *
@@ -89,7 +88,7 @@ public:
 	 *
 	 * @param data  raw data from which a DVB frame can be created
 	 */
-	DvbFrameTpl(const Data &data):
+	DvbFrameTpl(const Rt::Data &data):
 		NetContainer(data),
 		max_size(sizeof(T)),
 		num_packets(0),
@@ -106,7 +105,7 @@ public:
 	 * @param data    raw data from which a DVB frame can be created
 	 * @param length  length of raw data
 	 */
-	DvbFrameTpl(const Data &data, size_t length):
+	DvbFrameTpl(const Rt::Data &data, size_t length):
 		NetContainer(data, length),
 		max_size(sizeof(T)),
 		num_packets(0),
@@ -126,12 +125,10 @@ public:
 		num_packets(0),
 		carrier_id(0)
 	{
-		T header;
+		T header{};  // zero-initialization of pod-type
 		this->name = "DvbFrame";
 		this->data.reserve(this->max_size);
-		// add at least the base header of the created frame
-		memset(&header, 0, sizeof(T));
-		this->data.append((unsigned char *)&header, sizeof(T));
+		this->data.append(reinterpret_cast<unsigned char *>(&header), sizeof(T));
 		this->header_length = sizeof(T);
 	};
 
@@ -182,7 +179,7 @@ public:
 	 * 
 	 * @return  The DVB frame message type
 	 */
-	EmulatedMessageType getMessageType(void) const
+	EmulatedMessageType getMessageType() const
 	{
 		return this->frame()->hdr.msg_type;
 	};
@@ -192,7 +189,7 @@ public:
 	 * 
 	 * @return  The status of the DVB frame
 	 */
-	bool isCorrupted(void) const
+	bool isCorrupted() const
 	{
 		return ((this->frame()->hdr.corrupted & 0x1) == 1);
 	};
@@ -202,7 +199,7 @@ public:
 	 * 
 	 * @return  The DVB frame length
 	 */
-	uint16_t getMessageLength(void) const
+	uint16_t getMessageLength() const
 	{
 		return ntohs(this->frame()->hdr.msg_length);
 	};
@@ -215,7 +212,7 @@ public:
 	 *
 	 * @return  the size (in bytes) of the DVB frame
 	 */
-	size_t getMaxSize(void) const
+	size_t getMaxSize() const
 	{
 		return this->max_size;
 	};
@@ -259,7 +256,7 @@ public:
 	 *
 	 * @return  the size (in bytes) of the free space in the DVB frame
 	 */
-	size_t getFreeSpace(void) const
+	size_t getFreeSpace() const
 	{
 		return (this->max_size - this->getTotalLength());
 	};
@@ -271,16 +268,16 @@ public:
 	 * @return        true if the packet was added to the DVB frame,
 	 *                false if an error occurred
 	 */
-	virtual bool addPacket(NetPacket *packet)
+	virtual bool addPacket(const NetPacket &packet)
 	{
 		// is the frame large enough to contain the packet ?
-		if(packet->getTotalLength() > this->getFreeSpace())
+		if(packet.getTotalLength() > this->getFreeSpace())
 		{
 			// too few free space in the frame
 			return false;
 		}
 
-		this->data.append(packet->getData());
+		this->data.append(packet.getData());
 		this->num_packets++;
 
 		return true;
@@ -299,19 +296,18 @@ public:
 	/**
 	 * Empty the DVB frame
 	 */
-	virtual void empty(void) {};
+	virtual void empty() {};
 
 	/**
 	 * Get the C/N value carried by the frame
 	 *
 	 * @return the C/N value
 	 */
-	double getCn(void) const
+	double getCn() const
 	{
 		size_t msg_length = this->getMessageLength();
-		Data phy_data = this->getData(msg_length);
-		T_DVB_PHY *phy = (T_DVB_PHY *)(phy_data.c_str());
-		return ncntoh(phy->cn_previous);
+		Rt::Data phy_data = this->getData(msg_length);
+		return ncntoh(reinterpret_cast<T_DVB_PHY*>(phy_data.data())->cn_previous);
 	};
 
 	/**
@@ -323,49 +319,68 @@ public:
 	{
 		T_DVB_PHY phy;
 		phy.cn_previous = hcnton(cn);
+
+		unsigned char *raw_phy = reinterpret_cast<unsigned char *>(&phy);
 		if(this->trailer_length == 0)
 		{
-			this->data.append((unsigned char *)&phy, sizeof(T_DVB_PHY));
+			this->data.append(raw_phy, sizeof(T_DVB_PHY));
 			this->trailer_length = sizeof(T_DVB_PHY);
 		}
 		else
 		{
-			size_t msg_length = this->getMessageLength();
+			std::size_t msg_length = this->getMessageLength();
 			this->data.replace(msg_length, this->trailer_length,
-			                   (unsigned char *)(&phy), this->trailer_length);
+			                   raw_phy, this->trailer_length);
 		}
 	};
 
 	/**
 	 * @brief Accessor on the frame data
 	 */
-	T *frame(void) const
+	T *frame()
 	{
-		return (T *)(this->data.c_str());
+		return reinterpret_cast<T *>(this->data.data());
+	}
+	const T *frame() const
+	{
+		return reinterpret_cast<const T *>(this->data.data());
 	}
 
-	// Overloaded cast
-	operator BBFrame* ()
-	{
-		this->header_length = sizeof(T_DVB_BBFRAME);
-		return reinterpret_cast<BBFrame *>(this);
-	};
-
-	operator DvbRcsFrame* ()
-	{
-		this->header_length = sizeof(T_DVB_ENCAP_BURST);
-		return reinterpret_cast<DvbRcsFrame *>(this);
-	};
-
-	operator SlottedAlohaFrame* ()
-	{
-		this->header_length = sizeof(T_DVB_SALOHA);
-		return reinterpret_cast<SlottedAlohaFrame *>(this);
-	};
-
+	template<typename DVB> friend Rt::Ptr<DVB> dvb_frame_upcast(Rt::Ptr<DvbFrameTpl<>> ptr);
+	template<typename DVB> friend DVB& dvb_frame_upcast(DvbFrameTpl<>& frame);
 };
 
-typedef DvbFrameTpl<> DvbFrame;
+
+using DvbFrame = DvbFrameTpl<>;
+
+
+template<typename DVB_FRAME>
+Rt::Ptr<DVB_FRAME> dvb_frame_upcast(Rt::Ptr<DvbFrame> ptr)
+{
+	using HeaderType = typename DVB_FRAME::DvbHeaderType;
+	static_assert(std::is_base_of<DvbFrameTpl<HeaderType>, DVB_FRAME>::value,
+	              "Trying to cast a non dvb frame into a dvb frame");
+	ptr->header_length = sizeof(HeaderType);
+	return {reinterpret_cast<DVB_FRAME*>(ptr.release()), std::move(ptr.get_deleter())};
+}
+template<typename DVB_FRAME>
+DVB_FRAME& dvb_frame_upcast(DvbFrame& frame)
+{
+	using HeaderType = typename DVB_FRAME::DvbHeaderType;
+	static_assert(std::is_base_of<DvbFrameTpl<HeaderType>, DVB_FRAME>::value,
+	              "Trying to cast a non dvb frame into a dvb frame");
+	frame.header_length = sizeof(HeaderType);
+	return reinterpret_cast<DVB_FRAME&>(frame);
+}
+
+
+template<typename DVB_FRAME>
+Rt::Ptr<DvbFrame> dvb_frame_downcast(Rt::Ptr<DVB_FRAME> ptr)
+{
+	static_assert(std::is_base_of<DvbFrameTpl<typename DVB_FRAME::DvbHeaderType>, DVB_FRAME>::value,
+	              "Trying to cast a non dvb frame into a dvb frame");
+	return {reinterpret_cast<DvbFrame*>(ptr.release()), std::move(ptr.get_deleter())};
+}
 
 
 #endif

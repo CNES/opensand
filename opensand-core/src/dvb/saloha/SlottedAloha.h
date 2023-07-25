@@ -54,13 +54,13 @@ protected:
 	time_sf_t sf_per_saframe;
 
 	/// The frame duration
-	time_ms_t frame_duration_ms;
+	time_us_t frame_duration;
 
 	/// Check whether the parent is correctly initialized
 	bool is_parent_init;
 
 	/// The encap packet handler
-	EncapPlugin::EncapPacketHandler *pkt_hdl;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl;
 
 public:
 	/**
@@ -76,23 +76,22 @@ public:
 	/**
 	 * Init the Slotted Aloha parent class
 	 *
-	 * @param frame_duration_ms      The frame duration (ms)
+	 * @param frame_duration         The frame duration
 	 * @param pkt_hdl                The handler for encap packet
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initParent(time_ms_t frame_duration_ms,
-	                EncapPlugin::EncapPacketHandler *const pkt_hdl);
+	bool initParent(time_us_t frame_duration,
+	                std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
 
 	/**
 	 * Handle a received Slotted Aloha frame
 	 *
 	 * @param frame  The received frame
 	 */
-	virtual bool onRcvFrame(DvbFrame *frame) = 0;
+	virtual bool onRcvFrame(Rt::Ptr<DvbFrame> frame) = 0;
 
 protected:
-
 	/**
 	 * Return check if current tick is a Slotted Aloha frame tick
 	 *

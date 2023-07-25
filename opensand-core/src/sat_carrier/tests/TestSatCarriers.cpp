@@ -49,7 +49,6 @@
 
 #include "TestSatCarriers.h"
 
-#include "Data.h"
 #include "OpenSandCore.h"
 
 #include <sstream>
@@ -60,11 +59,13 @@
 #include <cstring>
 #include <errno.h>
 
+#include <opensand_rt/FileEvent.h>
 #include <opensand_rt/MessageEvent.h>
 #include <opensand_rt/NetSocketEvent.h>
 
 
-#define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
+constexpr const std::size_t TUNTAP_FLAGS_LEN = 4;  // Flags [2 bytes] + Proto [2 bytes]
+
 
 static bool allocTun(int &fd)
 {
@@ -102,7 +103,7 @@ static bool allocTun(int &fd)
 	return true;
 }
 
-enum
+enum class Origin: uint8_t
 {
 	from_lan,
 	from_udp
@@ -113,143 +114,132 @@ enum
 /**
  * Constructor
  */
-TestSatCarriers::TestSatCarriers(const std::string &name,
-                                 struct sc_specific UNUSED(specific)):
-	Block(name)
+Rt::DownwardChannel<TestSatCarriers>::DownwardChannel(const std::string& name, sc_specific specific):
+	Channels::Downward<DownwardChannel<TestSatCarriers>>{name},
+	out_channel_set{specific.tal_id},
+	ip_addr{specific.ip_addr}
 {
 }
 
-TestSatCarriers::~TestSatCarriers()
+
+Rt::UpwardChannel<TestSatCarriers>::UpwardChannel(const std::string& name, sc_specific specific):
+	Channels::Upward<UpwardChannel<TestSatCarriers>>{name},
+	in_channel_set{specific.tal_id},
+	ip_addr{specific.ip_addr}
 {
 }
 
 
-bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
+bool Rt::DownwardChannel<TestSatCarriers>::onEvent(const Event& event)
 {
-	switch(event->getType())
+	fprintf(stderr, "unknown event received %s", event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<TestSatCarriers>::onEvent(const MessageEvent& event)
+{
+	Ptr<Data> packet = event.getMessage<Data>();
+	std::size_t length = packet->length();
+
+	switch(to_enum<Origin>(event.getMessageType()))
 	{
-		case EventType::Message:
-			// Lan message to be sent on channel
-			if(((MessageEvent *)event)->getMessageType() == from_lan)
+		case Origin::from_lan:
 			{
-				Data *packet = (Data *)((MessageEvent *)event)->getData();
-
-				if(!this->out_channel_set.send(1,
-				                               packet->data(),
-				                               packet->length()))
+				if(!this->out_channel_set.send(1, packet->data(), length))
 				{
 					fprintf(stderr, "error when sending data\n");
 					return false;
 				}
-				delete packet;
 				break;
 			}
-			// UDP message to be transmitted on network
-			else if(((MessageEvent *)event)->getMessageType() == from_udp)
+		case Origin::from_udp:
 			{
-				Data *packet = (Data *)((MessageEvent *)event)->getData();
 				unsigned char head[TUNTAP_FLAGS_LEN] = {0, 0, 8, 0};
 				packet->insert(0, head, TUNTAP_FLAGS_LEN);
-				if(write(this->fd, packet->data(), packet->length()) < 0)
+				if(write(this->fd, packet->data(), length) < 0)
 				{
 					fprintf(stderr, "Unable to write data on tun interface: %s\n",
 					        strerror(errno));
 					return false;
 				}
-				delete packet;
 				break;
 			}
-			// fall through
-
 		default:
-			fprintf(stderr, "unknown event received %s", event->getName().c_str());
-			return false;
+			return this->onEvent(static_cast<const Event&>(event));
 	}
+
 	return true;
 }
 
-bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)
+bool Rt::UpwardChannel<TestSatCarriers>::onEvent(const Event& event)
+{
+	fprintf(stderr, "unknown event received %s", event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<TestSatCarriers>::onEvent(const FileEvent& event)
+{
+	// read  data received on tun/tap interface
+	std::size_t length = event.getSize() - TUNTAP_FLAGS_LEN;
+	Data read_data = event.getData();
+	Ptr<Data> packet = make_ptr<Data>(read_data, TUNTAP_FLAGS_LEN, length);
+
+	if(!this->shareMessage(std::move(packet), to_underlying(Origin::from_lan)))
+	{
+		fprintf(stderr, "failed to send burst to opposite channel\n");
+		return false;
+	}
+
+	return true;
+}
+
+
+bool Rt::UpwardChannel<TestSatCarriers>::onEvent(const NetSocketEvent& event)
 {
 	bool status = true;
+	int ret;
 
-	switch(event->getType())
+	// event on UDP channel
+	// Data to read in Sat_Carrier socket buffer
+
+	// for UDP we need to retrieve potentially desynchronized
+	// datagrams => loop on receive function
+	do
 	{
-		case EventType::NetSocket:
+		unsigned int carrier_id;
+		spot_id_t spot_id;
+		Ptr<Data> buf = make_ptr<Data>(nullptr);
+		ret = this->in_channel_set.receive(event, carrier_id, spot_id, buf);
+
+		std::size_t length = buf->length();
+		if(ret < 0)
 		{
-			// event on UDP channel
-			// Data to read in Sat_Carrier socket buffer
-			size_t length;
-			unsigned char *buf = NULL;
-
-			unsigned int carrier_id;
-			spot_id_t spot_id;
-			int ret;
-
-			// for UDP we need to retrieve potentially desynchronized
-			// datagrams => loop on receive function
-			do
-			{
-				ret = this->in_channel_set.receive((NetSocketEvent *)event,
-				                                    carrier_id, spot_id,
-				                                    &buf, length);
-				if(ret < 0)
-				{
-					fprintf(stderr, "failed to receive data on any "
-					        "input channel (code = %zu)\n", length);
-					status = false;
-				}
-				else
-				{
-					if(length > 0)
-					{
-						Data *packet = new Data(buf, length);
-						free(buf);
-
-						if(!this->shareMessage((void **)(&packet), length, from_udp))
-						{
-							fprintf(stderr,
-							        "failed to send packet from carrier %u to opposite layer\n",
-							        carrier_id);
-							return false;
-						}
-					}
-				}
-			} while(ret > 0);
+			fprintf(stderr, "failed to receive data on any "
+			        "input channel (code = %zu)\n", length);
+			status = false;
 		}
-		break;
-		case EventType::File:
+		else
 		{
-			unsigned char *read_data;
-			const unsigned char *data;
-			unsigned int length;
-			Data *packet;
-
-			// read  data received on tun/tap interface
-			length = ((NetSocketEvent *)event)->getSize() - TUNTAP_FLAGS_LEN;
-			read_data = ((NetSocketEvent *)event)->getData();
-			data = read_data + TUNTAP_FLAGS_LEN;
-
-			packet = new Data((unsigned char *)data, length);
-			free(read_data);
-
-			if(!this->shareMessage((void **)&packet, length, from_lan))
+			if(length > 0)
 			{
-				fprintf(stderr, "failed to send burst to opposite channel\n");
-				return false;
+				if(!this->shareMessage(std::move(buf), to_underlying(Origin::from_udp)))
+				{
+					fprintf(stderr,
+							"failed to send packet from carrier %u to opposite layer\n",
+							carrier_id);
+					return false;
+				}
 			}
 		}
-		break;
-
-		default:
-			fprintf(stderr, "unknown event received %s", event->getName().c_str());
-			return false;
-	}
+	} while(ret > 0);
 
 	return status;
 }
 
 
-bool TestSatCarriers::onInit(void)
+bool TestSatCarriers::onInit()
 {
 	int fd = -1;
 	// create TUN or TAP virtual interface
@@ -259,17 +249,14 @@ bool TestSatCarriers::onInit(void)
 	}
 
 	// we can share FD as one thread will write, the second will read
-	((Upward *)this->upward)->setFd(fd);
-	((Downward *)this->downward)->setFd(fd);
+	this->upward.setFd(fd);
+	this->downward.setFd(fd);
 
 	return true;
 }
 
-bool TestSatCarriers::Upward::onInit(void)
+bool Rt::UpwardChannel<TestSatCarriers>::onInit()
 {
-	std::vector<UdpChannel *>::iterator it;
-	UdpChannel *channel;
-
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr, Component::unknown, 0))
 	{
@@ -279,10 +266,8 @@ bool TestSatCarriers::Upward::onInit(void)
 
 	// ask the runtime to manage channel file descriptors
 	// (only for channels that accept input)
-	for(it = this->in_channel_set.begin(); it != this->in_channel_set.end(); it++)
+	for (auto &&channel: this->in_channel_set)
 	{
-		channel = *it;
-
 		if(channel->isInputOk() && channel->getChannelFd() != -1)
 		{
 			std::ostringstream name;
@@ -297,7 +282,7 @@ bool TestSatCarriers::Upward::onInit(void)
 	return true;
 }
 
-bool TestSatCarriers::Downward::onInit()
+bool Rt::DownwardChannel<TestSatCarriers>::onInit()
 {
 	// initialize all channels from the configuration file
 	if (!this->out_channel_set.readOutConfig(this->ip_addr, Component::unknown, 0))
@@ -309,12 +294,12 @@ bool TestSatCarriers::Downward::onInit()
 	return true;
 }
 
-void TestSatCarriers::Downward::setFd(int fd)
+void Rt::DownwardChannel<TestSatCarriers>::setFd(int fd)
 {
 	this->fd = fd;
 }
 
-void TestSatCarriers::Upward::setFd(int fd)
+void Rt::UpwardChannel<TestSatCarriers>::setFd(int fd)
 {
 	// add file descriptor for TUN/TAP interface
 	this->addFileEvent("tun/tap", fd, 9000 + 4);

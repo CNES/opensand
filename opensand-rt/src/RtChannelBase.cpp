@@ -36,12 +36,14 @@
 #include <unistd.h>
 #include <signal.h>
 #include <cstring>
+#include <set>
 
 #include <opensand_output/Output.h>
 
 #include "RtChannelBase.h"
 #include "Rt.h"
 #include "RtFifo.h"
+#include "RtEvent.h"
 #include "FileEvent.h"
 #include "MessageEvent.h"
 #include "NetSocketEvent.h"
@@ -56,8 +58,12 @@
 #endif
 
 
+namespace Rt
+{
+
+
 // TODO pointer on onEventUp/Down
-RtChannelBase::RtChannelBase(const std::string &name, const std::string &type):
+ChannelBase::ChannelBase(const std::string &name, const std::string &type):
 	log_init{nullptr},
 	log_rt{nullptr},
 	log_receive{nullptr},
@@ -67,7 +73,6 @@ RtChannelBase::RtChannelBase(const std::string &name, const std::string &type):
 	block_initialized{false},
 	in_opp_fifo{nullptr},
 	out_opp_fifo{nullptr},
-	max_input_fd{-1},
 	stop_fd{-1},
 	w_sel_break{-1},
 	r_sel_break{-1}
@@ -76,37 +81,73 @@ RtChannelBase::RtChannelBase(const std::string &name, const std::string &type):
 }
 
 
-RtChannelBase::~RtChannelBase()
+ChannelBase::~ChannelBase()
 {
 	close(this->w_sel_break);
 	close(this->r_sel_break);
+
 #ifdef TIME_REPORTS
 	this->getDurationsStatistics();
 #endif
 }
 
 
-bool RtChannelBase::shareMessage(void **data, size_t size, uint8_t type)
+bool ChannelBase::onInit()
 {
-	return this->pushMessage(this->out_opp_fifo, data, size, type);
+	return true;
 }
 
 
-bool RtChannelBase::init(void)
+bool ChannelBase::onEvent(const Event& event)
+{
+	return false;
+}
+bool ChannelBase::onEvent(const MessageEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const TimerEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const SignalEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const FileEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const NetSocketEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const TcpListenEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+
+
+bool ChannelBase::shareMessage(Ptr<void> data, uint8_t type)
+{
+	Message m{std::move(data)};
+	m.type = type;
+	return this->pushMessage(this->out_opp_fifo, std::move(m));
+}
+
+
+bool ChannelBase::init(int stop_fd)
 {
 	// Output Log
-	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.rt",
-	                                          this->channel_name.c_str(),
-	                                          this->channel_type.c_str());
-	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.init",
-	                                            this->channel_name.c_str(),
-	                                            this->channel_type.c_str());
-	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.receive",
-	                                               this->channel_name.c_str(),
-	                                               this->channel_type.c_str());
-	this->log_send = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.send",
-	                                            this->channel_name.c_str(),
-	                                            this->channel_type.c_str());
+	std::string base_name = this->channel_name + "." + this->channel_type;
+	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".rt");
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".init");
+	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".receive");
+	this->log_send = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".send");
+
+	// register the signal mask for stop
+	this->stop_fd = stop_fd;
+	FD_SET(this->stop_fd, &(this->input_fd_set));
 
 	LOG(this->log_init, LEVEL_INFO,
 	    "Starting initialization\n");
@@ -120,15 +161,7 @@ bool RtChannelBase::init(void)
 	}
 	this->r_sel_break = pipefd[0];
 	this->w_sel_break = pipefd[1];
-	this->addInputFd(this->r_sel_break);
-
-	// create the signal mask for stop (highest priority)
-	sigset_t signal_mask;
-	sigemptyset(&signal_mask);
-	sigaddset(&signal_mask, SIGINT);
-	sigaddset(&signal_mask, SIGQUIT);
-	sigaddset(&signal_mask, SIGTERM);
-  this->stop_fd = this->addSignalEvent("stop", signal_mask, 0);
+	FD_SET(this->r_sel_break, &(this->input_fd_set));
 
 	// initialize fifos and create associated messages
 	if(!this->in_opp_fifo || !this->in_opp_fifo->init())
@@ -151,23 +184,23 @@ bool RtChannelBase::init(void)
 }
 
 
-void RtChannelBase::setIsBlockInitialized(bool initialized)
+void ChannelBase::setIsBlockInitialized(bool initialized)
 {
 	this->block_initialized = initialized;
 }
 
 
-int32_t RtChannelBase::addTimerEvent(const std::string &name,
-                                     double duration_ms,
-                                     bool auto_rearm,
-                                     bool start,
-                                     uint8_t priority)
+int32_t ChannelBase::addTimerEvent(const std::string &name,
+                                   double duration_ms,
+                                   bool auto_rearm,
+                                   bool start,
+                                   uint8_t priority)
 {
 	std::unique_ptr<TimerEvent> event;
 
 	try {
 		event.reset(new TimerEvent(name, duration_ms, auto_rearm, start, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create timer event\n");
 		return -1;
 	}
@@ -182,7 +215,7 @@ int32_t RtChannelBase::addTimerEvent(const std::string &name,
 }
 
 
-int32_t RtChannelBase::addTcpListenEvent(const std::string &name,
+int32_t ChannelBase::addTcpListenEvent(const std::string &name,
                                          int32_t fd,
                                          size_t max_size,
                                          uint8_t priority)
@@ -191,7 +224,7 @@ int32_t RtChannelBase::addTcpListenEvent(const std::string &name,
 	
 	try {
 		event.reset(new TcpListenEvent(name, fd, max_size, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
@@ -206,16 +239,16 @@ int32_t RtChannelBase::addTcpListenEvent(const std::string &name,
 }
 
 
-int32_t RtChannelBase::addFileEvent(const std::string &name,
-                                    int32_t fd,
-                                    size_t max_size,
-                                    uint8_t priority)
+int32_t ChannelBase::addFileEvent(const std::string &name,
+                                  int32_t fd,
+                                  size_t max_size,
+                                  uint8_t priority)
 {
 	std::unique_ptr<FileEvent> event;
 	
 	try {
 		event.reset(new FileEvent(name, fd, max_size, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
@@ -230,16 +263,16 @@ int32_t RtChannelBase::addFileEvent(const std::string &name,
 }
 
 
-int32_t RtChannelBase::addNetSocketEvent(const std::string &name,
-                                         int32_t fd,
-                                         size_t max_size,
-                                         uint8_t priority)
+int32_t ChannelBase::addNetSocketEvent(const std::string &name,
+                                       int32_t fd,
+                                       size_t max_size,
+                                       uint8_t priority)
 {
 	std::unique_ptr<NetSocketEvent> event;
 	
 	try {
 		event.reset(new NetSocketEvent(name, fd, max_size, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create net socket event\n");
 		return -1;
 	}
@@ -254,15 +287,15 @@ int32_t RtChannelBase::addNetSocketEvent(const std::string &name,
 }
 
 
-int32_t RtChannelBase::addSignalEvent(const std::string &name,
-                                      sigset_t signal_mask,
-                                      uint8_t priority)
+int32_t ChannelBase::addSignalEvent(const std::string &name,
+                                    sigset_t signal_mask,
+                                    uint8_t priority)
 {
 	std::unique_ptr<SignalEvent> event;
 	
 	try {
 		event.reset(new SignalEvent(name, signal_mask, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create signal event\n");
 		return -1;
 	}
@@ -277,9 +310,9 @@ int32_t RtChannelBase::addSignalEvent(const std::string &name,
 }
 
 
-bool RtChannelBase::addMessageEvent(std::shared_ptr<RtFifo> &out_fifo,
-                                    uint8_t priority,
-                                    bool opposite)
+bool ChannelBase::addMessageEvent(std::shared_ptr<Fifo> &out_fifo,
+                                  uint8_t priority,
+                                  bool opposite)
 {
 	std::string name = this->channel_type;
 	std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -290,18 +323,18 @@ bool RtChannelBase::addMessageEvent(std::shared_ptr<RtFifo> &out_fifo,
 
 	std::unique_ptr<MessageEvent> event;
   
-  try {
-    event.reset(new MessageEvent(out_fifo, name, out_fifo->getSigFd(), priority));
-  } catch (std::bad_alloc&) {
+	try {
+		event.reset(new MessageEvent(out_fifo, name, out_fifo->getSigFd(), priority));
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create message event\n");
 		return false;
-  }
+	}
 
 	return this->addEvent(std::move(event));
 }
 
 
-bool RtChannelBase::addEvent(std::unique_ptr<RtEvent> event)
+bool ChannelBase::addEvent(std::unique_ptr<Event> event)
 {
 	if(this->events.find(event->getFd()) != this->events.end())
 	{
@@ -326,7 +359,7 @@ bool RtChannelBase::addEvent(std::unique_ptr<RtEvent> event)
 }
 
 
-void RtChannelBase::updateEvents(void)
+void ChannelBase::updateEvents(void)
 {
 	// add new events
 	for(auto &&new_event: new_events)
@@ -334,8 +367,11 @@ void RtChannelBase::updateEvents(void)
 		LOG(this->log_rt, LEVEL_INFO,
 		    "Add new event \"%s\" in list\n",
 		    new_event->getName().c_str());
-		this->addInputFd(new_event->getFd());
-		this->events[new_event->getFd()] = std::move(new_event);
+		// add fd to set
+		auto fd = new_event->getFd();
+		FD_SET(fd, &(this->input_fd_set));
+		// add fd to map
+		this->events[fd] = std::move(new_event);
 	}
 	this->new_events.clear();
 
@@ -350,10 +386,6 @@ void RtChannelBase::updateEvents(void)
 			    it->second->getName().c_str());
 			// remove fd from set
 			FD_CLR(it->first, &(this->input_fd_set));
-			if(it->first == this->max_input_fd)
-			{
-				this->updateMaxFd();
-			}
 			// remove fd from map
 			this->events.erase(it);
 		}
@@ -362,23 +394,9 @@ void RtChannelBase::updateEvents(void)
 }
 
 
-void RtChannelBase::updateMaxFd(void)
+TimerEvent *ChannelBase::getTimer(event_id_t id)
 {
-	this->max_input_fd = 0;
-	// update the greater fd
-	for(auto &&event: events)
-	{
-		if(event.first > this->max_input_fd)
-		{
-			this->max_input_fd = event.first;
-		}
-	}
-
-}
-
-TimerEvent *RtChannelBase::getTimer(event_id_t id)
-{
-	RtEvent *event = nullptr;
+	Event *event = nullptr;
 
 	auto it = this->events.find(id);
 	if(it == this->events.end())
@@ -409,17 +427,18 @@ TimerEvent *RtChannelBase::getTimer(event_id_t id)
 	}
 
 found:
-	if(event && event->getType() != EventType::Timer)
+	TimerEvent *timer_event = dynamic_cast<TimerEvent *>(event);
+	if(!timer_event)
 	{
 		this->reportError(false, "cannot start event that is not a timer\n");
 		return nullptr;
 	}
 
-	return static_cast<TimerEvent *>(event);
+	return timer_event;
 }
 
 
-bool RtChannelBase::startTimer(event_id_t id)
+bool ChannelBase::startTimer(event_id_t id)
 {
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
@@ -433,7 +452,7 @@ bool RtChannelBase::startTimer(event_id_t id)
 }
 
 
-bool RtChannelBase::setDuration(event_id_t id, double new_duration)
+bool ChannelBase::setDuration(event_id_t id, double new_duration)
 {
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
@@ -447,7 +466,7 @@ bool RtChannelBase::setDuration(event_id_t id, double new_duration)
 }
 
 
-bool RtChannelBase::raiseTimer(event_id_t id)
+bool ChannelBase::raiseTimer(event_id_t id)
 {
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
@@ -461,29 +480,27 @@ bool RtChannelBase::raiseTimer(event_id_t id)
 }
 
 
-void RtChannelBase::addInputFd(int32_t fd)
-{
-	if(fd > this->max_input_fd)
-	{
-		this->max_input_fd = fd;
-	}
-	FD_SET(fd, &(this->input_fd_set));
-}
-
-
-void RtChannelBase::removeEvent(event_id_t id)
+void ChannelBase::removeEvent(event_id_t id)
 {
 	this->removed_events.push_back(id);
 }
 
 
-void RtChannelBase::executeThread(void)
+void ChannelBase::executeThread(void)
 {
 	int32_t number_fd;
 	int32_t handled;
 	fd_set readfds;
 
-	std::vector<RtEvent *> priority_sorted_events;
+	/*
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+	timeval timeout{0, 500};
+	*/
+
+	// sort the list according to priority
+	static const auto eventSorter = [](const Event* e1, const Event* e2) { return (*e1) < (*e2); };
+	std::set<Event *, decltype(eventSorter)> priority_sorted_events(eventSorter);
 
 	while(true)
 	{
@@ -491,17 +508,26 @@ void RtChannelBase::executeThread(void)
 		
 		// get the new events for the next loop
 		this->updateEvents();
+		priority_sorted_events.clear();
 		readfds = this->input_fd_set;
 
 		// wait for any event
 		// we need a timeout in order to refresh event list
-		number_fd = select(this->max_input_fd + 1, &readfds, NULL, NULL, NULL);
+		event_id_t max_fd = this->events.rbegin()->first;
+
+		number_fd = select(max_fd + 1, &readfds, nullptr, nullptr, nullptr);
 		if(number_fd < 0)
 		{
 			this->reportError(true, "select failed: [%u: %s]\n", errno, strerror(errno));
 		}
+
 		// unfortunately, FD_ISSET is the only usable thing
-		priority_sorted_events.clear();
+		if(FD_ISSET(this->stop_fd, &readfds))
+		{
+			// we have to stop
+			LOG(this->log_rt, LEVEL_INFO, "stop signal received\n");
+			return;
+		}
 
 		// check for select break
 		if(FD_ISSET(this->r_sel_break, &readfds))
@@ -515,9 +541,8 @@ void RtChannelBase::executeThread(void)
 		}
 
 		// handle each event
-		for(auto &&event_pair: events)
+		for(auto &&[key, event]: events)
 		{
-			RtEvent *event = event_pair.second.get();
 			if(handled >= number_fd)
 			{
 				// all events treated, no need to continue the loop
@@ -533,51 +558,40 @@ void RtChannelBase::executeThread(void)
 			// fd is set
 			if(!event->handle())
 			{
-				if(event->getType() == EventType::Signal)
+				if(event->isCritical())
 				{
-					// this is the only case where it is critical as
-					// stop event is a signal
-					this->reportError(true, "unable to handle signal event\n");
+					this->reportError(true, "unable to handle critical event\n");
 					return;
 				}
 				this->reportError(false, "unable to handle event\n");
 				// ignore this event
 				continue;
 			}
-			priority_sorted_events.push_back(event);
-			if(*event == this->stop_fd)
-			{
-				// we have to stop
-				LOG(this->log_rt, LEVEL_INFO,
-				    "stop signal received\n");
-				return;
-			}
+			priority_sorted_events.insert(event.get());
 		}
-		// sort the list according to priority
-		static const auto eventSorter = [](const RtEvent* e1, const RtEvent* e2) { return (*e1) < (*e2); };
-		std::sort(priority_sorted_events.begin(), priority_sorted_events.end(), eventSorter);
 
 		// call processEvent on each event
 		for(auto &&event: priority_sorted_events)
 		{
+			const std::string event_name = event->getName();
 			event->setTriggerTime();
 			LOG(this->log_rt, LEVEL_DEBUG, "event received (%s)",
-			    event->getName().c_str());
-			if(!this->onEvent(event))
+			    event_name.c_str());
+			if(!event->advertiseEvent(*this))
 			{
 				LOG(this->log_rt, LEVEL_ERROR,
 				    "failed to process event %s\n",
-				    event->getName().c_str());
+				    event_name.c_str());
 			}
 #ifdef TIME_REPORTS
-			time_val_t time = (*iter)->getTimeFromTrigger();
-			this->durations[(*iter)->getName()].push_back(time);
+			time_val_t time = event->getTimeFromTrigger();
+			this->durations[event_name].push_back(time);
 #endif
 		}
 	}
 }
 
-void RtChannelBase::reportError(bool critical, const char *msg_format, ...)
+void ChannelBase::reportError(bool critical, const char *msg_format, ...)
 {
 	char msg[512];
 	va_list args;
@@ -591,14 +605,14 @@ void RtChannelBase::reportError(bool critical, const char *msg_format, ...)
 };
 
 
-void RtChannelBase::setOppositeFifo(std::shared_ptr<RtFifo> &in_fifo, std::shared_ptr<RtFifo> &out_fifo)
+void ChannelBase::setOppositeFifo(std::shared_ptr<Fifo> &in_fifo, std::shared_ptr<Fifo> &out_fifo)
 {
 	this->in_opp_fifo = in_fifo;
 	this->out_opp_fifo = out_fifo;
 }
 
 
-bool RtChannelBase::initSingleFifo(std::shared_ptr<RtFifo> &fifo)
+bool ChannelBase::initSingleFifo(std::shared_ptr<Fifo> &fifo)
 {
 	if (fifo)
 	{
@@ -617,15 +631,13 @@ bool RtChannelBase::initSingleFifo(std::shared_ptr<RtFifo> &fifo)
 }
 
 
-bool RtChannelBase::pushMessage(std::shared_ptr<RtFifo> &out_fifo, void **data, size_t size, uint8_t type)
+bool ChannelBase::pushMessage(std::shared_ptr<Fifo> &out_fifo, Message message)
 {
 	if (out_fifo == nullptr)
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Tried to send a message through a null FIFO");
 		return false;
 	}
-
-	bool success = true;
 
 	// check that block is initialized (i.e. we are in event processing)
 	if(!this->block_initialized)
@@ -638,19 +650,23 @@ bool RtChannelBase::pushMessage(std::shared_ptr<RtFifo> &out_fifo, void **data, 
 		//       initialization when threads are started
 	}
 
-	if(!out_fifo->push(*data, size, type))
+	if(!message)
 	{
-		this->reportError(false, "cannot push data in fifo for next block\n");
-		success = false;
+		this->reportError(false, "empty message for next block");
+		return false;
 	}
 
-	// be sure that the pointer won't be used anymore
-	*data = nullptr;
-	return success;
+	if(!out_fifo->push(std::move(message)))
+	{
+		this->reportError(false, "cannot push data in fifo for next block");
+		return false;
+	}
+
+	return true;
 }
 
 #ifdef TIME_REPORTS
-void RtChannelBase::getDurationsStatistics(void) const
+void ChannelBase::getDurationsStatistics(void) const
 {
   std::shared_ptr<OutputEvent> event = Output::Get()->registerEvent("Time Report");
 	for(auto &&duration_pair: durations)
@@ -677,3 +693,6 @@ void RtChannelBase::getDurationsStatistics(void) const
 	}
 }
 #endif
+
+
+};

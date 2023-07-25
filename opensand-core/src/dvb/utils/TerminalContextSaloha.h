@@ -37,11 +37,11 @@
 #ifndef _TERMINAL_CONTEXT_SALOHA_H_
 #define _TERMINAL_CONTEXT_SALOHA_H_
 
-#include "TerminalContext.h"
-
-#include "SlottedAlohaPacketData.h"
 
 #include <map>
+
+#include "TerminalContext.h"
+#include "SlottedAlohaPacketData.h"
 
 
 enum class PropagateState
@@ -76,7 +76,7 @@ public:
 	 * @return no_prop  if no PDU can be propagated,
 	 *         prop     if PDU can be propagated
 	 */
-	PropagateState addPacket(std::unique_ptr<SlottedAlohaPacketData> packet, saloha_packets_data_t &pdu);
+	PropagateState addPacket(Rt::Ptr<SlottedAlohaPacketData> packet, saloha_packets_data_t &pdu);
 
 protected:
 	typedef std::map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;

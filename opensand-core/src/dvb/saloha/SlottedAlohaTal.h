@@ -42,7 +42,7 @@
 #include "SlottedAlohaFrame.h"
 #include "SlottedAlohaAlgo.h"
 #include "TerminalCategorySaloha.h"
-#include "DvbFifo.h"
+#include "DvbFifoTypes.h"
 #include "DvbFrame.h"
 #include "NetBurst.h"
 #include "PhysicalLayerPlugin.h"
@@ -88,13 +88,13 @@ private:
 	saloha_pdu_id_t base_id;
 
 	/// Backoff algorithm used
-	SlottedAlohaBackoff *backoff;
+	std::unique_ptr<SlottedAlohaBackoff> backoff;
 
 	/// The terminal category
-	TerminalCategorySaloha *category;
+	std::shared_ptr<TerminalCategorySaloha> category;
 
 	/// The DVB fifos
-	fifos_t dvb_fifos;
+	std::shared_ptr<fifos_t> dvb_fifos;
 
 	//TODO in opensandcore.h
 	typedef std::map<qos_t, std::shared_ptr<Probe<int> > > probe_per_qos_t;
@@ -110,11 +110,6 @@ public:
 	 */
 	SlottedAlohaTal();
 
-	/**
-	 * Class destructor
-	 */
-	~SlottedAlohaTal();
-
 	static void generateConfiguration();
 
 	/**
@@ -128,9 +123,9 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool init(tal_id_t tal_id,
-	          TerminalCategorySaloha *category,
-	          const fifos_t &dvb_fifos,
-	          UnitConverter *converter);
+	          std::shared_ptr<TerminalCategorySaloha> category,
+	          std::shared_ptr<fifos_t> dvb_fifos,
+	          UnitConverter &converter);
 
 	/**
 	 * Add the Slotted Aloha header on an encapsulation packet
@@ -141,9 +136,9 @@ public:
 	 *
 	 * @return Slotted Aloha packet
 	 */
-	std::unique_ptr<SlottedAlohaPacketData> addSalohaHeader(std::unique_ptr<NetPacket> encap_packet,
-	                                                        uint16_t offset,
-	                                                        uint16_t burst_size);
+	Rt::Ptr<SlottedAlohaPacketData> addSalohaHeader(Rt::Ptr<NetPacket> encap_packet,
+	                                                uint16_t offset,
+	                                                uint16_t burst_size);
 
 	/**
 	 * Schedule Slotted Aloha packets
@@ -153,11 +148,11 @@ public:
 	 *
 	 * @return true if packets was successful scheduled, false otherwise
 	 */
-	bool schedule(std::list<DvbFrame *> &complete_dvb_frames,
+	bool schedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
 	              time_sf_t sf_counter);
 
 	//Implementation of a virtual function
-	bool onRcvFrame(DvbFrame *frame);
+	bool onRcvFrame(Rt::Ptr<DvbFrame> frame);
 
 private:
 	/**
@@ -177,12 +172,12 @@ private:
 	 * @param qos                  qos of the packet
 	 * @return true if the packet was successful added, false otherwise
 	 */
-	bool addPacketInFrames(std::list<DvbFrame *> &complete_dvb_frames,
-	                       SlottedAlohaFrame **frame,
-	                       std::unique_ptr<SlottedAlohaPacketData> packet,
+	bool addPacketInFrames(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+	                       Rt::Ptr<SlottedAlohaFrame>& frame,
+	                       Rt::Ptr<SlottedAlohaPacketData> packet,
 	                       saloha_ts_list_t::iterator &slot,
 	                       qos_t qos);
 };
 
-#endif
 
+#endif

@@ -583,7 +583,6 @@ INPUT                  = @opensand_root_dir@/src/common/ \
                          @opensand_root_dir@/src/dvb_rcs/pep/ \
                          @opensand_root_dir@/src/dvb_rcs/switch/ \
                          @opensand_root_dir@/src/dvb_rcs/utils/ \
-                         @opensand_root_dir@/src/encap/ \
                          @opensand_root_dir@/src/qos_data/ \
                          @opensand_root_dir@/src/sat_carrier/ \
                          @opensand_root_dir@/src/system/

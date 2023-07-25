@@ -58,16 +58,19 @@
  */
 
 
+#include <opensand_rt/Rt.h>
+
 #include "EntitySt.h"
 #include "OpenSandModelConf.h"
 
 #include "BlockLanAdaptation.h"
-#include "BlockEncap.h"
 #include "BlockDvbTal.h"
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
-
+#include "DvbS2Std.h"
 #include "PacketSwitch.h"
+#include "Ethernet.h"
+
 
 EntitySt::EntitySt(tal_id_t instance_id): Entity("st" + std::to_string(instance_id), instance_id)
 {
@@ -87,18 +90,14 @@ bool EntitySt::createSpecificBlocks()
 	 	Conf->getGwWithTalId(this->instance_id, gw_id);
 		la_specific laspecific;
 		laspecific.tap_iface = this->tap_iface;
-		laspecific.packet_switch = new TerminalPacketSwitch(this->instance_id, gw_id);
-
-		EncapConfig encap_cfg;
-		encap_cfg.entity_id = this->instance_id;
-		encap_cfg.entity_type = Component::terminal;
-		encap_cfg.filter_packets = true;
-		encap_cfg.scpc_enabled = scpc_enabled;
+		laspecific.packet_switch = std::make_shared<TerminalPacketSwitch>(this->instance_id, gw_id);
 
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = false;
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = gw_id;
+		dvb_spec.is_ground_entity = true;
+		dvb_spec.upper_encap = Ethernet::constructPlugin();
 
 		PhyLayerConfig phy_config;
 		phy_config.mac_id = instance_id;
@@ -112,16 +111,14 @@ bool EntitySt::createSpecificBlocks()
 		bool disable_ctrl_plane;
 		if (!Conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
-		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", laspecific);
-		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
-		auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_spec);
-		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
-		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("Sat_Carrier", scspecific);
+		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", laspecific);
+		auto& block_dvb = Rt::Rt::createBlock<BlockDvbTal>("Dvb", dvb_spec);
+		auto& block_phy_layer = Rt::Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
+		auto& block_sat_carrier = Rt::Rt::createBlock<BlockSatCarrier>("Sat_Carrier", scspecific);
 	
-		Rt::connectBlocks(block_lan_adaptation, block_encap);
-		Rt::connectBlocks(block_encap, block_dvb);
-		Rt::connectBlocks(block_dvb, block_phy_layer);
-		Rt::connectBlocks(block_phy_layer, block_sat_carrier);
+		Rt::Rt::connectBlocks(block_lan_adaptation, block_dvb);
+		Rt::Rt::connectBlocks(block_dvb, block_phy_layer);
+		Rt::Rt::connectBlocks(block_phy_layer, block_sat_carrier);
 	}
 	catch (const std::bad_alloc &e)
 	{
@@ -160,7 +157,7 @@ void EntitySt::defineProfileMetaModel() const
 	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
 
 	BlockLanAdaptation::generateConfiguration();
-	BlockEncap::generateConfiguration();
+	BlockDvb::generateConfiguration();
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 	BlockPhysicalLayer::generateConfiguration();
 }

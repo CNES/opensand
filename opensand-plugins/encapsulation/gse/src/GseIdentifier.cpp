@@ -69,17 +69,17 @@ uint8_t GseIdentifier::getQos() const
 }
 
 
-bool ltGseIdentifier::operator() (GseIdentifier *ai1, GseIdentifier *ai2) const
+bool ltGseIdentifier::operator() (const GseIdentifier &ai1, const GseIdentifier &ai2) const
 {
-	const auto srcTalId1 = ai1->getSrcTalId();
-	const auto srcTalId2 = ai2->getSrcTalId();
+	const auto srcTalId1 = ai1.getSrcTalId();
+	const auto srcTalId2 = ai2.getSrcTalId();
 
 	if (srcTalId1 == srcTalId2)
 	{
-		const auto dstTalId1 = ai1->getDstTalId();
-		const auto dstTalId2 = ai2->getDstTalId();
+		const auto dstTalId1 = ai1.getDstTalId();
+		const auto dstTalId2 = ai2.getDstTalId();
 
-		return dstTalId1 == dstTalId2 ? ai1->getQos() < ai2->getQos() : dstTalId1 < dstTalId2;
+		return dstTalId1 == dstTalId2 ? ai1.getQos() < ai2.getQos() : dstTalId1 < dstTalId2;
 	}
 
 	return srcTalId1 < srcTalId2;

@@ -34,11 +34,13 @@
  */
 
 
+#include <cmath>
+
 #include "CarriersGroupDama.h"
 
 
 CarriersGroupDama::CarriersGroupDama(unsigned int carriers_id,
-                                     const FmtGroup *const fmt_group,
+                                     std::shared_ptr<const FmtGroup> fmt_group,
                                      unsigned int ratio,
                                      rate_symps_t symbol_rate_symps,
                                      AccessType access_type):
@@ -50,64 +52,43 @@ CarriersGroupDama::CarriersGroupDama(unsigned int carriers_id,
 {
 }
 
-CarriersGroupDama::~CarriersGroupDama()
-{
-	std::vector<CarriersGroupDama *>::iterator it;
-	for(it = this->vcm_carriers.begin();
-	    it != this->vcm_carriers.end();
-	    ++it)
-	{
-		delete *it;
-	}
-}
 
 void CarriersGroupDama::setCapacity(const vol_sym_t capacity_sym)
 {
 	CarriersGroup::setCapacity(capacity_sym);
-	std::vector<CarriersGroupDama *>::iterator it;
 
 	// compute VCM capacities	
-	for(it = this->vcm_carriers.begin();
-	    it != this->vcm_carriers.end();
-	    ++it)
+	for (auto &&vcm: this->vcm_carriers)
 	{
-		(*it)->setCapacity(floor((*it)->getRatio() * capacity_sym /
-		                         this->ratio));
+		vcm.setCapacity(floor(vcm.getRatio() * capacity_sym / this->ratio));
 	}
 }
 
 void CarriersGroupDama::setCarriersNumber(const unsigned int carriers_number)
 {
 	CarriersGroup::setCarriersNumber(carriers_number);
-	std::vector<CarriersGroupDama *>::iterator it;
 
 	// compute VCM capacities	
-	for(it = this->vcm_carriers.begin();
-	    it != this->vcm_carriers.end();
-	    ++it)
+	for (auto &&vcm: this->vcm_carriers)
 	{
-		(*it)->setCarriersNumber(carriers_number);
+		vcm.setCarriersNumber(carriers_number);
 	}
 }
 
 void CarriersGroupDama::setSymbolRate(const double symbol_rate_symps)
 {
 	CarriersGroup::setSymbolRate(symbol_rate_symps);
-	std::vector<CarriersGroupDama *>::iterator it;
 
 	// compute VCM capacities	
-	for(it = this->vcm_carriers.begin();
-	    it != this->vcm_carriers.end();
-	    ++it)
+	for (auto &&vcm: this->vcm_carriers)
 	{
-		(*it)->setSymbolRate(symbol_rate_symps);
+		vcm.setSymbolRate(symbol_rate_symps);
 	}
 }
 
-void CarriersGroupDama::addVcm(const FmtGroup *const fmt_group,
+void CarriersGroupDama::addVcm(std::shared_ptr<const FmtGroup> fmt_group,
                                unsigned int ratio)
 {
-	CarriersGroupDama *vcm;
 	if(this->vcm_carriers.size() > 0)
 	{
 		// if this carriers group is already in the vcm carriers list
@@ -116,12 +97,11 @@ void CarriersGroupDama::addVcm(const FmtGroup *const fmt_group,
 		this->ratio += ratio;
 	}
 
-	vcm = new CarriersGroupDama(this->carriers_id,
-	                            fmt_group,
-	                            ratio,
-	                            this->symbol_rate_symps,
-	                            this->access_type);
-	this->vcm_carriers.push_back(vcm);
+	this->vcm_carriers.emplace_back(this->carriers_id,
+	                                fmt_group,
+	                                ratio,
+	                                this->symbol_rate_symps,
+	                                this->access_type);
 }
 
 void CarriersGroupDama::setRemainingCapacity(const unsigned int remaining_capacity)
@@ -155,7 +135,7 @@ unsigned int CarriersGroupDama::getNearestFmtId(unsigned int fmt_id)
 	return this->fmt_group->getNearest(fmt_id);
 }
 
-std::vector<CarriersGroupDama *> CarriersGroupDama::getVcmCarriers()
+std::vector<CarriersGroupDama> &CarriersGroupDama::getVcmCarriers()
 {
 	return this->vcm_carriers;
 }

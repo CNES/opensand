@@ -35,6 +35,7 @@ libopensand_dvb_utils_la_h = \
 	Logoff.h \
 	Sof.h \
 	DvbFifo.h \
+	DvbFifoTypes.h \
 	TerminalContext.h \
 	TerminalContextDama.h \
 	TerminalContextDamaRcs.h \

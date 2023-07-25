@@ -39,3 +39,47 @@ bool OpenSANDConf::DataValue<std::string>::fromString(std::string val)
 {
 	return this->set(val);
 }
+
+
+template <>
+bool OpenSANDConf::DataValue<uint8_t>::fromString(std::string val)
+{
+	std::stringstream ss(val);
+	unsigned int tmp;
+	ss >> tmp;
+	return (!ss.fail()) && this->set(tmp);
+}
+
+
+template <>
+bool OpenSANDConf::DataValue<int8_t>::fromString(std::string val)
+{
+	std::stringstream ss(val);
+	int tmp;
+	ss >> tmp;
+	return (!ss.fail()) && this->set(tmp);
+}
+
+
+template <>
+std::string OpenSANDConf::DataValue<uint8_t>::toString() const
+{
+	std::stringstream ss;
+	if(this->is_set)
+	{
+		ss << static_cast<unsigned int>(this->value);
+	}
+	return ss.str();
+}
+
+
+template <>
+std::string OpenSANDConf::DataValue<int8_t>::toString() const
+{
+	std::stringstream ss;
+	if(this->is_set)
+	{
+		ss << static_cast<int>(this->value);
+	}
+	return ss.str();
+}

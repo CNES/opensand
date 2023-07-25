@@ -41,7 +41,7 @@
 StFmtSimu::StFmtSimu(std::string name,
                      tal_id_t id,
                      uint8_t init_modcod_id,
-                     const FmtDefinitionTable *const modcod_def):
+                     const FmtDefinitionTable &modcod_def):
 	id(id),
 	modcod_def(modcod_def),
 	cni_has_changed(true),
@@ -52,22 +52,12 @@ StFmtSimu::StFmtSimu(std::string name,
 	// TODO we should do more specific logs, like here, wherever it's possible
 	if(id < BROADCAST_TAL_ID)
 	{
-		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
-		                                           "Dvb.Fmt.%sStFmtSimu%u",
-		                                           name.c_str(), id);
+		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, Format("Dvb.Fmt.%sStFmtSimu%u", name, id));
 	}
 	else
 	{
-		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
-		                                           "Dvb.Fmt.%sSimuatedStFmtSimu",
-		                                           name.c_str());
+		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, Format("Dvb.Fmt.%sSimuatedStFmtSimu", name));
 	}
-}
-
-
-StFmtSimu::~StFmtSimu()
-{
-	// nothing particular to do
 }
 
 
@@ -102,7 +92,7 @@ void StFmtSimu::updateModcodId(uint8_t new_id,
 	// TODO but on the first decrease the margin won't be applied
 	if(acm_loop_margin_db != 0.0 and new_id < this->current_modcod_id)
 	{
-		double cni = this->modcod_def->getRequiredEsN0(this->current_modcod_id);
+		double cni = this->modcod_def.getRequiredEsN0(this->current_modcod_id);
 		this->updateCni(cni, acm_loop_margin_db);
 		return;
 	}
@@ -126,16 +116,16 @@ void StFmtSimu::updateCni(double cni,
 		    id, acm_loop_margin_db, cni);
 		cni -= acm_loop_margin_db;
 	}
-	fmt_id_t modcod_id = this->modcod_def->getRequiredModcod(cni);
+	fmt_id_t modcod_id = this->modcod_def.getRequiredModcod(cni);
 	LOG(this->log_fmt, LEVEL_INFO,
 	    "Terminal %u: CNI = %.2f dB, corresponding to MODCOD ID %u\n",
 	    id, cni, modcod_id);
 	this->updateModcodId(modcod_id);
 }
 
-double StFmtSimu::getRequiredCni()
+double StFmtSimu::getRequiredCni() const
 {
-	double cni = this->modcod_def->getRequiredEsN0(this->current_modcod_id);
+	double cni = this->modcod_def.getRequiredEsN0(this->current_modcod_id);
 	if(cni == 0.0)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
@@ -147,7 +137,7 @@ double StFmtSimu::getRequiredCni()
 
 }
 
-bool StFmtSimu::getCniHasChanged()
+bool StFmtSimu::getCniHasChanged() const
 {
 	return this->cni_has_changed;
 }
@@ -160,27 +150,18 @@ bool StFmtSimu::getCniHasChanged()
 
 StFmtSimuList::StFmtSimuList(std::string name):
 	name{name},
-	sts{nullptr},
+	sts{},
 	acm_loop_margin_db{0.0},
 	sts_mutex{}
 {
 	// Output Log
-	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
-	                                           "Dvb.Fmt.%sStFmtSimuList",
-	                                           name.c_str());
-
-	this->sts = new ListStFmt();
+	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, Format("Dvb.Fmt.%sStFmtSimuList", name));
 }
 
 StFmtSimuList::~StFmtSimuList()
 {
-	RtLock lock(this->sts_mutex);
-	for(auto&& st : *this->sts)
-	{
-		delete st.second;
-	}
-	this->sts->clear();
-	delete this->sts;
+	Rt::Lock lock(this->sts_mutex);
+	this->sts.clear();
 }
 
 void StFmtSimuList::setAcmLoopMargin(double acm_loop_margin_db)
@@ -189,10 +170,8 @@ void StFmtSimuList::setAcmLoopMargin(double acm_loop_margin_db)
 }
 
 bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
-                                const FmtDefinitionTable *const modcod_def)
+                                const FmtDefinitionTable &modcod_def)
 {
-	StFmtSimu *new_st;
-
 	if(this->isStPresent(st_id))
 	{
 		LOG(this->log_fmt, LEVEL_WARNING,
@@ -201,20 +180,15 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
 	}
 
 	// take the lock after checking if ST aleady exists
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	LOG(this->log_fmt, LEVEL_DEBUG,
 	    "add ST%u in FMT simu list\n", st_id);
 
 	// Create the st
-	new_st = new StFmtSimu(this->name, st_id, init_modcod, modcod_def);
-	if(!new_st)
-	{
-		LOG(this->log_fmt, LEVEL_ERROR, "Failed to create a new ST\n");
-		return false;
-	}
+	StFmtSimu new_st{this->name, st_id, init_modcod, modcod_def};
 
 	// insert it
-	this->sts->insert(std::make_pair(st_id, new_st));
+	this->sts.insert(std::make_pair(st_id, new_st));
 	this->insert(st_id);
 
 	return true;
@@ -222,12 +196,12 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
 
 bool StFmtSimuList::delTerminal(tal_id_t st_id)
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	ListStFmt::iterator it;
 
 	// find the entry to delete
-	it = this->sts->find(st_id);
-	if(it == this->sts->end())
+	it = this->sts.find(st_id);
+	if(it == this->sts.end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "ST with ID %u not found in list of STs\n", st_id);
@@ -235,8 +209,7 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id)
 	}
 
 	// delete the ST
-	delete it->second;
-	this->sts->erase(it);
+	this->sts.erase(it);
 	this->erase(st_id);
 
 	return true;
@@ -244,10 +217,10 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id)
 
 void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
-	auto st_iter = this->sts->find(st_id);
-	if(st_iter == this->sts->end())
+	auto st_iter = this->sts.find(st_id);
+	if(st_iter == this->sts.end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "ST%u not found, cannot set required CNI\n", st_id);
@@ -256,72 +229,71 @@ void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 	LOG(this->log_fmt, LEVEL_INFO,
 	    "set required CNI %.2f for ST%u\n", cni, st_id);
 
-	st_iter->second->updateCni(cni, this->acm_loop_margin_db);
+	st_iter->second.updateCni(cni, this->acm_loop_margin_db);
 }
 
 double StFmtSimuList::getRequiredCni(tal_id_t st_id) const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
-	auto st_iter = this->sts->find(st_id);
-	if(st_iter == this->sts->end())
+	auto st_iter = this->sts.find(st_id);
+	if(st_iter == this->sts.end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "ST%u not found, cannot get required CNI\n", st_id);
 		return 0.0;
 	}
 
-	return st_iter->second->getRequiredCni();
+	return st_iter->second.getRequiredCni();
 }
 
 
 fmt_id_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id) const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
-	auto st_iter = this->sts->find(st_id);
-	if(st_iter == this->sts->end())
+	auto st_iter = this->sts.find(st_id);
+	if(st_iter == this->sts.end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "ST%u not found, cannot get current MODCOD\n", st_id);
 		return 0;
 	}
 
-	return st_iter->second->getCurrentModcodId();
+	return st_iter->second.getCurrentModcodId();
 }
 
-bool StFmtSimuList::getCniHasChanged(tal_id_t st_id)
+bool StFmtSimuList::getCniHasChanged(tal_id_t st_id) const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
-	auto st_iter = this->sts->find(st_id);
-	if(st_iter == this->sts->end())
+	auto st_iter = this->sts.find(st_id);
+	if(st_iter == this->sts.end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "ST%u not found, cannot get CNI status\n", st_id);
 		return false;
 	}
 
-	return st_iter->second->getCniHasChanged();
+	return st_iter->second.getCniHasChanged();
 }
 
 bool StFmtSimuList::isStPresent(tal_id_t st_id) const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	return std::find(this->begin(), this->end(), st_id) != this->end();
 }
 
 tal_id_t StFmtSimuList::getTalIdWithLowerModcod() const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	uint8_t lower_modcod_id = std::numeric_limits<decltype(lower_modcod_id)>::max();
 	tal_id_t lower_tal_id = std::numeric_limits<decltype(lower_tal_id)>::max();
 
-	for(auto&& st_iterator : *this->sts)
+	for(auto&& [tal_id, st_fmt_simu] : this->sts)
 	{
 		// Retrieve the lower modcod
-		tal_id_t tal_id = st_iterator.first;
-		uint8_t modcod_id = st_iterator.second->getCurrentModcodId();
+		uint8_t modcod_id = st_fmt_simu.getCurrentModcodId();
 
 		// TODO:retrieve with lower Es/N0 not modcod_id
 		if(modcod_id < lower_modcod_id)

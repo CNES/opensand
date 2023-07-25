@@ -36,16 +36,19 @@
 #ifndef GROUND_PHYSICAL_CHANNEL_H
 #define GROUND_PHYSICAL_CHANNEL_H
 
-#include "PhysicalLayerPlugin.h"
+
+#include <opensand_rt/Types.h>
+
 #include "DelayFifo.h"
 #include "DvbFrame.h"
 
-#include <opensand_output/Output.h>
-#include <opensand_rt/Rt.h>
-#include <opensand_rt/Types.h>
 
-
+template<typename> class Probe;
+class OutputLog;
 class NetContainer;
+class AttenuationModelPlugin;
+class SatDelayPlugin;
+namespace Rt { class ChannelBase; };
 
 
 struct PhyLayerConfig
@@ -90,8 +93,8 @@ protected:
 	SatDelayPlugin *satdelay_model = nullptr;
 
 	/// Events
-	event_id_t attenuation_update_timer;
-	event_id_t fifo_timer;
+	Rt::event_id_t attenuation_update_timer;
+	Rt::event_id_t fifo_timer;
 
 	/**
 	 * @brief Constructor of the ground physical channel
@@ -107,7 +110,7 @@ protected:
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initGround(bool upward_channel, RtChannelBase *channel, std::shared_ptr<OutputLog> log_init);
+	bool initGround(bool upward_channel, Rt::ChannelBase &channel, std::shared_ptr<OutputLog> log_init);
 
 	/**
 	 * @brief Update the attenuation
@@ -129,7 +132,7 @@ protected:
 	 * @param pkt  the packet to delay
 	 * @return true on succes, false otherwise
 	 */
-	bool pushPacket(NetContainer *pkt);
+	bool pushPacket(Rt::Ptr<NetContainer> pkt);
 
 	/**
 	 * @brief Check there is at least one ready packet in FIFO at current time, then forward it
@@ -147,7 +150,7 @@ protected:
 	 *
 	 * @return true on success, false otherwise
 	 */
-	virtual bool forwardPacket(DvbFrame *dvb_frame) = 0;
+	virtual bool forwardPacket(Rt::Ptr<DvbFrame> dvb_frame) = 0;
 
 public:
 	virtual ~GroundPhysicalChannel() = default;
@@ -170,7 +173,8 @@ public:
 	 *
 	 * @return the total C/N value
 	 */
-	static double computeTotalCn(double up_cn, double down_cn);
+	//static double computeTotalCn(double up_cn, double down_cn);
+	double computeTotalCn(double up_cn) const;
 };
 
 

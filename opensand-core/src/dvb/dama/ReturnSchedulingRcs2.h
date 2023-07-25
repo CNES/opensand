@@ -50,18 +50,17 @@
 class ReturnSchedulingRcs2: public Scheduling
 {
 public:
-	ReturnSchedulingRcs2(EncapPlugin::EncapPacketHandler *packet_handler,
-	                          const fifos_t &fifos);
+	ReturnSchedulingRcs2(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+	                     std::shared_ptr<fifos_t> fifos);
 
-	virtual ~ReturnSchedulingRcs2() {};
+	virtual ~ReturnSchedulingRcs2() = default;
 
 	vol_b_t getMaxBurstLength() const;
 	void setMaxBurstLength(vol_b_t length_b);
 	
 	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time,
-	              std::list<DvbFrame *> *complete_dvb_frames,
-	              uint32_t &remaining_allocation);
+	              std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+	              uint32_t &remaining_allocation) override;
 
 protected:
 	/// The maximum burst length in bits
@@ -78,8 +77,17 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool macSchedule(const time_sf_t current_superframe_sf,
-	                 std::list<DvbFrame *> *complete_dvb_frames,
+	                 std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
 	                 vol_b_t &remaining_allocation_b);
+
+	bool schedulePacket(const time_sf_t current_superframe_sf,
+                        unsigned int &sent_packets,
+                        unsigned int &complete_frames_count,
+                        vol_b_t &frame_length_b,
+                        vol_b_t &remaining_allocation_b,
+                        std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+                        Rt::Ptr<DvbRcsFrame> &incomplete_dvb_frame,
+                        Rt::Ptr<NetPacket> encap_packet);
 
 	/**
 	 * @brief Allocate a new DVB frame
@@ -88,7 +96,7 @@ protected:
 	 *
 	 * @return true on sucess, false otherwise
 	 */
-	bool allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
+	bool allocateDvbRcsFrame(Rt::Ptr<DvbRcsFrame> &incomplete_dvb_frame);
 };
 
 #endif

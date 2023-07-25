@@ -39,51 +39,56 @@
 #include "RtChannelBase.h"
 
 
+namespace Rt
+{
+
+
 /**
- * @class RtChannelMux
+ * @class ChannelMux
  * @brief A channel with N input fifos and 1 output fifo.
  */
-class RtChannelMux: public RtChannelBase
+class ChannelMux: public ChannelBase
 {
  public:
-	RtChannelMux(const std::string &name, const std::string &type);
+	ChannelMux(const std::string &name, const std::string &type);
 
 	/**
 	 * @brief Add a message in the next channel queue
 	 * @warning The message shall not be reused in the channel after this call
 	 *          because will be used in other blocks
 	 *
-	 * @param data  IN: A pointer on the  message to enqueue
-	 *              OUT: NULL
-	 * @param size  The size of data in message
+	 * @param data  A pointer on the  message to enqueue
 	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool enqueueMessage(void **data, size_t size, uint8_t type);
+	bool enqueueMessage(Ptr<void> data, uint8_t type);
 
 	/**
 	 * @brief Add a fifo of a previous channel
 	 *
 	 * @param fifo  The fifo
 	 */
-	void addPreviousFifo(std::shared_ptr<RtFifo> &fifo);
+	void addPreviousFifo(std::shared_ptr<Fifo> &fifo);
 
 	/**
 	 * @brief Set the fifo of the next channel
 	 *
 	 * @param fifo  The fifo of the next channel
 	 */
-	void setNextFifo(std::shared_ptr<RtFifo> &fifo);
+	void setNextFifo(std::shared_ptr<Fifo> &fifo);
 
  protected:
 	bool initPreviousFifo() override;
 
  private:
 	/// The fifos of the previous channels
-	std::vector<std::shared_ptr<RtFifo>> previous_fifos;
+	std::vector<std::shared_ptr<Fifo>> previous_fifos;
 	/// The fifo of the next channel
-	std::shared_ptr<RtFifo> next_fifo;
+	std::shared_ptr<Fifo> next_fifo;
 };
+
+
+};  // namespace Rt
 
 
 #endif

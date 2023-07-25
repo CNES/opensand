@@ -35,22 +35,26 @@
 #ifndef INTERCONNECT_CHANNEL_H
 #define INTERCONNECT_CHANNEL_H
 
-#include <opensand_rt/Rt.h>
 
-#include "DelayFifo.h"
-#include "DvbFrame.h"
-#include "UdpChannel.h"
 #include <list>
 
-/**
- * @brief high level channel classes that implement some functions
- *        used by the interconnect blocks
- */
+#include <opensand_rt/Ptr.h>
+#include <opensand_rt/Data.h>
+
+#include "DvbFrame.h"
+#include "DelayFifo.h"
+
 
 class OutputLog;
 class InterconnectConfig;
 class NetBurst;
 class NetPacket;
+class UdpChannel;
+namespace Rt {
+	class Message;
+	class NetSocketEvent;
+};
+
 
 struct __attribute__((__packed__)) interconnect_msg_buffer_t
 {
@@ -59,14 +63,18 @@ struct __attribute__((__packed__)) interconnect_msg_buffer_t
 	uint8_t msg_data[MAX_SOCK_SIZE];
 };
 
+
+/**
+ * @brief high level channel classes that implement some functions
+ *        used by the interconnect blocks
+ */
 class InterconnectChannel
 {
-public:
+ public:
 	InterconnectChannel(std::string name, const InterconnectConfig &config);
+	virtual ~InterconnectChannel() = default;
 
-	virtual ~InterconnectChannel();
-
-protected:
+ protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
@@ -81,12 +89,13 @@ protected:
 	/// The interconnect interface IP address
 	std::string interconnect_addr;
 	/// The data channel
-	UdpChannel *data_channel;
+	std::unique_ptr<UdpChannel> data_channel;
 	/// The signalling channel
-	UdpChannel *sig_channel;
+	std::unique_ptr<UdpChannel> sig_channel;
 	/// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 };
+
 
 class InterconnectChannelSender: public InterconnectChannel
 {
@@ -110,7 +119,7 @@ protected:
 	 * @brief Send a RtMessage via the interconnect channel.
 	 * @return false on error, true elsewise.
 	 */
-	bool send(rt_msg_t &message);
+	bool send(Rt::Message message);
 
 	/**
 	 * @brief Sends a message. total_length must contain the data length;
@@ -120,38 +129,44 @@ protected:
 	 */
 	bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
 
+	time_ms_t delay = time_ms_t::zero();
+
 private:
 	/**
 	 * @brief Serialize a Dvb Frame to be sent via the
 	 *        interconnect channel.
 	 */
-	void serialize(DvbFrame *dvb_frame,
-	               unsigned char *buf, uint32_t &length);
+	void serialize(Rt::Ptr<DvbFrame> dvb_frame,
+	               unsigned char *buf,
+	               uint32_t &length);
 
 	/**
 	 * @brief Serialize a list of Dvb Frames to be sent
 	 *        via the interconnect channel.
 	 */
-	void serialize(std::list<DvbFrame *> *dvb_frame_list,
-	               unsigned char *buf, uint32_t &length);
+	void serialize(Rt::Ptr<std::list<Rt::Ptr<DvbFrame>>> dvb_frame_list,
+	               unsigned char *buf,
+	               uint32_t &length);
 
 	/**
 	 * @brief Serialize a NetBurst to be sent
 	 *        via the interconnect channel.
 	 */
-	void serialize(const NetBurst &net_burst,
-	               unsigned char *buf, uint32_t &length);
+	void serialize(Rt::Ptr<NetBurst> net_burst,
+	               unsigned char *buf,
+	               uint32_t &length);
 
 	/**
 	 * @brief Serialize a NetPacket to be sent
 	 *        via the interconnect channel.
 	 */
-	void serialize(const NetPacket &packet,
-	               unsigned char *buf, uint32_t &length);
+	void serialize(Rt::Ptr<NetPacket> packet,
+	               unsigned char *buf,
+	               uint32_t &length);
 
 	DelayFifo delay_fifo;
-	time_ms_t delay = 0;
 };
+
 
 class InterconnectChannelReceiver: public InterconnectChannel
 {
@@ -173,39 +188,38 @@ protected:
 	 * @brief Receive a message from the socket
 	 * @return -1 on error, 1 if more packets can be read, 0 if last packet.
 	 */
-	int receiveToBuffer(NetSocketEvent *const event,
-	                    interconnect_msg_buffer_t **buf);
+	int receiveToBuffer(const Rt::NetSocketEvent &event, Rt::Ptr<Rt::Data> &buf);
 
 	/**
 	 * @brief Receive RtMessages
 	 * @return false on error, true elsewise.
 	 */
-	bool receive(NetSocketEvent *const event,
-	             std::list<rt_msg_t> &messages);
+	bool receive(const Rt::NetSocketEvent &event,
+	             std::list<Rt::Message> &messages);
 
 private:
 	/**
 	 * @brief Create a DvbFrame from serialized data
 	 */
 	void deserialize(unsigned char *data, uint32_t len,
-	                 DvbFrame **dvb_frame);
+	                 Rt::Ptr<DvbFrame> &dvb_frame);
 
 	/**
 	 * @brief Create a DvbFrame list from serialized data
 	 */
 	void deserialize(unsigned char *data, uint32_t len,
-	                 std::list<DvbFrame *> **dvb_frame_list);
+	                 Rt::Ptr<std::list<Rt::Ptr<DvbFrame>>> &dvb_frame_list);
 
 	/**
 	 * @brief Create a NetBurst from serialized data
 	 */
 	void deserialize(uint8_t *buf, uint32_t length,
-	                 NetBurst **net_burst);
+	                 Rt::Ptr<NetBurst> &net_burst);
 
 	/**
 	 * @brief Create a NetPacket from serialized data
 	 */
 	void deserialize(uint8_t *buf, uint32_t length,
-	                 NetPacket **packet);
+	                 Rt::Ptr<NetPacket> &packet);
 };
 #endif

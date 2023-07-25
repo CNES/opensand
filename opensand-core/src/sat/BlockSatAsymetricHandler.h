@@ -38,7 +38,7 @@
 #define BLOCK_SAT_ASYMETRIC_HANDLER
 
 
-#include <opensand_rt/Rt.h>
+#include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannelMux.h>
 #include <opensand_rt/RtChannelDemux.h>
 
@@ -52,37 +52,45 @@ struct AsymetricConfig
 };
 
 
-class BlockSatAsymetricHandler : public Block
+template<>
+class Rt::UpwardChannel<class BlockSatAsymetricHandler>: public Channels::UpwardDemux<UpwardChannel<BlockSatAsymetricHandler>, bool>
 {
-public:
-	BlockSatAsymetricHandler(const std::string& name, AsymetricConfig specific);
+ public:
+	UpwardChannel(const std::string& name, AsymetricConfig specific);
 
-	bool onInit();
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const MessageEvent &event) override;
 
-	class Upward : public RtUpwardDemux<bool>
-	{
-	public:
-		Upward(const std::string& name, AsymetricConfig specific);
+ private:
+	bool split_traffic;
+};
 
-	private:
-		bool onEvent(const RtEvent *const event) override;
 
-		bool split_traffic;
-	};
+template<>
+class Rt::DownwardChannel<class BlockSatAsymetricHandler>: public GroundPhysicalChannel, public Channels::DownwardMux<DownwardChannel<BlockSatAsymetricHandler>>
+{
+ public:
+	DownwardChannel(const std::string& name, AsymetricConfig specific);
 
-	class Downward : public GroundPhysicalChannel, public RtDownwardMux
-	{
-	public:
-		Downward(const std::string& name, AsymetricConfig specific);
+	bool onInit() override;
 
-		bool onInit() override;
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const TimerEvent &event) override;
+	bool onEvent(const MessageEvent &event) override;
 
-	private:
-		bool onEvent(const RtEvent *const event) override;
-		bool forwardPacket(DvbFrame *frame) override;
+ private:
+	bool forwardPacket(Ptr<DvbFrame> frame) override;
 
-		bool is_regenerated_traffic;
-	};
+	bool is_regenerated_traffic;
+};
+
+
+class BlockSatAsymetricHandler : public Rt::Block<BlockSatAsymetricHandler, AsymetricConfig>
+{
+ public:
+	using Rt::Block<BlockSatAsymetricHandler, AsymetricConfig>::Block;
 };
 
 

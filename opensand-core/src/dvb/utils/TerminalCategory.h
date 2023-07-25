@@ -43,6 +43,7 @@
 
 #include <opensand_output/Output.h>
 
+#include <cmath>
 #include <string>
 #include <map>
 #include <vector>
@@ -77,17 +78,9 @@ public:
 
 	virtual ~TerminalCategory()
 	{
-		for(auto&& carrier : this->carriers_groups)
-		{
-			delete carrier;
-		}
-
+		this->carriers_groups.clear();
 		// delete other carriers in case updateCarriersGroups where not called
-		for(auto&& carrier : this->other_carriers)
-		{
-			delete carrier;
-		}
-		// do not delete terminals, they will be deleted in DAMA or SlottedAloha
+		this->other_carriers.clear();
 	};
 
 
@@ -109,9 +102,9 @@ public:
 	 */
 	double getWeightedSum() const
 	{
-		static const auto get_symbols_rate = [](double weighted_sum_symps, CarriersGroup * carrier)
+		static const auto get_symbols_rate = [](double weighted_sum_symps, const CarriersGroup &carrier)
 		{
-			return weighted_sum_symps + carrier->getRatio() * carrier->getSymbolRate();
+			return weighted_sum_symps + carrier.getRatio() * carrier.getSymbolRate();
 		};
 
 		// Compute weighted sum in ks/s since available bandplan is in kHz
@@ -127,9 +120,9 @@ public:
 	 */
 	unsigned int getRatio() const
 	{
-		static const auto get_ratio = [](unsigned int ratio, CarriersGroup * carrier)
+		static const auto get_ratio = [](unsigned int ratio, const CarriersGroup &carrier)
 		{
-			return ratio + carrier->getRatio();
+			return ratio + carrier.getRatio();
 		};
 
 		return (std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), 0U, get_ratio)
@@ -143,9 +136,9 @@ public:
 	 */
 	rate_kbps_t getMaxRate() const
 	{
-		static const auto get_rate = [](rate_kbps_t rate, CarriersGroup * carrier)
+		static const auto get_rate = [](rate_kbps_t rate, const CarriersGroup &carrier)
 		{
-			return rate + carrier->getMaxRate();
+			return rate + carrier.getMaxRate();
 		};
 
 		return std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), rate_kbps_t{}, get_rate);
@@ -158,9 +151,9 @@ public:
 	 */
 	rate_symps_t getTotalSymbolRate() const
 	{
-		static const auto get_total_symbols_rate = [](rate_symps_t rate_symps, CarriersGroup * carrier)
+		static const auto get_total_symbols_rate = [](rate_symps_t rate_symps, const CarriersGroup &carrier)
 		{
-			return rate_symps + carrier->getCarriersNumber() * carrier->getSymbolRate();
+			return rate_symps + carrier.getCarriersNumber() * carrier.getSymbolRate();
 		};
 
 		return (std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), rate_symps_t{}, get_total_symbols_rate)
@@ -172,10 +165,10 @@ public:
 	 * @brief  Set the number and the capacity of carriers in each group
 	 *
 	 * @param  carriers_number         The number of carriers in the group
-	 * @param  superframe_duration_ms  The superframe duration (in ms)
+	 * @param  superframe_duration     The superframe duration (in μs)
 	 */
 	void updateCarriersGroups(unsigned int carriers_number,
-	                          time_ms_t superframe_duration_ms)
+	                          time_us_t superframe_duration)
 	{
 		unsigned int total_ratio = this->getRatio();
 
@@ -191,18 +184,18 @@ public:
 
 		for(auto&& carrier : this->carriers_groups)
 		{
-			rate_symps_t rs_symps = carrier->getSymbolRate();
+			rate_symps_t rs_symps = carrier.getSymbolRate();
 	
 			// get number per carriers from total number in category
-			unsigned int number = round(carriers_number * carrier->getRatio() / total_ratio);
+			unsigned int number = round(carriers_number * carrier.getRatio() / total_ratio);
 			if(number == 0)
 			{
 				number = 1;
 			}
-			carrier->setCarriersNumber(number);
+			carrier.setCarriersNumber(number);
 			LOG(this->log_terminal_category, LEVEL_NOTICE, 
 			    "Carrier group %u: number of carriers %u\n",
-			    carrier->getCarriersId(), number);
+			    carrier.getCarriersId(), number);
 
 			if(this->symbol_rate_list.find(rs_symps) == this->symbol_rate_list.end())
 			{
@@ -214,19 +207,15 @@ public:
 			}
 
 			// get the capacity of the carriers
-			vol_sym_t capacity_sym = ceil(rs_symps * superframe_duration_ms / 1000.0);
-			carrier->setCapacity(capacity_sym);
+			vol_sym_t capacity_sym = ceil(std::chrono::duration_cast<std::chrono::duration<double>>(rs_symps * superframe_duration).count());
+			carrier.setCapacity(capacity_sym);
 			LOG(this->log_terminal_category, LEVEL_NOTICE, 
 			    "Carrier group %u: capacity for Symbol Rate %.2E: %u "
-			    "symbols\n", carrier->getCarriersId(),
+			    "symbols\n", carrier.getCarriersId(),
 			    rs_symps, capacity_sym);
 		}
 		// no need to update other groups, they won't be used anymore
 		// then released them
-		for(auto&& carrier : this->other_carriers)
-		{
-			delete carrier;
-		}
 		this->other_carriers.clear();
 	};
 
@@ -235,7 +224,7 @@ public:
 	 *
 	 * @param  terminal  terminal to be added.
 	 */
-	void addTerminal(TerminalContext *terminal)
+	void addTerminal(std::shared_ptr<TerminalContext> terminal)
 	{
 		terminal->setCurrentCategory(this->label);
 		this->terminals.push_back(terminal);
@@ -247,12 +236,12 @@ public:
 	 * @param  terminal  terminal to be removed.
 	 * @return true on success, false otherwise
 	 */
-	bool removeTerminal(TerminalContext *terminal)
+	bool removeTerminal(std::shared_ptr<TerminalContext> terminal)
 	{
 		const tal_id_t tal_id = terminal->getTerminalId();
 		auto terminal_it = std::find_if(this->terminals.begin(),
 		                                this->terminals.end(),
-		                                [tal_id](TerminalContext *t){ return t->getTerminalId() == tal_id; });
+		                                [tal_id](const std::shared_ptr<TerminalContext> &t){ return t->getTerminalId() == tal_id; });
 
 		if(terminal_it != this->terminals.end())
 		{
@@ -273,7 +262,7 @@ public:
 	 *
 	 * @return  the carriers groups
 	 */
-	std::vector<T *> getCarriersGroups(void) const
+	std::vector<T> &getCarriersGroups()
 	{
 		return this->carriers_groups;
 	};
@@ -288,7 +277,7 @@ public:
 	 * @param  access_type  The carriers access type
 	 */
 	void addCarriersGroup(unsigned int carriers_id,
-	                      const FmtGroup *const fmt_group,
+	                      std::shared_ptr<const FmtGroup> fmt_group,
 	                      unsigned int ratio,
 	                      rate_symps_t rate_symps,
 	                      AccessType access_type)
@@ -297,37 +286,31 @@ public:
 		// of VCM carriers
 		for(auto&& carrier : this->carriers_groups)
 		{
-			if(carrier->getCarriersId() == carriers_id)
+			if(carrier.getCarriersId() == carriers_id)
 			{
-				carrier->addVcm(fmt_group, ratio);
+				carrier.addVcm(fmt_group, ratio);
 				return;
 			}
 		}
 		for(auto&& carrier : this->other_carriers)
 		{
-			if(carrier->getCarriersId() == carriers_id)
+			if(carrier.getCarriersId() == carriers_id)
 			{
-				carrier->addVcm(fmt_group, ratio);
+				carrier.addVcm(fmt_group, ratio);
 				return;
 			}
 		}
 
 		if(access_type == this->desired_access)
 		{
-			T *group = new T(carriers_id, fmt_group,
-			                 ratio, rate_symps,
-			                 access_type);
-			// we call that because with Dama we need to count this carriers
-			// in the VCM list
-			group->addVcm(fmt_group, ratio);
-			this->carriers_groups.push_back(group);
+			T& group = this->carriers_groups.emplace_back(carriers_id, fmt_group, ratio,
+			                                              rate_symps, access_type);
+			// we call that because with Dama we need to count this carriers in the VCM list
+			group.addVcm(fmt_group, ratio);
 		}
 		else
 		{
-			CarriersGroup *group = new CarriersGroup(carriers_id, fmt_group,
-			                                         ratio, rate_symps,
-			                                         access_type);
-			this->other_carriers.push_back(group);
+			this->other_carriers.emplace_back(carriers_id, fmt_group, ratio, rate_symps, access_type);
 		}
 		if(this->symbol_rate_list.find(rate_symps) == this->symbol_rate_list.end())
 		{
@@ -346,7 +329,7 @@ public:
 
 		for(auto&& carrier : this->carriers_groups)
 		{
-			carriers_number += carrier->getCarriersNumber();
+			carriers_number += carrier.getCarriersNumber();
 		}
 
 		return carriers_number;
@@ -357,7 +340,7 @@ public:
 	 *
 	 * @return  terminal list.
 	 */
-	std::vector<TerminalContext *> getTerminals() const
+	const std::vector<std::shared_ptr<TerminalContext>> &getTerminals() const
 	{
 		return this->terminals;
 	};
@@ -374,19 +357,19 @@ public:
 	 * @param  ratio            The estimated occupation ratio
 	 * @param  rate_symps       The group symbol rate (symbol/s)
 	 * @param  access_type      The carriers access type
-	 * @param  duration_ms      The duration of a carrier (in ms)
+	 * @param  duration         The duration of a carrier
 	 */
 	void addCarriersGroup(unsigned int carriers_id,
-	                      const FmtGroup *const fmt_group,
+	                      std::shared_ptr<const FmtGroup> fmt_group,
 	                      unsigned int carriers_number,
 	                      unsigned int ratio,
 	                      rate_symps_t rate_symps,
 	                      AccessType access_type,
-	                      time_ms_t duration_ms)
+	                      time_us_t duration)
 	{
 		// first, we check if there is already a group with this symbol rate
 		T* carriers_group = this->searchCarriersGroup(rate_symps);
-		if(carriers_group != NULL)
+		if(carriers_group != nullptr)
 		{
 			carriers_group->setCarriersNumber(carriers_number + carriers_group->getCarriersNumber());
 			carriers_group->setRatio(ratio + carriers_group->getRatio());
@@ -397,34 +380,30 @@ public:
 			// of VCM carriers
 			for(auto&& carrier : this->carriers_groups)
 			{
-				if(carrier->getCarriersId() == carriers_id)
+				if(carrier.getCarriersId() == carriers_id)
 				{
-					carrier->addVcm(fmt_group, ratio);
+					carrier.addVcm(fmt_group, ratio);
 					return;
 				}
 			}
 
+			vol_sym_t capacity = std::chrono::duration_cast<std::chrono::seconds>(rate_symps * duration).count();
 			if(access_type == this->desired_access)
 			{
-				T *group = new T(carriers_id, fmt_group,
-				                 ratio, rate_symps,
-				                 access_type);
-				// we call that because with Dama we need to count this carriers
-				// in the VCM list
-				group->addVcm(fmt_group, ratio);
-				group->setCarriersNumber(carriers_number);
-				vol_sym_t capacity = floor(rate_symps*duration_ms/1000);
-				group->setCapacity(capacity);
-				this->carriers_groups.push_back(group);
+				T& group = this->carriers_groups.emplace_back(carriers_id, fmt_group, ratio,
+				                                              rate_symps, access_type);
+				// we call that because with Dama we need to count this carriers in the VCM list
+				group.addVcm(fmt_group, ratio);
+				group.setCarriersNumber(carriers_number);
+				group.setCapacity(capacity);
 			}
 			else
 			{
-				CarriersGroup *group = new CarriersGroup(carriers_id, fmt_group,
-				                                         ratio, rate_symps,
-				                                         access_type);
-				group->setCarriersNumber(carriers_number);
-				vol_sym_t capacity = floor(rate_symps*duration_ms/1000);
-				group->setCapacity(capacity);
+				CarriersGroup group{carriers_id, fmt_group, ratio, rate_symps, access_type};
+				// TODO: Check if we should do this instead
+				//CarriersGroup& group = this->other_carriers.emplace_back(carriers_id, fmt_group, ratio, rate_symps, access_type);
+				group.setCarriersNumber(carriers_number);
+				group.setCapacity(capacity);
 			}
 			if(this->symbol_rate_list.find(rate_symps) == this->symbol_rate_list.end()) {
 				this->symbol_rate_list.insert({rate_symps, carriers_number});
@@ -458,9 +437,10 @@ public:
 
 		for(auto&& carrier : this->carriers_groups)
 		{
-			if(carrier->getCarriersId() > max_carrier_id)
+			auto id = carrier.getCarriersId();
+			if(id > max_carrier_id)
 			{
-				max_carrier_id = carrier->getCarriersId();
+				max_carrier_id = id;
 			}
 		}
 		return max_carrier_id;
@@ -479,48 +459,42 @@ public:
 	                        unsigned int number,
 	                        unsigned int &associated_ratio)
 	{
-		unsigned int number_carriers = number;
-		unsigned int ratio;
-		unsigned int new_ratio;
-		unsigned int actual_number;
-
 		associated_ratio = 0;
+		unsigned int number_carriers = number;
 
 		for(auto&& carrier : this->carriers_groups)
 		{
-			actual_number = carrier->getCarriersNumber();
+			unsigned int actual_number = carrier.getCarriersNumber();
 			if(actual_number == 0)
 			{
 				LOG(this->log_terminal_category, LEVEL_INFO,
 				    "Empty carrier\n");
 				continue;
 			}
-			ratio = carrier->getRatio();
-			if(carrier->getSymbolRate() == symbol_rate)
+			unsigned int ratio = carrier.getRatio();
+			if(carrier.getSymbolRate() == symbol_rate)
 			{
 				if(actual_number < number_carriers)
 				{
 					number_carriers -= actual_number;
-					carrier->setCarriersNumber(0);
+					carrier.setCarriersNumber(0);
 					associated_ratio += ratio;
-					carrier->setRatio(0);
+					carrier.setRatio(0);
 					continue;
 				}
 				else
 				{
-					new_ratio = floor((ratio * (actual_number - number_carriers) / actual_number) + 0.5);
+					unsigned int new_ratio = floor((ratio * (actual_number - number_carriers) / actual_number) + 0.5);
 					associated_ratio += (ratio - new_ratio);
-					carrier->setRatio(new_ratio);
-					carrier->setCarriersNumber(actual_number - number_carriers);
+					carrier.setRatio(new_ratio);
+					carrier.setCarriersNumber(actual_number - number_carriers);
 					number_carriers = 0;
 					break;
 				}
 			}
 		}
-		if(number_carriers > 0)
-			return false;
 
-		return true;
+		return number_carriers <= 0;
 	}
 
 	/**
@@ -538,14 +512,14 @@ public:
 	 *
 	 * @return the fmt_group
 	 */
-	const FmtGroup* getFmtGroup()
+	std::shared_ptr<const FmtGroup> getFmtGroup()
 	{
 		auto it = this->carriers_groups.begin();
 		if(it == this->carriers_groups.end())
 		{
 			return nullptr;
 		}
-		return (*it)->getFmtGroup();
+		return it->getFmtGroup();
 	}
 
 	/**
@@ -561,8 +535,8 @@ public:
 			LOG(this->log_terminal_category, LEVEL_ERROR,
 			    "carriers_id = %u, carriers_number = %u,"
 			    " ratio = %u, symbol_rate = %lf\n",
-			    carrier->getCarriersId(), carrier->getCarriersNumber(),
-			    carrier->getRatio(), carrier->getSymbolRate());
+			    carrier.getCarriersId(), carrier.getCarriersNumber(),
+			    carrier.getRatio(), carrier.getSymbolRate());
 		}
 	}
 
@@ -578,12 +552,12 @@ public:
 	{
 		auto carriers_it = std::find_if(this->carriers_groups.begin(),
 		                                this->carriers_groups.end(),
-		                                [symbol_rate](CarriersGroup *carrier){ return carrier->getSymbolRate() == symbol_rate; });
+		                                [symbol_rate](const CarriersGroup &carrier){ return carrier.getSymbolRate() == symbol_rate; });
 		if (carriers_it == this->carriers_groups.end())
 		{
-		  return nullptr;
+			return nullptr;
 		}
-		return *carriers_it;
+		return &(*carriers_it);
 	}
 
 protected:
@@ -591,10 +565,10 @@ protected:
 	std::shared_ptr<OutputLog> log_terminal_category;
 
 	/** List of terminals. */
-	std::vector<TerminalContext *> terminals;
+	std::vector<std::shared_ptr<TerminalContext>> terminals;
 
 	/** List of carriers */
-	std::vector<T *> carriers_groups;
+	std::vector<T> carriers_groups;
 
 	/** The access type of the carriers */
 	AccessType desired_access;
@@ -608,14 +582,14 @@ protected:
 private:
 	/** The carriers groups that does not correspond to the desired access type
 	 *   needed for band computation */
-	std::vector<CarriersGroup *> other_carriers;
+	std::vector<CarriersGroup> other_carriers;
 };
 
 
 template<class T>
-class TerminalCategories: public std::map<std::string, T *> {};
+using TerminalCategories = std::map<std::string, std::shared_ptr<T>>;
 template<class T>
-class TerminalMapping: public std::map<tal_id_t, T *> {};
+using TerminalMapping = std::map<tal_id_t, std::shared_ptr<T>>;
 
 
 #endif

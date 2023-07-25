@@ -40,9 +40,6 @@
 #include "NetContainer.h"
 
 
-class Data;
-
-
 // These values are greater than 1535 to avoid error
 // with GSE in which a protocol type < 1536 indicates
 // header extensions
@@ -143,14 +140,14 @@ public:
 	 * Build a network-layer packet
 	 * @param data raw data from which a network-layer packet can be created
 	 */
-	NetPacket(const Data &data);
+	NetPacket(const Rt::Data &data);
 
 	/**
 	 * Build a network-layer packet
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetPacket(const Data &data, std::size_t length);
+	NetPacket(const Rt::Data &data, std::size_t length);
 
 	/**
 	 * Build a network-layer packet
@@ -175,7 +172,7 @@ public:
 	 * @param dst_tal_id        the destination terminal ID to associate with the packet
 	 * @param header_length     the header length of the packet
 	 */
-	NetPacket(const Data &data,
+	NetPacket(const Rt::Data &data,
 	          std::size_t length,
 	          std::string name,
 	          NET_PROTO type,

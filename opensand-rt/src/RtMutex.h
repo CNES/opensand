@@ -41,21 +41,25 @@
 #include <condition_variable>
 
 
-using RtMutex = std::mutex;
-using RtLock = std::lock_guard<RtMutex>;
+namespace Rt
+{
+
+
+using Mutex = std::recursive_mutex;
+using Lock = std::lock_guard<Mutex>;
 
 
 /**
- * @class RtSemaphore
+ * @class Semaphore
  * @brief A simple semaphore implementation to protect access to critical sections
  */
-class RtSemaphore
+class Semaphore
 {
  public:
-	RtSemaphore(std::size_t = 1);
+	Semaphore(std::size_t = 1);
 
-	RtSemaphore(const RtSemaphore&) = delete;
-	RtSemaphore& operator =(const RtSemaphore&) = delete;
+	Semaphore(const Semaphore&) = delete;
+	Semaphore& operator =(const Semaphore&) = delete;
 
 	void wait();
 	void notify();
@@ -63,7 +67,10 @@ class RtSemaphore
  private:
 	std::mutex lock;
 	std::condition_variable condition;
-  std::size_t count;
+	std::size_t count;
+};
+
+
 };
 
 

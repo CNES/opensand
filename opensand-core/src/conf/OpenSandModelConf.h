@@ -185,8 +185,8 @@ public:
 	bool getSuperframePerSlottedAlohaFrame(time_sf_t &sf_per_saframe) const;
 	bool getCrdsaMaxSatelliteDelay(time_ms_t &sat_delay) const;
 	bool getPepAllocationDelay(int &pep_allocation_delay) const;
-	bool getReturnFrameDuration(time_ms_t &frame_duration) const;
-	bool getForwardFrameDuration(time_ms_t &frame_duration) const;
+	bool getReturnFrameDuration(time_us_t &frame_duration) const;
+	bool getForwardFrameDuration(time_us_t &frame_duration) const;
 	bool getReturnAcmLoopMargin(double &margin) const;
 	bool getForwardAcmLoopMargin(double &margin) const;
 	bool getStatisticsPeriod(time_ms_t &period) const;
@@ -201,7 +201,6 @@ public:
 	std::unordered_set<tal_id_t> getSatellites() const;
 	Component getEntityType(tal_id_t tal_id) const;
 	bool getScpcEnabled(bool &scpc_enabled) const;
-	bool getScpcEncapStack(std::vector<std::string> &encap_stack) const;
 	bool getSpotInfrastructure(tal_id_t gw_id, OpenSandModelConf::spot_infrastructure &carriers) const;
 	bool getSpotReturnCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
 	bool getSpotForwardCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
@@ -286,6 +285,11 @@ bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf:
 		        path.c_str(), parameter.c_str());
 		return false;
 	}
+
+	std::stringstream s;
+	s << result;
+	std::string result_string = s.str();
+	DFLTLOG(LEVEL_DEBUG, "Conf: Extracted value %s", result_string);
 
 	return true;
 }

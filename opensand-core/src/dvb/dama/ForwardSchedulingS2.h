@@ -44,12 +44,12 @@
 
 
 /** Status for the carrier capacity */
-typedef enum
+enum class sched_status
 {
-	status_ok,    // BBFrame added in the complete BBFrames list
-	status_error, // Error when adding the BBFrame in the list
-	status_full,  // The carrier is full, cannot add the BBFrame
-} sched_status_t;
+	ok,    // BBFrame added in the complete BBFrames list
+	error, // Error when adding the BBFrame in the list
+	full,  // The carrier is full, cannot add the BBFrame
+};
 
 
 
@@ -60,12 +60,12 @@ typedef enum
 class ForwardSchedulingS2: public Scheduling
 {
 public:
-	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
-	                    EncapPlugin::EncapPacketHandler *packet_handler,
-	                    const fifos_t &fifos,
-	                    const StFmtSimuList *const fwd_sts,
-	                    const FmtDefinitionTable *const fwd_modcod_def,
-	                    const TerminalCategoryDama *const category,
+	ForwardSchedulingS2(time_us_t fwd_timer,
+	                    std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+	                    std::shared_ptr<fifos_t> fifos,
+	                    std::shared_ptr<const StFmtSimuList> fwd_sts,
+	                    const FmtDefinitionTable &fwd_modcod_def,
+	                    std::shared_ptr<TerminalCategoryDama> category,
 	                    spot_id_t spot,
 	                    bool is_gw,
 	                    tal_id_t gw,
@@ -73,30 +73,29 @@ public:
 
 	virtual ~ForwardSchedulingS2();
 
-	virtual bool schedule(const time_sf_t current_superframe_sf,
-	                      clock_t current_time,
-	                      std::list<DvbFrame *> *complete_dvb_frames,
-	                      uint32_t &remaining_allocation);
+	bool schedule(const time_sf_t current_superframe_sf,
+	              std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+	              uint32_t &remaining_allocation) override;
 
 protected:
-	/** The timer for forward scheduling (ms) */
-	time_ms_t fwd_timer_ms;
+	/** The timer for forward scheduling */
+	time_us_t fwd_timer;
 
 	/** the BBFrame being built identified by their modcod */
-	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
+	std::map<unsigned int, Rt::Ptr<BBFrame>> incomplete_bb_frames;
 
-	/** the BBframe being built in their created order */
-	std::list<BBFrame *> incomplete_bb_frames_ordered;
+	/** the BBframe being built in their created order (modcod only) */
+	std::list<unsigned int> incomplete_bb_frames_ordered;
 
 	/** the pending BBFrame list if there was not enough space in previous iteration
 	 *  for the corresponding MODCOD */
-	std::list<BBFrame *> pending_bbframes;
+	std::list<Rt::Ptr<BBFrame>> pending_bbframes;
 
 	/** The FMT Definition Table associed */
-	const FmtDefinitionTable *fwd_modcod_def;
+	const FmtDefinitionTable &fwd_modcod_def;
 
 	/** The terminal category */
-	const TerminalCategoryDama *category;
+	std::shared_ptr<TerminalCategoryDama> category;
 
 	/// Spot Id
 	spot_id_t spot_id;
@@ -120,20 +119,24 @@ protected:
 	 *
 	 * @param fifo  The FIFO whee packets are stored
 	 * @param current_superframe_sf  The current superframe number
-	 * @param current_time           The current time
 	 * @param complete_dvb_frames    The list of complete DVB frames
 	 * @param carriers               The carriers group
 	 * @param capacity_sym           The capacity for this cycle, including previous space
 	 * @param init_capa              The capacity for a whole cycle
 	 */
-	bool scheduleEncapPackets(DvbFifo *fifo,
+	bool scheduleEncapPackets(DvbFifo &fifo,
 	                          const time_sf_t current_superframe_sf,
-	                          clock_t current_time,
-	                          std::list<DvbFrame *> *complete_dvb_frames,
-	                          CarriersGroupDama *carriers,
+	                          std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+	                          CarriersGroupDama &carriers,
 	                          vol_sym_t &capacity_sym,
 	                          vol_sym_t init_capa);
 
+	sched_status schedulePacket(const time_sf_t current_superframe_sf,
+                                unsigned int &sent_packets,
+                                vol_sym_t &capacity_sym,
+                                CarriersGroupDama &carriers,
+                                std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+                                Rt::Ptr<NetPacket> encap_packet);
 
 	/**
 	 * @brief Create an incomplete BB frame
@@ -143,7 +146,7 @@ protected:
 	 * @param modcod_id the BBFrame modcod
 	 * @return          true on succes, false otherwise
 	 */
-	bool createIncompleteBBFrame(BBFrame **bbframe,
+	bool createIncompleteBBFrame(Rt::Ptr<BBFrame> &bbframe,
 	                             const time_sf_t current_superframe_sf,
 	                             unsigned int modcod_id);
 
@@ -153,13 +156,13 @@ protected:
 	 * @param tal_id    the terminal ID we want to send the frame
 	 * @paarm carriers  the carriers group to which the terminal belongs
 	 * @param current_superframe_sf  The current superframe number
-	 * @param bbframe   OUT: the BBframe for this packet
+	 * @param it OUT:   Iterator to the modcod and the incomplete BBframe for this packet
 	 * @return          true on success, false otherwise
 	 */
-	bool getIncompleteBBFrame(tal_id_t tal_id,
-	                          CarriersGroupDama *carriers,
-	                          const time_sf_t current_superframe_sf,
-	                          BBFrame **bbframe);
+	bool prepareIncompleteBBFrame(tal_id_t tal_id,
+	                              CarriersGroupDama &carriers,
+	                              const time_sf_t current_superframe_sf,
+	                              std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator &it);
 
 	/**
 	 * @brief Add a BBframe to the list of complete BB frames
@@ -168,13 +171,13 @@ protected:
 	 * @param bbframe            the BBFrame to add in the list
 	 * @param current_superframe_sf  The current superframe number
 	 * @param duration_credit    IN/OUT: the remaining credit for the current frame
-	 * @return                   status_ok on success, status_error on error and
-	 *                           status_full -2 if there is not enough capacity
+	 * @return                   sched_status::ok on success, sched_status::error on error and
+	 *                           sched_status::full if there is not enough capacity
 	 */
-	sched_status_t addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-	                                  BBFrame *bbframe,
-	                                  const time_sf_t current_superframe_sf,
-	                                  vol_sym_t &remaining_capacity_sym);
+	sched_status addCompleteBBFrame(std::list<Rt::Ptr<DvbFrame>> &complete_bb_frames,
+	                                Rt::Ptr<BBFrame>& bbframe,
+	                                const time_sf_t current_superframe_sf,
+	                                vol_sym_t &remaining_capacity_sym);
 
 
 	/**
@@ -187,7 +190,7 @@ protected:
 	 */
 	void schedulePending(const std::list<fmt_id_t> supported_modcods,
 	                     const time_sf_t current_superframe_sf,
-	                     std::list<DvbFrame *> *complete_dvb_frames,
+	                     std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
 	                     vol_sym_t &remaining_capacity_sym);
 
 	/**
@@ -215,8 +218,8 @@ protected:
 	/**
 	 * @brief  Create the associated probes
 	 */
-	void createProbes(CarriersGroupDama *vcm,
-	                  std::vector<CarriersGroupDama *> vcm_carriers,
+	void createProbes(CarriersGroupDama &vcm,
+	                  const std::vector<CarriersGroupDama> &vcm_carriers,
 	                  std::vector<std::shared_ptr<Probe<int>>> &remain_probes,
 	                  std::vector<std::shared_ptr<Probe<int>>> &avail_probes,
 	                  unsigned int carriers_id);
@@ -224,8 +227,8 @@ protected:
 	/**
 	 * @brief  Check that the size of the carrier is compatible with the BBFrame size
 	 */
-	void checkBBFrameSize(CarriersGroupDama *vcm,
-	                      std::vector<CarriersGroupDama *> vcm_carriers);
+	void checkBBFrameSize(CarriersGroupDama &vcm,
+	                      const std::vector<CarriersGroupDama> &vcm_carriers);
 };
 
 #endif

@@ -42,31 +42,35 @@
 #include "RtMutex.h"
 
 
+namespace Rt
+{
+
+
 /**
- * @class RtFifo
+ * @class Fifo
  * @brief A fifo between two blocks
  */
-class RtFifo
+class Fifo
 {
  public:
-	~RtFifo();
+	~Fifo();
 
  protected:
-	friend class RtChannel;
-	friend class RtChannelBase;
-	friend class RtChannelMux;
+	friend class Channel;
+	friend class ChannelBase;
+	friend class ChannelMux;
 	template <typename Key>
-	friend class RtChannelDemux;
+	friend class ChannelDemux;
 	template <typename Key>
-	friend class RtChannelMuxDemux;
+	friend class ChannelMuxDemux;
 	friend class MessageEvent;
-	friend class BlockManager;
+	friend class BlockBase;
 
 	/**
 	 * @brief Fifo constructor
 	 *
 	 */
-	RtFifo();
+	Fifo();
 
 	/**
 	 * @brief Initialize the fifo
@@ -78,19 +82,18 @@ class RtFifo
 	/**
 	 * @brief Add a new element in the fifo
 	 * 
-	 * @param the data part of the element to add in the fifo
-	 * @param the size of the element to add in the fifo
+	 * @param message  the element to add in the fifo
 	 * @return true on success, false otherwise
 	 */
-	bool push(void *data, std::size_t size, uint8_t type);
+	bool push(Message message);
 	
 	/**
-	 * @brief Access the first element but do not delete it
+	 * @brief Access the first element and remove it from the queue
 	 * 
-	 * @param elem  the first element in the fifo
+	 * @param message  the first element in the fifo
 	 * @return true on success, false otherwise
 	 */
-	bool pop(rt_msg_t &message);
+	bool pop(Message &message);
 	
 	/**
 	 * 	@brief Get the file descriptor signaling data
@@ -101,10 +104,10 @@ class RtFifo
 
  private:
 	/// the queue
-	std::queue<rt_msg_t> fifo;
+	std::queue<Message> fifo;
 
 	/// The fifo size
-  std::size_t max_size;
+	std::size_t max_size;
 	
 	/// The signaling pipe file descriptor for writing operations
 	int32_t w_sig_pipe;
@@ -113,13 +116,16 @@ class RtFifo
 	int32_t r_sig_pipe;
 	
 	/// The mutex on fifo access
-	RtMutex fifo_mutex;
+	Mutex fifo_mutex;
 	
 	/// The mutex for fifo full (we need a semaphore here because it is
 	//  lock and unlocked by different threads
 	//  This semaphore is intialized with the fifo size
-	RtSemaphore fifo_size_sem;
+	Semaphore fifo_size_sem;
 };
+
+
+};  // namespace Rt
 
 
 #endif

@@ -35,8 +35,8 @@
 #include <numeric>
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/Types.h>
 
-#include "Data.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
 
@@ -45,7 +45,7 @@ std::shared_ptr<OutputLog> NetBurst::log_net_burst = nullptr;
 
 
 // max_packets = 0 => unlimited length
-NetBurst::NetBurst(unsigned int max_packets): std::list<std::unique_ptr<NetPacket>>()
+NetBurst::NetBurst(unsigned int max_packets): std::list<Rt::Ptr<NetPacket>>()
 {
 	this->max_packets = max_packets;
 
@@ -74,7 +74,7 @@ void NetBurst::setMaxPackets(unsigned int max_packets)
 }
 
 
-bool NetBurst::add(std::unique_ptr<NetPacket> packet)
+bool NetBurst::add(Rt::Ptr<NetPacket> packet)
 {
 	bool success = true;
 
@@ -110,9 +110,9 @@ unsigned int NetBurst::length() const
 }
 
 
-Data NetBurst::data() const
+Rt::Data NetBurst::data() const
 {
-	Data data;
+	Rt::Data data;
 
 	// add the data of each network packet of the burst
 	for(auto&& packet : *this)
@@ -127,7 +127,7 @@ Data NetBurst::data() const
 long NetBurst::bytes() const
 {
 	return std::accumulate(this->begin(), this->end(), 0L,
-	                       [](long length, const std::unique_ptr<NetPacket>& packet){
+	                       [](long length, const Rt::Ptr<NetPacket>& packet){
 	                          return length + packet->getTotalLength();
 	                       });
 }

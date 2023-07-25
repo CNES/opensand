@@ -44,8 +44,7 @@
 class UnitConverter
 {
 protected:
-	time_ms_t frame_duration_ms;          ///< Frame duration (in ms)
-	float frame_duration_ms_inv;          ///< Inverse of frame duration (in ms-1)
+	time_us_t frame_duration;             ///< Frame duration
 
 	unsigned int modulation_efficiency;   ///< Modulation efficiency
 	float modulation_efficiency_inv;      ///< Invers of modulation efficiency
@@ -53,10 +52,10 @@ protected:
 	/**
 	 * @brief Create the unit converter
 	 *
-	 * @param  duration_ms  The frame duration in ms
+	 * @param  duration     The frame duration
 	 * @param  efficiency   The modulation efficiency
 	 */
-	UnitConverter(time_ms_t duration_ms, unsigned int efficiency);
+	UnitConverter(time_us_t duration, unsigned int efficiency);
 
 public:
 	virtual ~UnitConverter();
@@ -92,16 +91,16 @@ public:
 	/**
 	 * @brief Set the frame duration
 	 *
-	 * @param duration_ms  The frame duration in ms
+	 * @param duration     The frame duration
 	 */
-	void setFrameDuration(time_ms_t duration_ms);
+	void setFrameDuration(time_us_t duration);
 
 	/**
 	 * @brief Get the frame duration
 	 * 
 	 * @return  The frame duration in ms
 	 */
-	time_ms_t getFrameDuration() const;
+	time_us_t getFrameDuration() const;
 
 	/**
 	 * @brief Set the modulation efficiency

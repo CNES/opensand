@@ -35,6 +35,7 @@
 
 #include "AttenuationHandler.h"
 #include "Plugin.h"
+#include "PhysicalLayerPlugin.h"
 #include "BBFrame.h"
 #include "DvbRcsFrame.h"
 #include "OpenSandCore.h"
@@ -141,11 +142,11 @@ bool AttenuationHandler::initialize(std::shared_ptr<OutputLog> log_init, const s
 	return true;
 }
 
-bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
+bool AttenuationHandler::process(DvbFrame &dvb_frame, double cn_total)
 {
 	fmt_id_t modcod_id = 0;
 	double min_cn;
-	Data payload;
+	Rt::Data payload;
 
 	// Consider that the packet is not dropped  (if its dropped, the probe
 	// will be updated later), so that the probe emits a 0 value if necessary.
@@ -153,23 +154,21 @@ bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
 
 	// Get the MODCOD used to send DVB frame
 	// (keep the complete header because we carry useful data)
-	switch(dvb_frame->getMessageType())
+	switch(dvb_frame.getMessageType())
 	{
 		case EmulatedMessageType::BbFrame:
 		{
-			// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
-			BBFrame *bbframe = (BBFrame *)dvb_frame;
-			modcod_id = bbframe->getModcodId();
-			payload = bbframe->getPayload();
+			BBFrame &bbframe = dvb_frame_upcast<BBFrame>(dvb_frame);
+			modcod_id = bbframe.getModcodId();
+			payload = bbframe.getPayload();
 		}
 		break;
 
 		case EmulatedMessageType::DvbBurst:
 		{
-			// TODO DvbRcsFrame *dvb_rcs_frame = dynamic_cast<DvbRcsFrame *>(dvb_frame);
-			DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;
-			modcod_id = dvb_rcs_frame->getModcodId();
-			payload = dvb_rcs_frame->getPayload();
+			DvbRcsFrame &dvb_rcs_frame = dvb_frame_upcast<DvbRcsFrame>(dvb_frame);
+			modcod_id = dvb_rcs_frame.getModcodId();
+			payload = dvb_rcs_frame.getPayload();
 		}
 		break;
 
@@ -185,7 +184,7 @@ bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
 	    "Receive frame with MODCOD %u, total C/N = %.2f", modcod_id, cn_total);
 
 	// Update minimal condition threshold
-	if(!this->minimal_condition_model->updateThreshold(modcod_id, dvb_frame->getMessageType()))
+	if(!this->minimal_condition_model->updateThreshold(modcod_id, dvb_frame.getMessageType()))
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "Threshold update failed");
@@ -212,13 +211,14 @@ bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
 	LOG(this->log_channel, LEVEL_DEBUG,
 	    "Error insertion is required");
 
+	// FIXME: Check if modifying this here actually modifies content in dvb_frame
 	if(!this->error_insertion_model->modifyPacket(payload))
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "Error insertion failed");
 		return false;
 	}
-	dvb_frame->setCorrupted(true);
+	dvb_frame.setCorrupted(true);
 	this->probe_drops->put(1);
 	LOG(this->log_channel, LEVEL_NOTICE,
 	    "Received frame was corrupted");

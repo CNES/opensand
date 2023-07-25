@@ -36,12 +36,16 @@
 #ifndef ATTENUATION_HANDLER_H
 #define ATTENUATION_HANDLER_H
 
-#include "PhysicalLayerPlugin.h"
-#include "DvbFrame.h"
-
-#include <opensand_output/Output.h>
 
 #include <string>
+
+#include "DvbFrame.h"
+
+
+template<typename> class Probe;
+class OutputLog;
+class MinimalConditionPlugin;
+class ErrorInsertionPlugin;
 
 
 /**
@@ -98,7 +102,7 @@ public:
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool process(DvbFrame *dvb_frame, double cn_total);
+	bool process(DvbFrame &dvb_frame, double cn_total);
 };
 
 #endif

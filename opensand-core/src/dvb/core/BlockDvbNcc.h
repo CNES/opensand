@@ -63,6 +63,9 @@
 #ifndef BLOCK_DVB_NCC_H
 #define BLOCK_DVB_NCC_H
 
+#include <opensand_rt/Block.h>
+#include <opensand_rt/RtChannel.h>
+
 #include "BlockDvb.h"
 
 #include "NccPepInterface.h"
@@ -74,143 +77,184 @@ class SpotDownward;
 class SpotUpward;
 
 
-class BlockDvbNcc: public BlockDvb
+template<>
+class Rt::UpwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels::Upward<UpwardChannel<BlockDvbNcc>>, public DvbFmt
+{
+ public:
+	UpwardChannel(const std::string& name, dvb_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const MessageEvent& event) override;
+
+ protected:
+	/**
+	 * Transmist a frame to the opposite channel
+	 *
+	 * @param frame The dvb frame
+	 * @return true on success, false otherwise
+	 */ 
+	bool shareFrame(Ptr<DvbFrame> frame);
+
+	/**
+	 * @brief Initialize the output
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initOutput();
+	
+	bool onRcvDvbFrame(Ptr<DvbFrame> frame);
+
+	/// the MAC ID of the ST (as specified in configuration)
+	int mac_id;
+
+	/// The id of the associated spot
+	spot_id_t spot_id;
+
+	std::unique_ptr<SpotUpward> spot;
+
+	// log for slotted aloha
+	std::shared_ptr<OutputLog> log_saloha;
+
+	// Physical layer information
+	std::shared_ptr<Probe<int>> probe_gw_received_modcod; // MODCOD of BBFrame received
+	std::shared_ptr<Probe<int>> probe_gw_rejected_modcod; // MODCOD of BBFrame rejected
+
+	bool disable_control_plane;
+	bool disable_acm_loop;
+};
+
+
+template<>
+class Rt::DownwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels::Downward<DownwardChannel<BlockDvbNcc>>, public DvbFmt
+{
+ public:
+	DownwardChannel(const std::string &name, dvb_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const TimerEvent& event) override;
+	bool onEvent(const MessageEvent& event) override;
+	bool onEvent(const NetSocketEvent& event) override;
+	bool onEvent(const TcpListenEvent& event) override;
+
+ protected:
+	/**
+	 * @brief Read the common configuration parameters for downward channels
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool initDown();
+
+	/**
+	 * Send the complete DVB frames created
+	 * by \ref DvbRcsStd::scheduleEncapPackets or
+	 * \ref DvbRcsDamaAgent::globalSchedule for Terminal
+	 *
+	 * @param complete_frames the list of complete DVB frames
+	 * @param carrier_id      the ID of the carrier where to send the frames
+	 * @return true on success, false otherwise
+	 */
+	bool sendBursts(std::list<Ptr<DvbFrame>> *complete_frames,
+	                uint8_t carrier_id);
+
+	/**
+	 * @brief Send message to lower layer with the given DVB frame
+	 *
+	 * @param frame       the DVB frame to put in the message
+	 * @param carrier_id  the carrier ID used to send the message
+	 * @return            true on success, false otherwise
+	 */
+	bool sendDvbFrame(Ptr<DvbFrame> frame, uint8_t carrier_id);
+	/**
+	 * Read configuration for the downward timers
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initTimers();
+
+	bool handleDvbFrame(Ptr<DvbFrame> frame);
+
+	/**
+	 * Send a Terminal Time Plan
+	 */
+	void sendTTP();
+
+	/**
+	 * Send a start of frame
+	 */
+	void sendSOF(unsigned int sof_carrier_id);
+
+	/**
+	 *  @brief Handle a logon request transmitted by the opposite
+	 *         block
+	 *
+	 *  @param dvb_frame  The frame containing the logon request
+	 *  @return true on success, false otherwise
+	 */
+	bool handleLogonReq(Ptr<DvbFrame> dvb_frame);
+
+	/// The interface between Ncc and PEP
+	NccPepInterface pep_interface;
+
+	/// The interface between Ncc and SVNO
+	NccSvnoInterface svno_interface;
+
+	/// the MAC ID of the ST (as specified in configuration)
+	tal_id_t mac_id;
+	
+	/// The id of the associated spot
+	spot_id_t spot_id;
+
+	bool disable_control_plane;
+
+	/// counter for forward frames
+	time_sf_t fwd_frame_counter;
+
+	/// frame timer for return, used to awake the block every frame period
+	event_id_t frame_timer;
+
+	/// frame timer for forward, used to awake the block every frame period
+	event_id_t fwd_timer;
+
+	/// Delay for allocation requests from PEP (in ms)
+	int pep_alloc_delay;
+
+	/// Expiration timers for SCPC encapsulation contexts
+	std::map<event_id_t, int> scpc_timers;
+
+	std::unique_ptr<SpotDownward> spot;
+
+	// Frame interval
+	std::shared_ptr<Probe<float>> probe_frame_interval;
+};
+
+
+class BlockDvbNcc: public Rt::Block<BlockDvbNcc, dvb_specific>, public BlockDvb
 {
 public:
 	/// Class constructor
 	BlockDvbNcc(const std::string &name, struct dvb_specific specific);
 
-	~BlockDvbNcc();
-
 	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
-	bool onInit();
-
-
-	class Upward: public DvbUpward, public DvbFmt
-	{
-	public:
-		Upward(const std::string &name, struct dvb_specific specific);
-		~Upward();
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	protected:
-		/**
-		 * @brief Initialize the output
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initOutput(void);
-		
-		bool onRcvDvbFrame(DvbFrame *frame);
-
-		/// the MAC ID of the ST (as specified in configuration)
-		int mac_id;
-
-		/// The id of the associated spot
-		spot_id_t spot_id;
-
-		SpotUpward* spot;
-
-		// log for slotted aloha
-		std::shared_ptr<OutputLog> log_saloha;
-
-		// Physical layer information
-		std::shared_ptr<Probe<int>> probe_gw_received_modcod; // MODCOD of BBFrame received
-		std::shared_ptr<Probe<int>> probe_gw_rejected_modcod; // MODCOD of BBFrame rejected
-	};
-
-
-	class Downward: public DvbDownward, public DvbFmt
-	{
-		public:
-			Downward(const std::string &name, struct dvb_specific specific);
-			~Downward();
-			bool onInit(void);
-			bool onEvent(const RtEvent *const event);
-
-		protected:
-			/**
-			 * Read configuration for the downward timers
-			 *
-			 * @return  true on success, false otherwise
-			 */
-			bool initTimers(void);
-
-			bool handleDvbFrame(DvbFrame *frame);
-
-			/**
-			 * Send a Terminal Time Plan
-			 */
-			void sendTTP(SpotDownward *spot_downward);
-
-			/**
-			 * Send a start of frame
-			 */
-			void sendSOF(unsigned int sof_carrier_id);
-
-			/**
-			 *  @brief Handle a logon request transmitted by the opposite
-			 *         block
-			 *
-			 *  @param dvb_frame  The frame contining the logon request
-			 *  @param spot       The spot concerned by the request
-			 *  @return true on success, false otherwise
-			 */
-			bool handleLogonReq(DvbFrame *dvb_frame, SpotDownward *spot);
-
-			/**
-			 * @brief Send a SAC message containing ACM parameters
-			 *
-			 * @return true on success, false otherwise
-			 */
-			bool sendAcmParameters(SpotDownward *spot_downward);
-
-			// statistics update
-			void updateStats(void);
-
-			/// The interface between Ncc and PEP
-			NccPepInterface pep_interface;
-
-			/// The interface between Ncc and SVNO
-			NccSvnoInterface svno_interface;
-
-			/// the MAC ID of the ST (as specified in configuration)
-			tal_id_t mac_id;
-			
-			/// The id of the associated spot
-			spot_id_t spot_id;
-
-			/// counter for forward frames
-			time_ms_t fwd_frame_counter;
-
-			/// frame timer for return, used to awake the block every frame period
-			event_id_t frame_timer;
-
-			/// frame timer for forward, used to awake the block every frame period
-			event_id_t fwd_timer;
-
-			/// Delay for allocation requests from PEP (in ms)
-			int pep_alloc_delay;
-
-			SpotDownward* spot;
-
-			// Frame interval
-			std::shared_ptr<Probe<float>> probe_frame_interval;
-	};
-
 protected:
+	bool onInit() override;
+
 	bool initListsSts();
 
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 
 	/// The list of Sts with forward/down modcod for this spot
-	StFmtSimuList* output_sts;
+	std::shared_ptr<StFmtSimuList> output_sts;
 
 	/// The list of Sts with return/up modcod for this spot
-	StFmtSimuList* input_sts;
+	std::shared_ptr<StFmtSimuList> input_sts;
 };
 
 

@@ -61,7 +61,7 @@ public:
 	 *
 	 * @param data  raw data from which a DVB-RCS frame can be created
 	 */
-	DvbRcsFrame(const Data &data);
+	DvbRcsFrame(const Rt::Data &data);
 
 	/**
 	 * Build a DVB-RCS frame
@@ -69,7 +69,7 @@ public:
 	 * @param data    raw data from which a DVB-RCS frame can be created
 	 * @param length  length of raw data
 	 */
-	DvbRcsFrame(const Data &data, size_t length);
+	DvbRcsFrame(const Rt::Data &data, size_t length);
 
 	/**
 	 * Build an empty DVB-RCS frame
@@ -86,7 +86,7 @@ public:
 	 *
 	 * @return the number of packets stored in the DVB frame
 	 */
-	uint16_t getNumPackets(void) const;
+	uint16_t getNumPackets() const;
 
 	/**
 	 * @brief Set the MODCOD of the frame
@@ -100,11 +100,11 @@ public:
 	 *
 	 * @return  the MODCOD ID of the frame
 	 */
-	uint8_t getModcodId(void) const;
+	uint8_t getModcodId() const;
 
 	// implementation of virtual functions
-	bool addPacket(NetPacket *packet);
-	void empty(void);
+	bool addPacket(const NetPacket &packet) override;
+	void empty() override;
 };
 
 #endif

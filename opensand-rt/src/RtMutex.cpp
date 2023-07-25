@@ -35,10 +35,14 @@
 #include "RtMutex.h"
 
 
+namespace Rt
+{
+
+
 using InnerLock = std::unique_lock<std::mutex>;
 
 
-RtSemaphore::RtSemaphore(std::size_t initial_value):
+Semaphore::Semaphore(std::size_t initial_value):
 	lock{},
 	condition{},
 	count{initial_value}
@@ -46,17 +50,20 @@ RtSemaphore::RtSemaphore(std::size_t initial_value):
 }
 
 
-void RtSemaphore::wait()
+void Semaphore::wait()
 {
-  InnerLock take{lock};
+	InnerLock take{lock};
 	condition.wait(take, [this]() {return count != 0;});
 	--count;
 }
 
 
-void RtSemaphore::notify()
+void Semaphore::notify()
 {
 	InnerLock take{lock};
 	++count;
 	condition.notify_one();
 }
+
+
+};

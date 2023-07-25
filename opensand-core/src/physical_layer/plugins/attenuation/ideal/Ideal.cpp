@@ -79,7 +79,7 @@ void Ideal::generateConfiguration(const std::string &parent_path,
 
 bool Ideal::init(time_ms_t refresh_period_ms, std::string link_path)
 {
-	this->refresh_period_ms = refresh_period_ms;
+	this->refresh_period = refresh_period_ms;
 
 	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
 	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter("ideal_attenuation_value"), this->value))

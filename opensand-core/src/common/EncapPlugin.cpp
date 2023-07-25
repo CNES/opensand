@@ -32,14 +32,13 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
+
+#include <opensand_output/Output.h>
+
 #include "EncapPlugin.h"
 #include "NetBurst.h"
 #include "NetContainer.h"
 #include "NetPacket.h"
-
-#include <opensand_output/Output.h>
-
-#include <cassert>
 
 
 EncapPlugin::EncapPlugin(NET_PROTO ether_type):
@@ -49,9 +48,7 @@ EncapPlugin::EncapPlugin(NET_PROTO ether_type):
 
 bool EncapPlugin::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "Encap.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 	return true;
 }
 
@@ -69,9 +66,7 @@ void EncapPlugin::EncapContext::setFilterTalId(uint8_t tal_id)
 
 bool EncapPlugin::EncapContext::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "Encap.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 	return true;
 }
 
@@ -87,24 +82,16 @@ EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 
 bool EncapPlugin::EncapPacketHandler::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "Encap.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 	return true;
 }
 
-/*
-std::list<std::string> EncapPlugin::EncapPacketHandler::getCallback()
-{
-	return this->callback_name;
-}
-*/
 
-bool EncapPlugin::EncapPacketHandler::encapNextPacket(std::unique_ptr<NetPacket> packet,
+bool EncapPlugin::EncapPacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
                                                       std::size_t remaining_length,
                                                       bool,
-                                                      std::unique_ptr<NetPacket> &encap_packet,
-                                                      std::unique_ptr<NetPacket> &remaining_data)
+                                                      Rt::Ptr<NetPacket> &encap_packet,
+                                                      Rt::Ptr<NetPacket> &remaining_data)
 {
 	// Set default returned values
 	remaining_data.reset();
@@ -118,12 +105,12 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(std::unique_ptr<NetPacket>
 }
 
 
-bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
+bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
                                                              bool &partial_decap,
-                                                             std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+                                                             std::vector<Rt::Ptr<NetPacket>> &decap_packets,
                                                              unsigned int decap_packets_count)
 {
-	std::vector<std::unique_ptr<NetPacket>> packets{};
+	std::vector<Rt::Ptr<NetPacket>> packets{};
 	std::size_t previous_length = 0;
 
 	// Set the default returned values
@@ -155,7 +142,7 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(std::unique_ptr<Net
 		}
 
 		// Get the current packet
-		std::unique_ptr<NetPacket> current;
+		Rt::Ptr<NetPacket> current = Rt::make_ptr<NetPacket>(nullptr);
 		try
 		{
 			current = this->build(packet->getPayload(previous_length),

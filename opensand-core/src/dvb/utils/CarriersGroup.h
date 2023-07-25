@@ -56,7 +56,7 @@ public:
 	 * @param  access_type     The carriers access type
 	 */
 	CarriersGroup(unsigned int carriers_id,
-	              const FmtGroup *const fmt_group,
+	              std::shared_ptr<const FmtGroup> fmt_group,
 	              unsigned int ratio,
 	              rate_symps_t rate_symps,
 	              AccessType access_type);
@@ -146,7 +146,7 @@ public:
 	 *
 	 * @return The FMT Group
 	 */
-	const FmtGroup *getFmtGroup() const;
+	std::shared_ptr<const FmtGroup> getFmtGroup() const;
 
 	/**
 	 * @brief  Get the maximum rate available with this carriers
@@ -161,7 +161,7 @@ public:
 	 * @param  fmt_group       The FMT group
 	 * @param  ratio           The estimated occupation ratio
 	 */
-	virtual void addVcm(const FmtGroup *const fmt_group,
+	virtual void addVcm(std::shared_ptr<const FmtGroup> fmt_group,
 	                    unsigned int ratio);
 
 protected:
@@ -169,7 +169,7 @@ protected:
 	unsigned int carriers_id;
 
 	/** FMT group */
-	const FmtGroup *fmt_group;
+	std::shared_ptr<const FmtGroup> fmt_group;
 
 	/** The number of carriers with this characteristics */
 	unsigned int carriers_number;
@@ -189,5 +189,3 @@ protected:
 
 
 #endif
-
-

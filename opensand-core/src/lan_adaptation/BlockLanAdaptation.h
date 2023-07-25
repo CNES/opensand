@@ -39,173 +39,171 @@
 #define BLOCK_LAN_ADAPTATION_H
 
 
-#include "SarpTable.h"
-#include "PacketSwitch.h"
-#include "TrafficCategory.h"
-#include "NetPacket.h"
-#include "LanAdaptationPlugin.h"
+#include <memory>
+
+#include <opensand_rt/Block.h>
+#include <opensand_rt/RtChannel.h>
+
 #include "OpenSandCore.h"
+#include "LanAdaptationPlugin.h"
+#include "SarpTable.h"
 #include "DelayFifo.h"
 
-#include <opensand_rt/Rt.h>
-#include <opensand_rt/RtChannel.h>
-#include <opensand_output/Output.h>
 
+class PacketSwitch;
 
-class NetSocketEvent;
 
 struct la_specific
 {
 	std::string tap_iface;
-	uint32_t delay = 0;
+	time_ms_t delay = time_ms_t::zero();
 	tal_id_t connected_satellite = 0;
 	bool is_used_for_isl = false;
-	PacketSwitch *packet_switch = nullptr;
+	std::shared_ptr<PacketSwitch> packet_switch = nullptr;
 };
+
+
+template<>
+class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<UpwardChannel<BlockLanAdaptation>>
+{
+ public:
+	UpwardChannel(const std::string &name, la_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const TimerEvent& event) override;
+	bool onEvent(const MessageEvent& event) override;
+
+	/**
+	 * @brief Set the lan adaptation contexts for channels
+	 *
+	 * @param contexts the lan adaptation contexts
+	 */
+	void setContexts(const lan_contexts_t &contexts);
+
+	/**
+	 * @brief Set the network socket file descriptor
+	 *
+	 * @param fd  The socket file descriptor
+	 */
+	void setFd(int fd);
+
+ private:
+	/**
+	 * @brief Handle a message from lower block
+	 *  - build the TAP header with appropriate protocol identifier
+	 *  - write TAP header + packet to TAP interface or delay packet before writting
+	 *
+	 * @param burst  The burst of packets
+	 * @return true on success, false otherwise
+	 */
+	bool onMsgFromDown(Ptr<NetBurst> burst);
+
+	/**
+	 * @brief Actually write the TAP header + packet to TAP interface
+	 *
+	 * @param packet  Data to write on the TAP interface
+	 * @return true on success, false otherwise
+	 */
+	bool writePacket(const Data& packet);
+
+	/// SARP table
+	SarpTable sarp_table;
+
+	/// TAP file descriptor
+	int fd;
+
+	/// the contexts list from lower to upper context
+	lan_contexts_t contexts;
+
+	/// The MAC layer MAC id received through msg_link_up
+	tal_id_t tal_id;
+
+	/// State of the satellite link
+	SatelliteLinkState state;
+
+	// The Packet Switch including packet forwarding logic and SARP
+	std::shared_ptr<PacketSwitch> packet_switch;
+
+	// Delay before writting on the TAP
+	time_ms_t delay;
+
+	// Polling event to implement delay before writting on the TAP
+	event_id_t delay_timer;
+
+	// Fifo to implement delay before writting on the TAP
+	DelayFifo delay_fifo;
+};
+
+
+template<>
+class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<DownwardChannel<BlockLanAdaptation>>
+{
+ public:
+	DownwardChannel(const std::string &name, la_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const FileEvent& event) override;
+	bool onEvent(const TimerEvent& event) override;
+	bool onEvent(const MessageEvent& event) override;
+
+	/**
+	 * @brief Set the lan adaptation contexts for channels
+	 *
+	 * @param contexts the lan adaptation contexts
+	 */
+	void setContexts(const lan_contexts_t &contexts);
+
+	/**
+	 * @brief Set the network socket file descriptor
+	 *
+	 * @param fd  The socket file descriptor
+	 */
+	void setFd(int fd);
+
+ private:
+	/// statistic timer
+	event_id_t stats_timer;
+
+	///  The period for statistics update
+	time_ms_t stats_period_ms;
+
+	/// the contexts list from lower to upper context
+	lan_contexts_t contexts;
+
+	/// The MAC layer MAC id received through msg_link_up
+	tal_id_t tal_id;
+
+	/// State of the satellite link
+	SatelliteLinkState state;
+
+	// The Packet Switch including packet forwarding logic and SARP
+	std::shared_ptr<PacketSwitch> packet_switch;
+};
+
 
 /**
  * @class BlockLanAdaptation
  * @brief Interface between network interfaces and OpenSAND
  */
-class BlockLanAdaptation: public Block
+class BlockLanAdaptation: public Rt::Block<BlockLanAdaptation, la_specific>
 {
 public:
-	BlockLanAdaptation(const std::string &name, struct la_specific specific);
-	~BlockLanAdaptation();
+	BlockLanAdaptation(const std::string &name, la_specific specific);
 
 	static void generateConfiguration();
 
 	// initialization method
-	bool onInit(void);
-
-
-	class Upward: public RtUpward
-	{
-	public:
-		Upward(const std::string &name, struct la_specific specific);
-
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-		/**
-		 * @brief Set the lan adaptation contexts for channels
-		 *
-		 * @param contexts the lan adaptation contexts
-		 */
-		void setContexts(const lan_contexts_t &contexts);
-
-		/**
-		 * @brief Set the network socket file descriptor
-		 *
-		 * @param fd  The socket file descriptor
-		 */
-		void setFd(int fd);
-
-	private:
-		/**
-		 * @brief Handle a message from lower block
-		 *  - build the TAP header with appropriate protocol identifier
-		 *  - write TAP header + packet to TAP interface or delay packet before writting
-		 *
-		 * @param burst  The burst of packets
-		 * @return true on success, false otherwise
-		 */
-		bool onMsgFromDown(NetBurst *burst);
-
-		/**
-		 * @brief Actually write the TAP header + packet to TAP interface
-		 *
-		 * @param packet  Data to write on the TAP interface
-		 * @return true on success, false otherwise
-		 */
-		bool writePacket(const Data& packet);
-
-		/// SARP table
-		SarpTable sarp_table;
-
-		/// TAP file descriptor
-		int fd;
-
-		/// the contexts list from lower to upper context
-		lan_contexts_t contexts;
-
-		/// The MAC layer MAC id received through msg_link_up
-		tal_id_t tal_id;
-
-		/// State of the satellite link
-		SatelliteLinkState state;
-
-		// The Packet Switch including packet forwarding logic and SARP
-		PacketSwitch *packet_switch;
-
-		// Delay before writting on the TAP
-		uint32_t delay;
-
-		// Polling event to implement delay before writting on the TAP
-		event_id_t delay_timer;
-
-		// Fifo to implement delay before writting on the TAP
-		DelayFifo delay_fifo;
-	};
-
-	class Downward: public RtDownward
-	{
-	public:
-		Downward(const std::string &name, struct la_specific specific);
-
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-		/**
-		 * @brief Set the lan adaptation contexts for channels
-		 *
-		 * @param contexts the lan adaptation contexts
-		 */
-		void setContexts(const lan_contexts_t &contexts);
-
-		/**
-		 * @brief Set the network socket file descriptor
-		 *
-		 * @param fd  The socket file descriptor
-		 */
-		void setFd(int fd);
-
-	private:
-		/**
-		 * @brief Handle a message from upper block
-		 *  - read data from TAP interface
-		 *  - create a packet with data
-		 *
-		 * @param event  The event on TAP interface, containing th message
-		 * @return true on success, false otherwise
-		 */
-		bool onMsgFromUp(const NetSocketEvent *const event);
-
-		/// statistic timer
-		event_id_t stats_timer;
-
-		///  The period for statistics update
-		time_ms_t stats_period_ms;
-
-		/// the contexts list from lower to upper context
-		lan_contexts_t contexts;
-
-		/// The MAC layer MAC id received through msg_link_up
-		tal_id_t tal_id;
-
-		/// State of the satellite link
-		SatelliteLinkState state;
-
-		// The Packet Switch including packet forwarding logic and SARP
-		PacketSwitch *packet_switch;
-	};
+	bool onInit() override;
 
 private:
 	/// The TAP interface name
 	std::string tap_iface;
-
-	// The Packet Switch including packet forwarding logic and SARP
-	PacketSwitch *packet_switch;
 
 	/**
 	 * Create or connect to an existing TAP interface

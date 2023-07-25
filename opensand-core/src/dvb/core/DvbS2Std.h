@@ -73,7 +73,7 @@ public:
 	 *
 	 * @param packet_handler the packet handler
 	 */
-	DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl);
+	DvbS2Std(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
 
 	/**
 	 * Build a DVB-S2 Transmission Standard
@@ -82,7 +82,7 @@ public:
 	 * @param packet_handler the packet handler
 	 */
 	DvbS2Std(std::string type,
-	         EncapPlugin::EncapPacketHandler *pkt_hdl);
+	         std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
 
 	/**
 	 * Destroy the DVB-S2 Transmission Standard
@@ -90,9 +90,9 @@ public:
 	virtual ~DvbS2Std();
 
 	/* only for NCC and Terminals */
-	bool onRcvFrame(DvbFrame *dvb_frame,
+	bool onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 	                tal_id_t tal_id,
-	                NetBurst **burst);
+	                Rt::Ptr<NetBurst> &burst);
 
 	/**
 	 * @brief  Get the real MODCOD for the terminal
@@ -152,7 +152,7 @@ public:
 class DvbScpcStd: public DvbS2Std
 {
 public:
-	DvbScpcStd(EncapPlugin::EncapPacketHandler *pkt_hdl);
+	DvbScpcStd(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
 };
 
 

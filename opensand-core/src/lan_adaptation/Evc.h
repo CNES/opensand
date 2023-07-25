@@ -48,9 +48,9 @@ class Evc
 {
 private:
 	/// The source MAC address
-	const MacAddress *mac_src;
+	const MacAddress mac_src;
 	/// The destination MAC address
-	const MacAddress *mac_dst;
+	const MacAddress mac_dst;
 	/// 802.1Q TCI
 	uint32_t q_tci;
 	/// 802.1ad TCI
@@ -69,28 +69,23 @@ public:
 	 * @param ether_type  The EtherType of the packet carried by
 	 *                    the Ethernet payload
 	 */
-	Evc(const MacAddress *mac_src, const MacAddress *mac_dst,
+	Evc(const MacAddress &mac_src, const MacAddress &mac_dst,
 	    uint16_t q_tci, uint16_t ad_tci,
 	    NET_PROTO ether_type);
-
-	/**
-	 * Destroy the EVC information
-	 */
-	~Evc();
 
 	/**
 	 * @brief Get the source MAC address
 	 *
 	 * @return the source MAC address
 	 */
-	const MacAddress *getMacSrc() const;
+	const MacAddress &getMacSrc() const;
 
 	/**
 	 * @brief Get the destination MAC address
 	 *
 	 * @return the destination MAC address
 	 */
-	const MacAddress *getMacDst() const;
+	const MacAddress &getMacDst() const;
 
 	/**
 	 * @brief Get the 802.1Q TCI
@@ -125,8 +120,8 @@ public:
 	 *                    the Ethernet payload
 	 * @return true if it matches, false otherwise
 	 */
-	bool matches(const MacAddress *mac_src,
-	             const MacAddress *mac_dst,
+	bool matches(const MacAddress &mac_src,
+	             const MacAddress &mac_dst,
 	             uint16_t q_tci,
 	             uint16_t ad_tci,
 	             NET_PROTO ether_type) const;
@@ -140,8 +135,8 @@ public:
 	 *                    the Ethernet payload
 	 * @return true if it matches, false otherwise
 	 */
-	bool matches(const MacAddress *mac_src,
-	             const MacAddress *mac_dst,
+	bool matches(const MacAddress &mac_src,
+	             const MacAddress &mac_dst,
 	             NET_PROTO ether_type) const;
 	/**
 	 * @brief check if our data match the EVC ones
@@ -153,8 +148,8 @@ public:
 	 *                    the Ethernet payload
 	 * @return true if it matches, false otherwise
 	 */
-	bool matches(const MacAddress *mac_src,
-	             const MacAddress *mac_dst,
+	bool matches(const MacAddress &mac_src,
+	             const MacAddress &mac_dst,
 	             uint16_t q_tci,
 	             NET_PROTO ether_type) const;
 };

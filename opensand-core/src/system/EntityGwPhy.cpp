@@ -53,12 +53,15 @@
  */
 
 
+#include <opensand_rt/Rt.h>
+
 #include "EntityGwPhy.h"
 #include "OpenSandModelConf.h"
 
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
 #include "BlockInterconnect.h"
+#include "UdpChannel.h"
 
 
 EntityGwPhy::EntityGwPhy(tal_id_t instance_id): Entity("gw_phy" + std::to_string(instance_id), instance_id)
@@ -84,15 +87,14 @@ bool EntityGwPhy::createSpecificBlocks()
 
 		InterconnectConfig interco_cfg;
 		interco_cfg.interconnect_addr = this->interconnect_address;
-		interco_cfg.delay = 0;
+		interco_cfg.delay = time_ms_t::zero();
 
-		auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Upward",
-		                                                                   interco_cfg);
-		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
-		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("Sat_Carrier", specific);
+		auto& block_interconnect = Rt::Rt::createBlock<BlockInterconnectUpward>("Interconnect.Upward", interco_cfg);
+		auto& block_phy_layer = Rt::Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
+		auto& block_sat_carrier = Rt::Rt::createBlock<BlockSatCarrier>("Sat_Carrier", specific);
 
-		Rt::connectBlocks(block_interconnect, block_phy_layer);
-		Rt::connectBlocks(block_phy_layer, block_sat_carrier);	
+		Rt::Rt::connectBlocks(block_interconnect, block_phy_layer);
+		Rt::Rt::connectBlocks(block_phy_layer, block_sat_carrier);	
 	}
 	catch (const std::bad_alloc &e)
 	{

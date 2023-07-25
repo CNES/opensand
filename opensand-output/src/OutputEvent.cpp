@@ -44,20 +44,6 @@ OutputEvent::OutputEvent(const std::string& name) : OutputLog(LEVEL_EVENT, name)
 }
 
 
-OutputEvent::~OutputEvent()
-{
-}
-
-
 void OutputEvent::setDisplayLevel(log_level_t)
 {
-}
-
-
-void OutputEvent::sendEvent(const char* msg_format, ...) const
-{
-  std::va_list args;
-  va_start(args, msg_format);
-  vSendLog(LEVEL_EVENT, msg_format, args);
-  va_end(args);
 }

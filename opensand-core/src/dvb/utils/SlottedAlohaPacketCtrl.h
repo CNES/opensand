@@ -63,7 +63,7 @@ public:
 	 * @param ctrl_type  control type of packet to create
 	 * @param tal_id     the destination terminal ID
 	 */
-	SlottedAlohaPacketCtrl(const Data &data,
+	SlottedAlohaPacketCtrl(const Rt::Data &data,
 	                       uint8_t ctrl_type,
 	                       tal_id_t tal_id);
 
@@ -111,7 +111,7 @@ public:
 	 * @param data  The packet content
 	 * @return the packet length
 	 */
-	static size_t getPacketLength(const Data &data);
+	static size_t getPacketLength(const Rt::Data &data);
 };
 
 #endif

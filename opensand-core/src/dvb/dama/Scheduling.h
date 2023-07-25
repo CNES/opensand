@@ -38,9 +38,12 @@
 #define _SCHEDULING_H_
 
 #include "EncapPlugin.h"
-#include "DvbFifo.h"
+#include "DvbFifoTypes.h"
 #include "DvbFrame.h"
-#include "StFmtSimu.h"
+
+
+class StFmtSimuList;
+class OutputLog;
 
 
 /**
@@ -55,33 +58,24 @@
 class Scheduling
 {
 public:
-	Scheduling(EncapPlugin::EncapPacketHandler *packet_handler,
-	           const fifos_t &fifos,
-	           const StFmtSimuList *const simu_sts):
-		packet_handler(packet_handler),
-		dvb_fifos(fifos),
-		simu_sts(simu_sts)
-	{
-		// Output log
-		this->log_scheduling = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Scheduling"); 
-	};
+	Scheduling(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+	           std::shared_ptr<fifos_t> fifos,
+	           std::shared_ptr<const StFmtSimuList> simu_sts);
 
-	virtual ~Scheduling() {};
+	virtual ~Scheduling() = default;
 
 	/**
 	 * @brief Schedule packets emission.
 	 *
 	 * @param complete_dvb_frames   created DVB frames.
 	 * @param current_superframe_sf the current superframe
-	 * @param current_time          the current time
 	 * @param remaining_allocation  the remaining allocation after scheduling
 	 *                              on the current superframe
 	 *
 	 * @return true on success, false otherwise
 	 */
 	virtual bool schedule(const time_sf_t current_superframe_sf,
-	                      clock_t current_time,
-	                      std::list<DvbFrame *> *complete_dvb_frames,
+	                      std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
 	                      uint32_t &remaining_allocation) = 0;
 
 	
@@ -93,19 +87,20 @@ public:
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	uint8_t getCurrentModcodId(tal_id_t id) const
-	{
-		return this->simu_sts->getCurrentModcodId(id);
-	};
-
+	uint8_t getCurrentModcodId(tal_id_t id) const;
 
 protected:
 	/** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
 	/** The MAC FIFOs */
-	const fifos_t dvb_fifos;
+	std::shared_ptr<fifos_t> dvb_fifos;
 	/** The FMT simulated data */
-	const StFmtSimuList *const simu_sts;
+	std::shared_ptr<const StFmtSimuList> simu_sts;
+
+	/// Fragment of a packet that couldn't be scheduled
+	/// in a single call to schedule; saved for priority
+	/// scheduling in the next call.
+	Rt::Ptr<NetPacket> remaining_data;
 
 	// Output Log
 	std::shared_ptr<OutputLog> log_scheduling;

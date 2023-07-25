@@ -44,20 +44,12 @@
  * Create an empty set of satellite carrier channels
  */
 sat_carrier_channel_set::sat_carrier_channel_set(tal_id_t tal_id):
-	std::vector < UdpChannel * >(),
+	std::vector<std::unique_ptr<UdpChannel>>(),
 	tal_id(tal_id)
 {
 	auto output = Output::Get();
 	this->log_init = output->registerLog(LEVEL_WARNING, "Sat_Carrier.init");
 	this->log_sat_carrier = output->registerLog(LEVEL_WARNING, "Sat_Carrier.Channel");
-}
-
-sat_carrier_channel_set::~sat_carrier_channel_set()
-{
-	std::vector < UdpChannel * >::iterator it;
-
-	for(it = this->begin(); it != this->end(); it++)
-		delete(*it);
 }
 
 
@@ -82,27 +74,26 @@ bool sat_carrier_channel_set::readCarrier(const std::string &local_ip_addr,
 
 	// create a new udp channel configure it, with information from file
 	// and insert it in the channels vector
-	UdpChannel *channel = new UdpChannel("Sat_Carrier",
-	                                     gw_id,
-	                                     carrier_id,
-	                                     is_input,
-	                                     !is_input,
-	                                     carrier_port,
-	                                     carrier_multicast,
-	                                     local_ip_addr,
-	                                     carrier_ip,
-	                                     carrier.udp_stack,
-	                                     carrier.udp_rmem,
-	                                     carrier.udp_wmem);
+	auto channel = std::make_unique<UdpChannel>("Sat_Carrier",
+	                                            gw_id,
+	                                            carrier_id,
+	                                            is_input,
+	                                            !is_input,
+	                                            carrier_port,
+	                                            carrier_multicast,
+	                                            local_ip_addr,
+	                                            carrier_ip,
+	                                            carrier.udp_stack,
+	                                            carrier.udp_rmem,
+	                                            carrier.udp_wmem);
 
 	if(!channel->isInit())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create UDP channel %d\n", carrier_id);
-		delete channel;
 		return false;
 	}
-	this->push_back(channel);
+	this->push_back(std::move(channel));
 
 	return true;
 }
@@ -250,32 +241,29 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
 }
 
 
-int sat_carrier_channel_set::receive(NetSocketEvent *const event,
+int sat_carrier_channel_set::receive(const Rt::NetSocketEvent& event,
                                      unsigned int &op_carrier,
                                      spot_id_t &op_spot,
-                                     unsigned char **op_buf,
-                                     size_t &op_len)
+                                     Rt::Ptr<Rt::Data> &op_buf)
 {
 	int ret = -1;
-
-	op_len = 0;
 	op_carrier = 0;
 
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,
 	    "try to receive a packet from satellite channel "
-	    "associated with the file descriptor %d\n", event->getFd());
+	    "associated with the file descriptor %d\n", event.getFd());
 
 	for (auto&& channel : *this)
 	{
 		// does the channel accept input and does the channel file descriptor
 		// match with the given file descriptor?
-		if(channel->isInputOk() && *event == channel->getChannelFd())
+		if(channel->isInputOk() && event == channel->getChannelFd())
 		{
 			// the file descriptors match, try to receive data for the channel
-			ret = channel->receive(event, op_buf, op_len);
+			ret = channel->receive(event, op_buf);
 
 			// Stop the task on data or error
-			if(op_len != 0 || ret < 0)
+			if((op_buf && op_buf->length() != 0) || ret < 0)
 			{
 				LOG(this->log_sat_carrier, LEVEL_DEBUG,
 				    "data/error received, set op_carrier to %d\n",
@@ -288,11 +276,13 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 	}
 
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,
-	    "Receive packet: size %zu, carrier %d\n", op_len,
+	    "Receive packet: size %zu, carrier %d\n",
+	    op_buf ? op_buf->length() : 0,
 	    op_carrier);
 
 	return ret;
 }
+
 
 /**
 * Return the file descriptor coresponding to a channel

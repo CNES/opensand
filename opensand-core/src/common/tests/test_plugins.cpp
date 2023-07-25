@@ -49,6 +49,8 @@
 #include "Plugin.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
+#include "Ethernet.h"
+#include "PacketSwitch.h"
 
 #include <opensand_output/Output.h>
 
@@ -61,6 +63,7 @@
 #include <net/ethernet.h>
 #include <algorithm>
 #include <arpa/inet.h>
+#include <memory>
 
 // include for the PCAP library
 #include <pcap.h>
@@ -72,8 +75,9 @@
 /// The program version
 #define VERSION   "Encapsulation plugins test application, version 0.1\n"
 
+
 /// The program usage
-#define USAGE \
+constexpr const char* USAGE = \
 "Encapsulation plugins test application: test the encapsulation plugins with a flow of LAN packets\n\n\
 usage: test [-h] [-v] [-d level] [-o] [-f folder] flow\n\
 \t-h        print this usage and exit\n\
@@ -85,7 +89,7 @@ usage: test [-h] [-v] [-d level] [-o] [-f folder] flow\n\
 \t-o        save the generated encapsulated packets for each encapsulation scheme \n\
 \t          instead of comparing them (PCAP format)\n\
 \t-f folder the folder where the files will be read/written (default: '.')\n\
-\tflow      flow of Ethernet frames to encapsulate (PCAP format)\n\n"
+\tflow      flow of Ethernet frames to encapsulate (PCAP format)\n\n";
 
 
 static unsigned int verbose;
@@ -124,8 +128,11 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
                       bool compare, std::string name,
                       lan_contexts_t lan_contexts,
                       encap_contexts_t encap_contexts);
+static bool test_lan_adapt(std::string src_filename,
+                           std::string folder,
+                           bool compare);
 static void test_encap_and_decap(
-	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl,
 	lan_contexts_t lan_contexts,
 	std::vector<std::string> &failure,
 	std::string src_filename,
@@ -149,32 +156,33 @@ int main(int argc, char *argv[])
 
 	for(argc--, argv++; argc > 0; argc -= args_used, argv += args_used)
 	{
+		std::string parameter(*argv);
 		args_used = 1;
 
-		if(!strcmp(*argv, "-v"))
+		if(parameter == "-v")
 		{
 			// print version
 			ERROR(VERSION);
 			return EXIT_FAILURE;
 		}
-		else if(!strcmp(*argv, "-h"))
+		else if(parameter == "-h")
 		{
 			// print help
 			ERROR(USAGE);
 			return EXIT_FAILURE;
 		}
-		else if(!strcmp(*argv, "-o"))
+		else if(parameter == "-o")
 		{
 			// get the name of the file to store encapsulated packets
 			compare = false;
 		}
-		else if(!strcmp(*argv, "-f"))
+		else if(parameter == "-f")
 		{
 			// get the name of the file to store the LAN packets
 			folder = argv[1];
 			args_used++;
 		}
-		else if(!strcmp(*argv, "-d"))
+		else if(parameter == "-d")
 		{
 			// get the name of the file to store the LAN packets
 			verbose = atoi(argv[1]);
@@ -201,12 +209,106 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	if(!test_lan_adapt(src_filename, folder, compare))
+	{
+		return EXIT_FAILURE;
+	}
+
 	return EXIT_SUCCESS;
 }
 
 
+static bool test_lan_adapt(std::string src_filename,
+                           std::string folder,
+                           bool compare)
+{
+	lan_contexts_t contexts;
+	std::vector<std::string> failure;
+	unsigned int nbr_tests = 0;
+
+	// load the plugins
+	if(!Plugin::loadPlugins(false))
+	{
+		ERROR("cannot load the plugins\n");
+		return false;
+	}
+
+	// There is now a single lan adaptation plugin
+	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext> context = plugin->getContext();
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl = plugin->getPacketHandler();
+	std::string name = plugin->getName();
+	std::string name_low = name;
+	std::transform(name.begin(), name.end(), name_low.begin(), ::tolower);
+	auto found = name_low.find("/");
+	while(found != std::string::npos)
+	{
+		name_low.replace(found, 1, "_");
+		found = name_low.find("/", found);
+	}
+
+	if(!context->setUpperPacketHandler(nullptr))
+	{
+		ERROR("failed to set upper packet src_handler for %s context\n", name.c_str());
+		failure.push_back(name);
+	}
+	else
+	{
+		contexts.push_back(context);
+
+		// LanAdaptationContext initialisation
+		auto packet_switch = std::make_shared<TerminalPacketSwitch>(1, 0);
+		SarpTable *sarp_table = packet_switch->getSarpTable();
+
+		// Add Ethernet entries in SARP table
+		// TODO get these value in capture
+		// for icmp28 test
+		auto src_mac = std::make_unique<MacAddress>(std::string("00:B0:D0:C7:C1:9D"));
+		sarp_table->add(std::move(src_mac), 0);
+		auto dst_mac = std::make_unique<MacAddress>(std::string("00:13:72:32:3d:bc"));
+		sarp_table->add(std::move(dst_mac), 1);
+		// for icmp64 test
+		src_mac = std::make_unique<MacAddress>(std::string("00:50:04:2d:f3:30"));
+		sarp_table->add(std::move(src_mac), 0);
+		dst_mac = std::make_unique<MacAddress>(std::string("00:04:76:0B:31:8b"));
+		sarp_table->add(std::move(dst_mac), 1);
+		for (auto &&context: contexts)
+		{
+			context->initLanAdaptationContext(1, packet_switch);
+		}
+
+		test_encap_and_decap(pkt_hdl, contexts, failure, src_filename, folder, compare);
+		nbr_tests += 1;
+	}
+
+	Plugin::releasePlugins();
+	if(nbr_tests == 0)
+	{
+		ERROR("No adequat plugin found\n");
+		return false;
+	}
+
+	bool success = failure.size() == 0;
+	if(success)
+	{
+		INFO("All tests were successful\n");
+	}
+	else
+	{
+		ERROR("The following tests failed:\n");
+		for (auto &&error: failure)
+		{
+			ERROR("  - %s\n", error.c_str());
+		}
+	}
+	Output::Get()->finalizeConfiguration();
+
+	return success;
+}
+
+
 static void test_encap_and_decap(
-	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
+	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl,
 	lan_contexts_t lan_contexts,
 	std::vector<std::string> &failure,
 	std::string src_filename,
@@ -229,13 +331,12 @@ static void test_encap_and_decap(
 	Plugin::getAllEncapsulationPlugins(encap_plug);
 
 	// test each encap context
-	for(auto plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
+	for (auto &&plugit: encap_plug)
 	{
 		encap_contexts_t encap_contexts;
-		std::string name = plugit->first;
+		std::string name = plugit.first;
 		std::string name_low;
-		EncapPlugin *plugin = NULL;
-		EncapPlugin::EncapContext *context;
+		EncapPlugin *plugin = nullptr;
 		int found;
 
 		if(!Plugin::getEncapsulationPlugin(name, &plugin))
@@ -249,7 +350,7 @@ static void test_encap_and_decap(
 			failure.push_back(stack);
 			continue;
 		}
-		context = plugin->getContext();
+		std::shared_ptr<EncapPlugin::EncapContext> context = plugin->getContext();
 		if(!context->setUpperPacketHandler(pkt_hdl))
 		{
 
@@ -258,16 +359,15 @@ static void test_encap_and_decap(
 
 			std::vector<std::string> upper = context->getAvailableUpperProto();
 			// try to add a supported upper layer
-			for(std::vector<std::string>::iterator iter = upper.begin();
-			    iter != upper.end(); ++iter)
+			for (auto &&upper_name: upper)
 			{
-				if(encap_plug[*iter].second != NULL)
+				if(encap_plug[upper_name].second != NULL)
 				{
 					EncapPlugin *up_plugin;
-					if(!Plugin::getEncapsulationPlugin(*iter, &up_plugin))
+					if(!Plugin::getEncapsulationPlugin(upper_name, &up_plugin))
 					{
 						ERROR("failed to initialize upper plugin %s for %s\n",
-						      (*iter).c_str(), name.c_str());
+						      upper_name.c_str(), name.c_str());
 						if(stack.size() > 0)
 						{
 							stack += "/";
@@ -276,8 +376,7 @@ static void test_encap_and_decap(
 						failure.push_back(stack);
 						break;
 					}
-					if(!context->setUpperPacketHandler(
-								up_plugin->getPacketHandler()))
+					if(!context->setUpperPacketHandler(up_plugin->getPacketHandler()))
 					{
 						ERROR("failed to set upper packet src_handler for "
 						        "%s context\n", name.c_str());
@@ -324,25 +423,23 @@ static void test_encap_and_decap(
 		// protocol stack
 		INFO("Stack:\n");
 		stack = "";
-		for(lan_contexts_t::iterator ctxit = lan_contexts.begin();
-		    ctxit != lan_contexts.end(); ++ctxit)
+		for(auto &&context : lan_contexts)
 		{
-			INFO("   - %s\n", (*ctxit)->getName().c_str());
+			INFO("   - %s\n", context->getName().c_str());
 			if(stack.size() > 0)
 			{
 				stack += "/";
 			}
-			stack += (*ctxit)->getName();
+			stack += context->getName();
 		}
-		for(encap_contexts_t::iterator ctxit = encap_contexts.begin();
-		    ctxit != encap_contexts.end(); ++ctxit)
+		for(auto &&context : encap_contexts)
 		{
-			INFO("   - %s\n", (*ctxit)->getName().c_str());
+			INFO("   - %s\n", context->getName().c_str());
 			if(stack.size() > 0)
 			{
 				stack += "/";
 			}
-			stack += (*ctxit)->getName();
+			stack += context->getName();
 		}
 
 		name_low = stack;
@@ -393,18 +490,16 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 	INFO("Upper lan context is Ethernet\n");
 	pcap_t *src_handle;
 	pcap_t *comp_handle;
-	pcap_t *encap_handle = NULL;
-	pcap_dumper_t *dumper = NULL;
+	pcap_t *encap_handle = nullptr;
+	pcap_dumper_t *dumper = nullptr;
 	unsigned int src_link_len;
 	unsigned int encap_link_len;
 
 	struct pcap_pkthdr header;
 	unsigned char *packet;
 
-	NetBurst *encap_packets;
-	NetBurst *packets = NULL;
-	NetBurst::iterator it;
-	NetBurst::iterator it2;
+	Rt::Ptr<NetBurst> encap_packets = Rt::make_ptr<NetBurst>(nullptr);
+	Rt::Ptr<NetBurst> packets = Rt::make_ptr<NetBurst>(nullptr);
 
 	std::map<long, int> time_contexts;
 
@@ -439,7 +534,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 	{
 		INFO("Open dump file '%s'\n", encap_filename.c_str());
 		dumper = pcap_dump_open(src_handle, encap_filename.c_str());
-		if(dumper == NULL)
+		if(dumper == nullptr)
 		{
 			ERROR("failed to open dump file: %s\n", pcap_geterr(src_handle));
 			goto close_comp;
@@ -465,7 +560,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 	// for each packet in source dump
 	success = true;
 	counter_src = 0;
-	while((packet = (unsigned char *) pcap_next(src_handle, &header)) != NULL)
+	while((packet = (unsigned char *) pcap_next(src_handle, &header)) != nullptr)
 	{
 		counter_src++;
 
@@ -475,9 +570,12 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			header_init = 1;
 		}
 
-		std::unique_ptr<NetPacket> net_packet{new NetPacket{packet + src_link_len,
-		                                                    header.len - src_link_len}};
-		if(net_packet == NULL)
+		Rt::Ptr<NetPacket> net_packet = Rt::make_ptr<NetPacket>(nullptr);
+		try
+		{
+			net_packet = Rt::make_ptr<NetPacket>(packet + src_link_len, header.len - src_link_len);
+		}
+		catch (const std::bad_alloc&)
 		{
 			ERROR("[packet #%d] failed to create input packet\n", counter_src);
 			success = false;
@@ -489,25 +587,26 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		      net_packet->getTotalLength());
 
 		// encapsulation
-		encap_packets = new NetBurst();
-		if(encap_packets == NULL)
+		try
+		{
+			encap_packets = Rt::make_ptr<NetBurst>();
+		}
+		catch (const std::bad_alloc&)
 		{
 			ERROR("cannot allocate memory for burst of network frames\n");
-			delete encap_packets;
 			goto close_encap;
 		}
 
 		encap_packets->push_back(std::move(net_packet));
 		DEBUG("[packet #%d] encapsulate in lan contexts\n", counter_src);
 
-		for(lan_contexts_t::iterator ctxit = lan_contexts.begin();
-		    ctxit != lan_contexts.end(); ++ctxit)
+		for(auto &&context : lan_contexts)
 		{
-			encap_packets = (*ctxit)->encapsulate(encap_packets, time_contexts);
-			if(encap_packets == NULL)
+			encap_packets = context->encapsulate(std::move(encap_packets), time_contexts);
+			if(!encap_packets)
 			{
 				ERROR("[packet #%d] %s encapsulation failed\n",
-				      counter_src, (*ctxit)->getName().c_str());
+				      counter_src, context->getName().c_str());
 				success = false;
 				break;
 			}
@@ -519,25 +618,24 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 
 		DEBUG("[packet #%d] encapsulate %d lan packets in encap contexts\n",
 		      counter_src, encap_packets->length());
-		for(encap_contexts_t::iterator ctxit = encap_contexts.begin();
-			ctxit != encap_contexts.end(); ++ctxit)
+		for(auto &&context : encap_contexts)
 		{
-			encap_packets = (*ctxit)->encapsulate(encap_packets, time_contexts);
-			if(encap_packets == NULL)
+			encap_packets = context->encapsulate(std::move(encap_packets), time_contexts);
+			if(!encap_packets)
 			{
 				ERROR("[packet #%d] %s encapsulation failed\n",
-				      counter_src, (*ctxit)->getName().c_str());
+				      counter_src, context->getName().c_str());
 				success = false;
 				break;
 			}
-			NetBurst *flushed = (*ctxit)->flushAll();
+			Rt::Ptr<NetBurst> flushed = context->flushAll();
 			if(flushed && !flushed->empty())
 			{
-			// TODO: use back_inserter or something
-			for (auto&& p : *flushed)
-			{
-				encap_packets->push_back(std::move(p));
-			}
+				// TODO: use back_inserter or something
+				for (auto&& p : *flushed)
+				{
+					encap_packets->push_back(std::move(p));
+				}
 			}
 		}
 		if(!encap_packets)
@@ -551,21 +649,21 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			   encap_packets->name().c_str());
 
 		// handle the encapsulated packets
-		for(it = encap_packets->begin(); it != encap_packets->end(); it++)
+		for(auto&& packet : *encap_packets)
 		{
 			counter_encap++;
 
 			if(!compare)
 			{
 				// output packets in first dump
-				header.len = src_link_len + (*it)->getTotalLength();
+				header.len = src_link_len + packet->getTotalLength();
 				header.caplen = header.len;
 				if(!is_eth)
 				{
 					memcpy(output_packet, output_header, src_link_len);
 				}
-				memcpy(output_packet + src_link_len, (*it)->getRawData(),
-				       (*it)->getTotalLength());
+				memcpy(output_packet + src_link_len, packet->getRawData(),
+				       packet->getTotalLength());
 				if(src_link_len == ETHER_HDR_LEN) /* Ethernet only */
 				{
 					eth_header = (struct ether_header *) output_packet;
@@ -579,12 +677,10 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 				pcap_dump((u_char *) dumper, &header, output_packet);
 
 				// dump packet
-				Data data;
-				Data::iterator it_data;
-				data = (*it)->getData();
+				Rt::Data data = packet->getData();
 				DEBUG_L2("%s packet\n", name.c_str());
-				for(it_data = data.begin(); it_data != data.end(); it_data++)
-					DEBUG_L2("0x%.2x ", (*it_data));
+				for(auto&& byte: data)
+					DEBUG_L2("0x%.2x ", byte);
 				DEBUG_L2("\n");
 			}
 			else
@@ -596,7 +692,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 				if(cmp_packet == NULL)
 				{
 					ERROR("[encap packet #%d] %s packet cannot load packet for comparison\n",
-					       counter_encap, (*it)->getName().c_str());
+					       counter_encap, packet->getName().c_str());
 					success = false;
 					continue;
 				}
@@ -605,18 +701,18 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 				if(!is_eth && cmp_header.caplen <= encap_link_len)
 				{
 					ERROR("[encap packet #%d] %s packet available for comparison but too small\n",
-					       counter_encap, (*it)->getName().c_str());
+					       counter_encap, packet->getName().c_str());
 					success = false;
 					continue;
 				}
 
-				if(!compare_packets((*it)->getRawData(),
-				                    (*it)->getTotalLength(),
+				if(!compare_packets(packet->getRawData(),
+				                    packet->getTotalLength(),
 				                    cmp_packet + encap_link_len,
 				                    cmp_header.caplen - encap_link_len))
 				{
 					ERROR("[encap packet #%d] %s packet is not as attended\n",
-					       counter_encap, (*it)->getName().c_str());
+					       counter_encap, packet->getName().c_str());
 					success = false;
 					continue;
 				}
@@ -624,15 +720,15 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		}
 
 		len = encap_packets->length();
-		packets = encap_packets;
+		packets = std::move(encap_packets);
 		DEBUG("[packet #%d] decapsulate %d packets in encap contexts\n",
 		      counter_src, packets->length());
 		// decapsulation
 		for(encap_contexts_t::reverse_iterator ctxit = encap_contexts.rbegin();
 		    ctxit != encap_contexts.rend(); ++ctxit)
 		{
-			packets = (*ctxit)->deencapsulate(packets);
-			if(packets == NULL)
+			packets = (*ctxit)->deencapsulate(std::move(packets));
+			if(!packets)
 			{
 				ERROR("[LAN packet #%d/ %s packets] %s decapsulation failed\n",
 				      counter_src, name.c_str(), (*ctxit)->getName().c_str());
@@ -650,8 +746,8 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
 		    ctxit != lan_contexts.rend(); ++ctxit)
 		{
-			packets = (*ctxit)->deencapsulate(packets);
-			if(packets == NULL)
+			packets = (*ctxit)->deencapsulate(std::move(packets));
+			if(!packets)
 			{
 				ERROR("[LAN packet #%d/ %s packets] %s decapsulation failed\n",
 				      counter_src, name.c_str(), (*ctxit)->getName().c_str());
@@ -664,11 +760,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			continue;
 		}
 
-		if(!len)
-		{
-			delete packets;
-		}
-		else
+		if(len)
 		{
 			DEBUG("[packet #%d] %d %s packets => %d %s packets\n",
 			      counter_src, len, name.c_str(), packets->length(),
@@ -676,7 +768,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 
 			counter_comp = 0;
 			// compare LAN packets
-			for(it2 = packets->begin(); it2 != packets->end(); it2++)
+			for(auto &&pkt : *packets)
 			{
 				unsigned char *cmp_packet;
 				struct pcap_pkthdr cmp_header;
@@ -687,7 +779,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 				if(cmp_packet == NULL)
 				{
 					ERROR("[packet #%d] %s packet cannot load packet for comparison\n",
-					      counter_comp, (*it2)->getName().c_str());
+					      counter_comp, pkt->getName().c_str());
 					success = false;
 					continue;
 				}
@@ -696,30 +788,26 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 				if(!is_eth && cmp_header.caplen <= src_link_len)
 				{
 					ERROR("[packet #%d] %s packet available for comparison but too small\n",
-					      counter_comp, (*it2)->getName().c_str());
+					      counter_comp, pkt->getName().c_str());
 					success = false;
 					continue;
 				}
 
-				if(!compare_packets((*it2)->getRawData(),
-				                    (*it2)->getTotalLength(),
+				if(!compare_packets(pkt->getRawData(),
+				                    pkt->getTotalLength(),
 				                    cmp_packet + src_link_len,
 				                    cmp_header.caplen - src_link_len))
 				{
 					ERROR("[packet #%d] %s packet is not as attended\n",
-					      counter_comp, (*it2)->getName().c_str());
+					      counter_comp, pkt->getName().c_str());
 					success = false;
 					continue;
 				}
 			}
-
-			delete packets;
-			packets = NULL;
 		}
 	}
 
 	DEBUG("\n");
-
 	INFO("End of %s test\n", name.c_str());
 
 	// clean memory
@@ -836,41 +924,38 @@ static bool open_pcap(std::string filename, pcap_t **handle,
                       uint32_t &link_len)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int link_layer_type;
-	bool success = false;
 
 	*handle = pcap_open_offline(filename.c_str(), errbuf);
-	if(*handle == NULL)
+	if(*handle == nullptr)
 	{
 		ERROR("failed to open the PCAP file: %s\n", errbuf);
-		goto error;
+		return false;
 	}
 
 	/* link layer in the dump must be supported */
-	link_layer_type = pcap_datalink(*handle);
+	int link_layer_type = pcap_datalink(*handle);
 	if(link_layer_type != DLT_EN10MB &&
 	   link_layer_type != DLT_LINUX_SLL &&
 	   link_layer_type != DLT_RAW)
 	{
-		ERROR("link layer type %d not supported in dump (supported = "
-		      "%d, %d, %d)\n", link_layer_type, DLT_EN10MB, DLT_LINUX_SLL,
-		      DLT_RAW);
-		goto close_input;
+		ERROR("link layer type %d not supported in dump (supported = %d, %d, %d)\n",
+		      link_layer_type, DLT_EN10MB, DLT_LINUX_SLL, DLT_RAW);
+		pcap_close(*handle);
+		return false;
 	}
 
 	if(link_layer_type == DLT_EN10MB)
+	{
 		link_len = ETHER_HDR_LEN;
+	}
 	else if(link_layer_type == DLT_LINUX_SLL)
+	{
 		link_len = LINUX_COOKED_HDR_LEN;
+	}
 	else /* DLT_RAW */
+	{
 		link_len = 0;
+	}
 
-	success = true;
-	return success;
-
-close_input:
-	pcap_close(*handle);
-error:
-	return success;
+	return true;
 }
-

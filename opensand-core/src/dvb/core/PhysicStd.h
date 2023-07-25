@@ -37,15 +37,14 @@
 #ifndef PHYSIC_STD_H
 #define PHYSIC_STD_H
 
-#include <fstream>
-#include <queue>
 
-#include "DvbFifo.h"
-#include "NetBurst.h"
-#include "NetPacket.h"
+#include <opensand_rt/Ptr.h>
+
 #include "EncapPlugin.h"
 #include "DvbFrame.h"
-#include "OpenSandFrames.h"
+
+
+class NetBurst;
 
 
 /**
@@ -60,7 +59,7 @@ private:
 
 protected:
 	/** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
 
 public:
 	/**
@@ -70,12 +69,12 @@ public:
 	 * @param pkt_hdl  the packet handler
 	 */
 	PhysicStd(std::string type,
-	          EncapPlugin::EncapPacketHandler *pkt_hdl);
+	          std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
 
 	/**
 	 * Destroy the Physical Transmission Standard
 	 */
-	virtual ~PhysicStd();
+	virtual ~PhysicStd() = default;
 
 	/**
 	 * Get the type of Physical Transmission Standard (DVB-RCS, DVB-S2, etc.)
@@ -93,9 +92,9 @@ public:
 	 * @param burst      OUT: a burst of encapsulation packets
 	 * @return           true on success, false otherwise
 	 */
-	virtual bool onRcvFrame(DvbFrame *dvb_frame,
+	virtual bool onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 	                        tal_id_t tal_id,
-	                        NetBurst **burst) = 0;
+	                        Rt::Ptr<NetBurst> &burst) = 0;
 };
 
 

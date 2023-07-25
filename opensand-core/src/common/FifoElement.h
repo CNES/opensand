@@ -35,9 +35,9 @@
 #define FIFO_ELEMENT_H
 
 
-#include <memory>
+#include <opensand_rt/Ptr.h>
 
-#include "OpenSandCore.h"
+#include "Except.h"
 
 
 class NetContainer;
@@ -51,82 +51,60 @@ class FifoElement
 {
 protected:
 	/// The element stored in the FIFO
-	 std::unique_ptr<NetContainer> elem;
-
-	/// The arrival time of packet in FIFO (in ms)
-	time_t tick_in;
-	/// The minimal time the packet will output the FIFO (in ms)
-	time_t tick_out;
+	Rt::Ptr<NetContainer> elem;
 
 public:
 	/**
 	 * Build a fifo element
 	 * @param elem       The element to store in the FIFO
-	 * @param tick_in    The arrival time of element in FIFO (in ms)
-	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
-	FifoElement(std::unique_ptr<NetContainer> elem,
-	               time_t tick_in, time_t tick_out);
-
-	/**
-	 * Destroy the fifo element
-	 */
-	~FifoElement();
+	FifoElement(Rt::Ptr<NetContainer> elem);
 
 	/**
 	 * Get the FIFO elelement
 	 * @return The FIFO element
 	 */
 	template<class T = NetContainer>
-	std::unique_ptr<T> getElem();
+	Rt::Ptr<T> releaseElem();
 
 	/**
 	 * Set the FIFO element
 	 *
 	 * @param packet The new FIFO element
 	 */
-	void setElem(std::unique_ptr<NetContainer> elem);
+	void setElem(Rt::Ptr<NetContainer> elem);
 
 	/**
 	 * Get the element length
 	 * @return The element length
 	 */
-	size_t getTotalLength() const;
+	std::size_t getTotalLength() const;
 
 	/**
-	 * Get the arrival time of packet in FIFO (in ms)
-	 * @return The arrival time of packet in FIFO
+	 * Check whether the fifo element actually contains an element
+	 * @return true if elem != nullptr false otherwise
 	 */
-	time_t getTickIn() const;
-
-	/**
-	 * Get the minimal time the packet will output the FIFO (in ms)
-	 * @return The minimal time the packet will output the FIFO
-	 */
-	time_t getTickOut() const;
+	explicit operator bool() const noexcept;
 };
 
 
 template<class T>
-std::unique_ptr<T> FifoElement::getElem()
+Rt::Ptr<T> FifoElement::releaseElem()
 {
 	if (!elem)
 	{
-		return std::unique_ptr<T>{nullptr};
+		return Rt::make_ptr<T>(nullptr);
 	}
 
-	T* cast_elem = dynamic_cast<T*>(elem.get());
-	if (cast_elem)
-	{
-		elem.release();
-	}
-
-	return std::unique_ptr<T>{cast_elem};
+	T* cast_elem = static_cast<T*>(elem.release());
+	// Can't see how this could fail...
+	ASSERT(cast_elem != nullptr, "Casting FifoElement data failed in releaseElem");
+	return {cast_elem, std::move(elem.get_deleter())};
 }
 
 
 template<>
-std::unique_ptr<NetContainer> FifoElement::getElem();
+Rt::Ptr<NetContainer> FifoElement::releaseElem();
 
 
 #endif

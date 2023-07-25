@@ -16,7 +16,7 @@ Visit us at [opensand.org](https://www.opensand.org/).
 
  * [Installation Manual](README.md#installation-manual)
  * [Compilation Manual](opensand-packaging/README.md)
- * [Command-line User Manual](opensand-network/opensand_cli/README.md)
+ * [Command-line User Manual](opensand-network/README.md)
  * [Web-interface User Manual](opensand-deploy/README.md)
 
 # Installation Manual

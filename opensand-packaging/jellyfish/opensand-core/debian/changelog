@@ -1,3 +1,9 @@
+opensand-core (7.0.0) jammy; urgency=low
+
+  * Release 7.0.0
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Tue, 25 Jul 2023 15:28:12 +0200
+
 opensand-core (6.1.2) jammy; urgency=low
 
   * Release 6.1.2
@@ -10,7 +16,7 @@ opensand-core (6.1.1) jammy; urgency=low
 
  -- mettinger <mathias.ettinger@viveris.fr>  Mon, 13 Mar 2023 11:35:10 +0100
 
-opensand-core (6.1.0) xenial; urgency=low
+opensand-core (6.1.0) jammy; urgency=low
 
   * Release 6.1.0
 

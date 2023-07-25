@@ -142,7 +142,7 @@ namespace OpenSANDConf
 		virtual bool equal(const Data &other) const override;
 
 	private:
-    std::weak_ptr<const DataValueType<T>> type;
+		std::weak_ptr<const DataValueType<T>> type;
 		T value;
 	};
 }
@@ -263,5 +263,17 @@ bool OpenSANDConf::DataValue<T>::equal(const OpenSANDConf::Data &other) const
 
 template <>
 bool OpenSANDConf::DataValue<std::string>::fromString(std::string val);
+
+template <>
+bool OpenSANDConf::DataValue<uint8_t>::fromString(std::string val);
+
+template <>
+bool OpenSANDConf::DataValue<int8_t>::fromString(std::string val);
+
+template <>
+std::string OpenSANDConf::DataValue<uint8_t>::toString() const;
+
+template <>
+std::string OpenSANDConf::DataValue<int8_t>::toString() const;
 
 #endif // OPENSAND_CONF_DATA_VALUE_H

@@ -675,9 +675,37 @@ xmlNodePtr elementToXSD(std::shared_ptr<OpenSANDConf::MetaParameter> element)
 	{
 		xstype = "xs:boolean";
 	}
-	else if(typei == "int" || typei == "short" || typei == "long")
+	else if(typei == "byte")
 	{
-		xstype = "xs:integer";
+		xstype = "xs:byte";
+	}
+	else if(typei == "short")
+	{
+		xstype = "xs:short";
+	}
+	else if(typei == "int")
+	{
+		xstype = "xs:int";
+	}
+	else if(typei == "long")
+	{
+		xstype = "xs:long";
+	}
+	else if(typei == "ubyte")
+	{
+		xstype = "xs:unsignedByte";
+	}
+	else if(typei == "ushort")
+	{
+		xstype = "xs:unsignedShort";
+	}
+	else if(typei == "uint")
+	{
+		xstype = "xs:unsignedInt";
+	}
+	else if(typei == "ulong")
+	{
+		xstype = "xs:unsignedLong";
 	}
 	else if(typei == "double" || typei == "float")
 	{

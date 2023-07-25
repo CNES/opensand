@@ -38,41 +38,37 @@
 
 #include "FileEvent.h"
 #include "Rt.h"
+#include "RtChannelBase.h"
+
+
+namespace Rt
+{
 
 
 FileEvent::FileEvent(const std::string &name,
                      int32_t fd,
-                     size_t max_size,
-                     uint8_t priority,
-                     EventType type):
-	RtEvent{type, name, fd, priority},
+                     std::size_t max_size,
+                     uint8_t priority):
+	Event{name, fd, priority},
 	max_size{max_size},
-	data{nullptr},
-	size{0}
+	data{}
 {
 }
 
 
-FileEvent::~FileEvent()
+bool FileEvent::handle()
 {
-	delete [] this->data;
-}
-
-
-bool FileEvent::handle(void)
-{
-	if(this->data)
+	if(this->data.size())
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: previous data was not handled\n",
 		                this->name.c_str());
-		delete [] this->data;
+		this->data.clear();
 	}
 	// one more byte so we can use it as char*
-	this->data = new unsigned char[this->max_size + 1]();  // parens do value initialization to 0
-
-	int ret = read(this->fd, this->data, this->max_size);
-	std::size_t actual_size = static_cast<std::size_t>(ret);
+	this->data = Data(this->max_size + 1, '\0');
+	int ret = read(this->fd, this->data.data(), this->max_size);
+	auto actual_size = static_cast<Data::size_type>(ret);
 	if(ret < 0)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
@@ -84,29 +80,29 @@ bool FileEvent::handle(void)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: too many data received (%zu > %zu)\n",
-		                this->name.c_str(), this->size, this->max_size);
+		                this->name.c_str(), actual_size, this->max_size);
 		goto error;
 	}
-	else if(actual_size == 0)
-	{
-		// EOF
-		delete [] this->data;
-		this->data = nullptr;
-	}
-	this->size = actual_size;
 
+	this->data.resize(actual_size);
 	return true;
 
 error:
-	delete [] this->data;
-	this->data = nullptr;
+	this->data.clear();
 	return false;
 }
 
 
-unsigned char *FileEvent::getData(void) const
+Data FileEvent::getData() const
 {
-	unsigned char *buf = this->data;
-	this->data = nullptr;
-	return buf;
+	return std::move(this->data);
 }
+
+
+bool FileEvent::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
+}
+
+
+};

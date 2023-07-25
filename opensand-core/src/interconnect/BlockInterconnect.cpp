@@ -32,129 +32,123 @@
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.fr>
  */
 
+
+#include <opensand_output/Output.h>
+#include <opensand_rt/TimerEvent.h>
+#include <opensand_rt/MessageEvent.h>
+#include <opensand_rt/NetSocketEvent.h>
+
 #include "BlockInterconnect.h"
 #include "OpenSandModelConf.h"
+#include "UdpChannel.h"
 
-#include <opensand_rt/MessageEvent.h>
 
-BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
-                                                     const InterconnectConfig &):
-	Block(name)
-{
-}
-
-BlockInterconnectDownward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
-	RtUpward(name),
-	InterconnectChannelReceiver(name + ".Upward", config),
+Rt::UpwardChannel<BlockInterconnectDownward>::UpwardChannel(const std::string &name, const InterconnectConfig &config):
+	Channels::Upward<UpwardChannel<BlockInterconnectDownward>>{name},
+	InterconnectChannelReceiver{name + ".Upward", config},
 	isl_index{config.isl_index}
 {
 }
 
-BlockInterconnectDownward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
-	RtDownward(name),
-	InterconnectChannelSender(name + ".Downward", config),
+
+Rt::DownwardChannel<BlockInterconnectDownward>::DownwardChannel(const std::string &name, const InterconnectConfig &config):
+	Channels::Downward<DownwardChannel<BlockInterconnectDownward>>{name},
+	InterconnectChannelSender{name + ".Downward", config},
 	isl_index{config.isl_index}
 {
-	if (config.delay == 0)
-	{
-		// No need to poll, messages are sent directly
-		polling_rate = 0;
-	}
-	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
-	{
-		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
-	}
 }
 
-bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
+
+bool Rt::DownwardChannel<BlockInterconnectDownward>::onEvent(const Event &event)
 {
-	switch(event->getType())
+	LOG(this->log_interconnect, LEVEL_ERROR,
+	    "unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockInterconnectDownward>::onEvent(const TimerEvent &event)
+{
+	if (delay != time_ms_t::zero() && event == delay_timer)
 	{
-		case EventType::Message:
-		{
-			auto msg_event = static_cast<const MessageEvent*>(event);
-			rt_msg_t message = msg_event->getMessage();
-
-			// Check if object inside
-			if(!this->send(message))
-			{
-				LOG(this->log_interconnect, LEVEL_ERROR,
-				    "error when sending data\n");
-				return false;
-			}
-		}
-		break;
-
-		case EventType::Timer:
-			if (event->getFd() == delay_timer)
-			{
-				onTimerEvent();
-			}
-			break;
-
-		default:
-			LOG(this->log_interconnect, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
-			return false;
+		return onTimerEvent();
 	}
+
+	LOG(this->log_interconnect, LEVEL_ERROR,
+	    "unknown timer event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockInterconnectDownward>::onEvent(const MessageEvent &event)
+{
+	Message message{event.getMessage<void>()};
+	message.type = event.getMessageType();
+
+	// Check if object inside
+	if(!this->send(std::move(message)))
+	{
+		LOG(this->log_interconnect, LEVEL_ERROR,
+		    "error when sending data\n");
+		return false;
+	}
+
 	return true;
 }
 
-bool BlockInterconnectDownward::Upward::onEvent(const RtEvent *const event)
+
+bool Rt::UpwardChannel<BlockInterconnectDownward>::onEvent(const Event &event)
+{
+	LOG(this->log_interconnect, LEVEL_ERROR,
+	    "unknown event received %s\n",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BlockInterconnectDownward>::onEvent(const NetSocketEvent &event)
 {
 	bool status = true;
 
-	switch(event->getType())
+	std::list<Message> messages;
+
+	LOG(this->log_interconnect, LEVEL_DEBUG,
+	    "NetSocket event received\n");
+
+	// Receive messages
+	if(!this->receive(event, messages))
 	{
-		case EventType::NetSocket:
+		LOG(this->log_interconnect, LEVEL_ERROR,
+		    "error when receiving data on input channel\n");
+		status = false;
+	}
+	// Iterate over received messages
+	for(auto&& message : messages)
+	{
+		// Send message to the next block
+		if(!this->enqueueMessage(message.release<void>(), message.type))
 		{
-			std::list<rt_msg_t> messages;
-
-			LOG(this->log_interconnect, LEVEL_DEBUG,
-			    "NetSocket event received\n");
-
-			// Receive messages
-			if(!this->receive((NetSocketEvent *)event, messages))
-			{
-				LOG(this->log_interconnect, LEVEL_ERROR,
-				    "error when receiving data on input channel\n");
-				status = false;
-			}
-			// Iterate over received messages
-			for(std::list<rt_msg_t>::iterator it = messages.begin();
-			    it != messages.end(); it++)
-			{
-				// Send message to the next block
-				if(!this->enqueueMessage((void **)(&it->data),
-				                          it->length, it->type))
-				{
-					LOG(this->log_interconnect, LEVEL_ERROR,
-					    "failed to send message to next block\n");
-					status = false;
-				}
-			}
-		}
-		break;
-
-		default:
 			LOG(this->log_interconnect, LEVEL_ERROR,
-			    "unknown event received %s\n",
-			    event->getName().c_str());
-			return false;
+			    "failed to send message to next block\n");
+			status = false;
+		}
 	}
 
 	return status;
 }
 
-bool BlockInterconnectDownward::onInit(void)
+
+bool BlockInterconnectDownward::onInit()
 {
 	// Register log
 	this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, "InterconnectDownward.block");
 	return true;
 }
 
-bool BlockInterconnectDownward::Upward::onInit(void)
+
+bool Rt::UpwardChannel<BlockInterconnectDownward>::onInit()
 {
 	std::string name="UpwardInterconnectChannel";
 	unsigned int stack;
@@ -198,7 +192,8 @@ bool BlockInterconnectDownward::Upward::onInit(void)
 	return true;
 }
 
-bool BlockInterconnectDownward::Downward::onInit()
+
+bool Rt::DownwardChannel<BlockInterconnectDownward>::onInit()
 {
 	unsigned int stack;
 	unsigned int rmem;
@@ -218,129 +213,129 @@ bool BlockInterconnectDownward::Downward::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
+	if (delay == time_ms_t::zero())
+	{
+		// No need to poll, messages are sent directly
+		return true;
+	}
 
+	time_ms_t polling_rate;
+	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	{
+		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
+		return false;
+	}
+
+	delay_timer = this->addTimerEvent(name + ".delay_timer", ArgumentWrapper(polling_rate));
 	return true;
 }
 
-BlockInterconnectUpward::BlockInterconnectUpward(const std::string &name,
-                                                 const InterconnectConfig &):
-	Block(name)
-{
-}
 
-BlockInterconnectUpward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
-	RtUpward(name),
-	InterconnectChannelSender(name + ".Upward", config),
-	isl_index{config.isl_index}
-{
-	if (config.delay == 0)
-	{
-		// No need to poll, messages are sent directly
-		polling_rate = 0;
-	}
-	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
-	{
-		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
-	}
-}
-
-BlockInterconnectUpward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
-	RtDownward(name),
-	InterconnectChannelReceiver(name + ".Downward", config),
+Rt::UpwardChannel<BlockInterconnectUpward>::UpwardChannel(const std::string &name, const InterconnectConfig &config):
+	Channels::Upward<UpwardChannel<BlockInterconnectUpward>>{name},
+	InterconnectChannelSender{name + ".Upward", config},
 	isl_index{config.isl_index}
 {
 }
 
-bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)
+
+Rt::DownwardChannel<BlockInterconnectUpward>::DownwardChannel(const std::string &name, const InterconnectConfig &config):
+	Channels::Downward<DownwardChannel<BlockInterconnectUpward>>{name},
+	InterconnectChannelReceiver{name + ".Downward", config},
+	isl_index{config.isl_index}
+{
+}
+
+
+bool Rt::DownwardChannel<BlockInterconnectUpward>::onEvent(const Event& event)
+{
+	LOG(this->log_interconnect, LEVEL_ERROR,
+	    "unknown event received %s\n",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockInterconnectUpward>::onEvent(const NetSocketEvent& event)
 {
 	bool status = true;
 
-	switch(event->getType())
+	std::list<Message> messages;
+
+	LOG(this->log_interconnect, LEVEL_DEBUG,
+	    "NetSocket event received\n");
+
+	// Receive messages
+	if(!this->receive(event, messages))
 	{
-		case EventType::NetSocket:
+		LOG(this->log_interconnect, LEVEL_ERROR,
+		    "error when receiving data on input channel\n");
+		status = false;
+	}
+	// Iterate over received messages
+	for(auto &&message : messages)
+	{
+		// Send message to the next block
+		if(!this->enqueueMessage(message.release<void>(), message.type))
 		{
-			std::list<rt_msg_t> messages;
-
-			LOG(this->log_interconnect, LEVEL_DEBUG,
-			    "NetSocket event received\n");
-
-			// Receive messages
-			if(!this->receive((NetSocketEvent *)event, messages))
-			{
-				LOG(this->log_interconnect, LEVEL_ERROR,
-				    "error when receiving data on input channel\n");
-				status = false;
-			}
-			// Iterate over received messages
-			for(std::list<rt_msg_t>::iterator it = messages.begin();
-			    it != messages.end(); it++)
-			{
-				// Send message to the next block
-				if(!this->enqueueMessage((void **)(&it->data),
-				                         it->length, it->type))
-				{
-					LOG(this->log_interconnect, LEVEL_ERROR,
-					    "failed to send message to next block\n");
-					status = false;
-				}
-			}
-		}
-		break;
-
-		default:
 			LOG(this->log_interconnect, LEVEL_ERROR,
-			    "unknown event received %s\n",
-			    event->getName().c_str());
-			return false;
+			    "failed to send message to next block\n");
+			status = false;
+		}
 	}
 
 	return status;
 }
 
-bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
+
+bool Rt::UpwardChannel<BlockInterconnectUpward>::onEvent(const Event &event)
 {
-	switch(event->getType())
+	LOG(this->log_interconnect, LEVEL_ERROR,
+	    "unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BlockInterconnectUpward>::onEvent(const TimerEvent &event)
+{
+	if (delay != time_ms_t::zero() && event == delay_timer)
 	{
-		case EventType::Message:
-		{
-			auto msg_event = static_cast<const MessageEvent*>(event);
-			rt_msg_t message = msg_event->getMessage();
+		return onTimerEvent();
+	}
 
-			// Check if object inside
-			if(!this->send(message))
-			{
-				LOG(this->log_interconnect, LEVEL_ERROR,
-				    "error when sending data\n");
-				return false;
-			}
-		}
-		break;
+	LOG(this->log_interconnect, LEVEL_ERROR,
+	    "unknown timer event received %s",
+	    event.getName().c_str());
+	return false;
+}
 
-		case EventType::Timer:
-			if (event->getFd() == delay_timer)
-			{
-				onTimerEvent();
-			}
-			break;
 
-		default:
-			LOG(this->log_interconnect, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
-			return false;
+bool Rt::UpwardChannel<BlockInterconnectUpward>::onEvent(const MessageEvent &event)
+{
+	Message message{event.getMessage<void>()};
+	message.type = event.getMessageType();
+
+	// Check if object inside
+	if(!this->send(std::move(message)))
+	{
+		LOG(this->log_interconnect, LEVEL_ERROR,
+		    "error when sending data\n");
+		return false;
 	}
 	return true;
 }
 
-bool BlockInterconnectUpward::onInit(void)
+
+bool BlockInterconnectUpward::onInit()
 {
 	// Register log 
 	this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, "InterconnectUpward.block");
 	return true;
 }
 
-bool BlockInterconnectUpward::Upward::onInit(void)
+
+bool Rt::UpwardChannel<BlockInterconnectUpward>::onInit()
 {
 	unsigned int stack;
 	unsigned int rmem;
@@ -360,12 +355,25 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
+	if (delay == time_ms_t::zero())
+	{
+		// No need to poll, messages are sent directly
+		return true;
+	}
 
+	time_ms_t polling_rate;
+	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	{
+		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
+		return false;
+	}
+
+	delay_timer = this->addTimerEvent(name + ".delay_timer", ArgumentWrapper(polling_rate));
 	return true;
 }
 
-bool BlockInterconnectUpward::Downward::onInit()
+
+bool Rt::DownwardChannel<BlockInterconnectUpward>::onInit()
 {
 	std::string name="DownwardInterconnectChannel";
 	unsigned int stack;

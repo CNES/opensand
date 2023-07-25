@@ -39,7 +39,12 @@
 #define FILE_EVENT_H
 
 #include "RtEvent.h"
+#include "Data.h"
 #include "Types.h"
+
+
+namespace Rt
+{
 
 
 /**
@@ -47,7 +52,7 @@
   * @brief Events describing data received on a nework socket
   *
   */
-class FileEvent: public RtEvent
+class FileEvent: public Event
 {
  public:
 	/**
@@ -59,38 +64,38 @@ class FileEvent: public RtEvent
 	 */
 	FileEvent(const std::string &name,
 	          int32_t fd = -1,
-	          size_t max_size = MAX_SOCK_SIZE,
-	          uint8_t priority = 5,
-	          EventType type = EventType::File);
-	~FileEvent();
-
+	          std::size_t max_size = MAX_SOCK_SIZE,
+	          uint8_t priority = 5);
 
 	/**
 	 * @brief Get the message content
 	 *
 	 * @return the data contained in the message
 	 */
-	 virtual unsigned char *getData(void) const;
+	Data getData() const;
 
 	/*
 	 * @brief Get the size of data in the message
 	 *
 	 * @return the size of data in the message
 	 */
-	inline std::size_t getSize(void) const { return this->size; };
+	inline Data::size_type getSize() const { return this->data.size(); };
 
-	bool handle(void) override;
+	bool handle() override;
 
  protected:
 	/// The maximum size of received data
 	std::size_t max_size;
 
 	/// data pointer
-	mutable unsigned char *data;
+	mutable Data data;
 
-	/// data size
-	std::size_t size;
+ private:
+	bool advertiseEvent(ChannelBase& channel) override;
 };
+
+
+}; // namespace Rt
 
 
 #endif

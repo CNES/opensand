@@ -47,8 +47,8 @@ SlottedAlohaAlgoCrdsa::~SlottedAlohaAlgoCrdsa()
 {
 }
 
-uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
-                                                 saloha_packets_data_t *accepted_packets)
+uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, std::shared_ptr<Slot>> &slots,
+                                                 saloha_packets_data_t &accepted_packets)
 {
 	std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
 	uint16_t nbr_collisions = 0;
@@ -63,7 +63,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 		stop = true;
 		for(auto&& slot_it : slots)
 		{
-			Slot *slot = slot_it.second;
+			std::shared_ptr<Slot> slot = slot_it.second;
 			if(!slot->size())
 			{
 				continue;
@@ -91,15 +91,6 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 				             packet->getUniqueId()) != accepted_ids[tal_id].end())
 				{
 					slot->erase(pkt_it);
-					// avoid removing an accepted packet
-					/*
-					if(std::find(accepted_packets->begin(),
-					             accepted_packets->end(),
-					             packet) == accepted_packets->end())
-					{
-						delete packet;
-					}
-					*/
 					// erase goes to next iterator
 					continue;
 				}
@@ -120,7 +111,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 				}
 
 				accepted_ids[tal_id].push_back(packet->getUniqueId());
-				accepted_packets->push_back(std::move(packet));
+				accepted_packets.push_back(std::move(packet));
 				// packet is decoded, we need to restart the check all slots
 				// to remove the signal of this packet when a duplicate was found
 				stop = false;
@@ -140,7 +131,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 
 	for(auto&& slot_it : slots)
 	{
-		Slot *slot = slot_it.second;
+		std::shared_ptr<Slot> slot = slot_it.second;
 		// check for collisions here, we do not count collisions that were avoided
 		if(slot->size() > 1)
 		{

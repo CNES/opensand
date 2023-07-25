@@ -38,15 +38,16 @@
 #ifndef STACK_CONTEXT_H
 #define STACK_CONTEXT_H
 
-#include <memory>
-#include <vector>
 #include <map>
+#include <vector>
+
+#include <opensand_rt/Ptr.h>
+#include <opensand_rt/Data.h>
 
 #include "OpenSandPlugin.h"
 #include "OpenSandCore.h"
 
 
-class Data;
 class NetBurst;
 class NetContainer;
 class NetPacket;
@@ -77,7 +78,7 @@ public:
 		/**
 		 * @brief StackPacketHandler destructor
 		 */
-		virtual ~StackPacketHandler();
+		virtual ~StackPacketHandler() = default;
 
 		/**
 		 * @brief get the packet length if constant
@@ -97,7 +98,7 @@ public:
 		 *
 		 * @return The packet
 		 */
-		virtual std::unique_ptr<NetPacket> build(const Data &data,
+		virtual Rt::Ptr<NetPacket> build(const Rt::Data &data,
 		                                         std::size_t data_length,
 		                                         uint8_t qos,
 		                                         uint8_t src_tal_id,
@@ -149,11 +150,11 @@ public:
 		 *
 		 * @return  true if success, false otherwise
 		 */
-		virtual bool encapNextPacket(std::unique_ptr<NetPacket> packet,
+		virtual bool encapNextPacket(Rt::Ptr<NetPacket> packet,
 		                             std::size_t remaining_length,
 		                             bool new_burst,
-		                             std::unique_ptr<NetPacket> &encap_packet,
-		                             std::unique_ptr<NetPacket> &remaining_data) = 0;
+		                             Rt::Ptr<NetPacket> &encap_packet,
+		                             Rt::Ptr<NetPacket> &remaining_data) = 0;
 
 		/**
 		 * @brief Get encapsulated packet from payload
@@ -164,9 +165,9 @@ public:
 		 * @param[out] decap_packets      The list of decapsulated packet
 		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
 		 */
-		virtual bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
+		virtual bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
 		                                    bool &partial_decap,
-		                                    std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                                    std::vector<Rt::Ptr<NetPacket>> &decap_packets,
 		                                    unsigned int decap_packet_count = 0) = 0;
 
 		/**
@@ -198,13 +199,12 @@ public:
 		/**
 		 * @brief StackContext destructor
 		 */
-		virtual ~StackContext();
+		virtual ~StackContext() = default;
 
 		/**
 		 * Encapsulate some packets into one or several packets.
 		 * The function returns a context ID and expiration time map.
 		 * It's the caller charge to arm the timers to manage contextis expiration.
-		 * It's also the caller charge to delete the returned NetBurst after use.
 		 *
 		 * @param burst        the packets to encapsulate
 		 * @param time_contexts a map of time and context ID where:
@@ -214,8 +214,8 @@ public:
 		 *                         the context ID expires
 		 * @return              a list of packets
 		 */
-		virtual NetBurst *encapsulate(NetBurst *burst,
-		                              std::map<long, int> &time_contexts) = 0;
+		virtual Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst,
+		                                      std::map<long, int> &time_contexts) = 0;
 
 		/**
 		 * Encapsulate some packets into one or several packets for contexts with
@@ -224,16 +224,15 @@ public:
 		 * @param burst  the packets to encapsulate
 		 * @return       a list of packets
 		 */
-		virtual NetBurst *encapsulate(NetBurst *burst);
+		virtual Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst);
 
 		/**
 		 * Deencapsulate some packets into one or several packets.
-		 * It's the caller charge to delete the returned NetBurst after use.
 		 *
 		 * @param burst   the stack packets to deencapsulate
 		 * @return        a list of packets
 		 */
-		virtual NetBurst *deencapsulate(NetBurst *burst) = 0;
+		virtual Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst) = 0;
 
 		/** @brief Get the list of protocols that can be encapsulated
 		 *
@@ -254,14 +253,14 @@ public:
 		 * @param pkt_hdl  The encapsulated packet handler
 		 * @return true if this type of packet can be encapsulated, false otherwise
 		 */
-		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl);
+		virtual bool setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl);
 
 		/**
 		 * @brief Update statistics periodically
 		 *
 		 * @param period  The time interval bewteen two updates
 		 */
-		virtual void updateStats(unsigned int period);
+		virtual void updateStats(const time_ms_t &period);
 
 		/**
 		 * @brief Get the name of the plugin
@@ -280,11 +279,11 @@ public:
 		 * @param dst_tal_id  The destination terminal ID to associate with the packet
 		 * @return the packet on success, NULL otherwise
 		 */
-		std::unique_ptr<NetPacket> createPacket(const Data &data,
-		                                        std::size_t data_length,
-		                                        uint8_t qos,
-		                                        uint8_t src_tal_id,
-		                                        uint8_t dst_tal_id);
+		Rt::Ptr<NetPacket> createPacket(const Rt::Data &data,
+		                                std::size_t data_length,
+		                                uint8_t qos,
+		                                uint8_t src_tal_id,
+		                                uint8_t dst_tal_id);
 
 		/**
 		 * @brief perform some plugin initialization
@@ -295,7 +294,7 @@ public:
 
 	protected:
 		/// the current upper encapsulation protocol EtherType
-		StackPlugin::StackPacketHandler *current_upper;
+		std::shared_ptr<StackPlugin::StackPacketHandler> current_upper;
 
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
@@ -314,21 +313,21 @@ public:
 	/**
 	 * @brief StackPlugin destructor
 	 */
-	virtual ~StackPlugin();
+	virtual ~StackPlugin() = default;
 
 	/**
 	 * @brief Get the encapsulation context
 	 *
 	 * @return the context
 	 */
-	StackContext *getContext() const;
+	std::shared_ptr<StackContext> getContext() const;
 
 	/**
 	 * @brief Get the encapsulation packet handler
 	 *
 	 * @return the packet handler
 	 */
-	StackPacketHandler *getPacketHandler() const;
+	std::shared_ptr<StackPacketHandler> getPacketHandler() const;
 
 	/**
 	 * @brief Get The plugin name
@@ -346,8 +345,8 @@ public:
 	static OpenSandPlugin *create(const std::string &name)
 	{
 		Plugin *plugin = new Plugin();
-		Context *context = new Context(*plugin);
-		Handler *handler = new Handler(*plugin);
+		auto context = std::make_shared<Context>(*plugin);
+		auto handler = std::make_shared<Handler>(*plugin);
 		plugin->context = context;
 		plugin->packet_handler = handler;
 		plugin->name = name;
@@ -385,17 +384,14 @@ protected:
 	std::vector<std::string> upper;
 
 	/// The context
-	StackContext *context;
+	std::shared_ptr<StackContext> context;
 
 	/// The packet handler
-	StackPacketHandler *packet_handler;
+	std::shared_ptr<StackPacketHandler> packet_handler;
 
 	/// Output Logs
 	std::shared_ptr<OutputLog> log;
 };
-
-
-using stack_contexts_t = std::vector<StackPlugin::StackContext *>;
 
 
 /// Define the function that will create the plugin class

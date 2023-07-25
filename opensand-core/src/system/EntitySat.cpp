@@ -35,8 +35,8 @@
  *
  *  ┌───────────────────────┐
  *  │         ISLs          │   Collection of LanAdaptation and/or Interconnect
- *  └─────┬──────────▲──────┘
- *  ┌─────▼──────────┴──────┐
+ *  └─────┬─┬─┬────▲─▲─▲────┘
+ *  ┌─────▼─▼─▼────┴─┴─┴────┐
  *  │  BlockSatDispatcher   │
  *  └──┬────▲───────┬────▲──┘
  *  ┌──▼────┴──┐ ┌──▼────┴──┐
@@ -59,18 +59,24 @@
 #include <numeric>
 #include <functional>
 
+#include <opensand_rt/Rt.h>
+
 #include "EntitySat.h"
 #include "OpenSandModelConf.h"
 
+#include "PacketSwitch.h"
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 #include "BlockDvbNcc.h"
 #include "BlockDvbTal.h"
-#include "BlockEncap.h"
 #include "BlockInterconnect.h"
 #include "BlockLanAdaptation.h"
 #include "BlockPhysicalLayer.h"
 #include "BlockSatCarrier.h"
 #include "BlockSatDispatcher.h"
 #include "BlockSatAsymetricHandler.h"
+#include "DvbS2Std.h"
+#include "Ethernet.h"
 
 
 EntitySat::EntitySat(tal_id_t instance_id):
@@ -91,9 +97,9 @@ bool EntitySat::createSpecificBlocks()
 		SatDispatcherConfig sat_dispatch_cfg;
 		sat_dispatch_cfg.entity_id = instance_id;
 		sat_dispatch_cfg.isl_enabled = this->isl_enabled;
-		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
+		auto& block_sat_dispatch = Rt::Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
-		int isl_delay = 0;
+		uint32_t isl_delay = 0;
 		if (isl_enabled)
 		{
 			auto isl_conf = Conf->getProfileData("isl");
@@ -112,11 +118,11 @@ bool EntitySat::createSpecificBlocks()
 				{
 					InterconnectConfig interco_cfg{
 						.interconnect_addr = cfg.interco_addr,
-						.delay = static_cast<uint32_t>(isl_delay),
+						.delay = time_ms_t(isl_delay),
 						.isl_index = index,
 					};
-					auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
-					Rt::connectBlocks(block_interco, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = false});
+					auto& block_interco = Rt::Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
+					Rt::Rt::connectBlocks(block_interco, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = false});
 				}
 					break;
 				case IslType::LanAdaptation:
@@ -124,13 +130,13 @@ bool EntitySat::createSpecificBlocks()
 					bool is_used_for_isl = instance_id != cfg.linked_sat_id;
 					la_specific la_cfg{
 						.tap_iface = cfg.tap_iface,
-						.delay = static_cast<uint32_t>(isl_delay),
+						.delay = time_ms_t(isl_delay),
 						.connected_satellite = cfg.linked_sat_id,
 						.is_used_for_isl = is_used_for_isl,
-						.packet_switch = new SatellitePacketSwitch{instance_id, is_used_for_isl, getIslEntities(spot_topo)},
+						.packet_switch = std::make_shared<SatellitePacketSwitch>(instance_id, is_used_for_isl, getIslEntities(spot_topo)),
 					};
-					auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>(is_used_for_isl ? "Lan_Adaptation.Isl" : "Lan_Adaptation", la_cfg);
-					Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = true});
+					auto& block_lan_adapt = Rt::Rt::createBlock<BlockLanAdaptation>(is_used_for_isl ? "Lan_Adaptation.Isl" : "Lan_Adaptation", la_cfg);
+					Rt::Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = true});
 				}
 					break;
 				case IslType::None:
@@ -184,7 +190,7 @@ bool EntitySat::createSpecificBlocks()
 }
 
 template <typename Dvb>
-bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
+bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
                             spot_id_t spot_id,
                             Component destination,
                             RegenLevel forward_regen_level,
@@ -216,7 +222,7 @@ bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 	specific.tal_id = instance_id;
 	specific.spot_id = spot_id;
 	specific.destination_host = destination;
-	auto block_sc = Rt::createBlock<BlockSatCarrier>("Sat_Carrier." + suffix, specific);
+	auto& block_sc = Rt::Rt::createBlock<BlockSatCarrier>("Sat_Carrier." + suffix, specific);
 
 	if (forward_regen_level != RegenLevel::Transparent || return_regen_level != RegenLevel::Transparent)
 	{
@@ -224,6 +230,8 @@ bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 		dvb_spec.disable_acm_loop = false;
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = spot_id;
+		dvb_spec.is_ground_entity = false;
+		dvb_spec.upper_encap = Ethernet::constructPlugin();
 		if (!OpenSandModelConf::Get()->getControlPlaneDisabled(dvb_spec.disable_control_plane))
 		{
 			DFLTLOG(LEVEL_ERROR,
@@ -231,12 +239,6 @@ bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 			        this->getName().c_str());
 			return false;
 		}
-
-		EncapConfig encap_config;
-		encap_config.entity_id = instance_id;
-		encap_config.entity_type = destination == Component::gateway ? Component::terminal : Component::gateway;
-		encap_config.filter_packets = false;
-		encap_config.scpc_enabled = true;
 
 		PhyLayerConfig phy_config;
 		phy_config.mac_id = instance_id;
@@ -247,19 +249,17 @@ bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 		asym_config.phy_config = phy_config;
 		asym_config.is_transparent = is_transparent;
 
-		auto block_encap = Rt::createBlock<BlockEncap>("Encap." + suffix, encap_config);
-		auto block_dvb = Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
-		auto block_asym = Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);
+		auto& block_dvb = Rt::Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
+		auto& block_asym = Rt::Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);
 
-		Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination, false});
-		Rt::connectBlocks(block_encap, block_dvb);
-		Rt::connectBlocks(block_dvb, block_asym, false);
-		Rt::connectBlocks(block_sat_dispatch, block_asym, true, {spot_id, destination, true});
-		Rt::connectBlocks(block_asym, block_sc);
+		Rt::Rt::connectBlocks(block_sat_dispatch, block_dvb, {spot_id, destination, false});
+		Rt::Rt::connectBlocks(block_dvb, block_asym, false);
+		Rt::Rt::connectBlocks(block_sat_dispatch, block_asym, true, {spot_id, destination, true});
+		Rt::Rt::connectBlocks(block_asym, block_sc);
 	}
 	else
 	{
-		Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination, true});
+		Rt::Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination, true});
 	}
 
 	return true;
@@ -274,12 +274,12 @@ void defineProfileMetaModel()
 
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
-	BlockEncap::generateConfiguration();
+	BlockDvb::generateConfiguration();
 	BlockLanAdaptation::generateConfiguration();
 	GroundPhysicalChannel::generateConfiguration();
 
 	auto isl = conf->getOrCreateComponent("isl", "ISL", "Inter-satellite links");
-	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("int"), "Propagation delay for output ISL packets");
+	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("uint"), "Propagation delay for output ISL packets");
 	isl_delay->setUnit("ms");
 }
 

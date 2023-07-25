@@ -26,39 +26,24 @@
  */
 
 /**
- * @file Data.cpp
- * @brief A set of data for network packets
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @file DvbFifoTypes.h
+ * @brief Helper types for DvbFifo class
+ * @author Mathias Ettinger / Viveris Technologies
  */
 
-#include "Data.h"
+#ifndef DVD_FIFO_TYPES_H
+#define DVD_FIFO_TYPES_H
 
 
-Data::Data(): std::basic_string<unsigned char>()
-{
-}
+#include <map>
+#include <memory>
+#include "OpenSandCore.h"
 
 
-Data::Data(std::basic_string<unsigned char> string):
-	std::basic_string<unsigned char>(string)
-{
-}
+class DvbFifo;
 
 
-Data::Data(std::string string):
-	std::basic_string<unsigned char>(reinterpret_cast<const unsigned char *>(string.c_str()),
-	                                 string.size())
-{
-}
+using fifos_t = std::map<qos_t, std::unique_ptr<DvbFifo>>;
 
 
-Data::Data(const unsigned char *data, Data::size_type len):
-	std::basic_string<unsigned char>(data, len)
-{
-}
-
-
-Data::Data(Data data, Data::size_type pos, Data::size_type len):
-	std::basic_string<unsigned char>(data, pos, len)
-{
-}
+#endif

@@ -47,20 +47,18 @@
 class DamaAgentRcs2 : public DamaAgent
 {
 public:
-	DamaAgentRcs2(FmtDefinitionTable *ret_modcod_def);
-	virtual ~DamaAgentRcs2();
+	DamaAgentRcs2(const FmtDefinitionTable &ret_modcod_def);
+	virtual ~DamaAgentRcs2() = default;
 
 	// Init method
-	virtual bool init(spot_id_t spot_id);
+	bool init(spot_id_t spot_id) override;
 
 	// Inherited methods
-	virtual bool processOnFrameTick();
-	virtual bool returnSchedule(std::list<DvbFrame *> *complete_dvb_frames);
-	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
-	virtual bool hereIsTTP(Ttp *ttp);
-	virtual bool buildSAC(ReturnAccessType cr_type,
-	                      Sac *sac,
-	                      bool &emtpy);
+	bool processOnFrameTick() override;
+	bool returnSchedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames) override;
+	bool hereIsSOF(time_sf_t superframe_number_sf) override;
+	bool hereIsTTP(Rt::Ptr<Ttp> ttp) override;
+	bool buildSAC(ReturnAccessType cr_type, Rt::Ptr<Sac> &sac, bool &emtpy) override;
 
 protected:
 	/** Number of allocated timeslots  */
@@ -76,19 +74,19 @@ protected:
 	vol_b_t burst_length_b;
 
 	/** Circular buffer to store previous RBDC requests */
-	CircularBuffer *rbdc_request_buffer;
+	std::unique_ptr<CircularBuffer> rbdc_request_buffer;
 
 	/** Uplink Scheduling functions */
-	ReturnSchedulingRcs2 *ret_schedule;
+	std::unique_ptr<ReturnSchedulingRcs2> ret_schedule;
 
 	/** Unit converter */
-	UnitConverter *converter;
+	std::unique_ptr<UnitConverter> converter;
 
 	/** RBDC timer */
 	time_sf_t rbdc_timer_sf;
 
 	/** The MODCOD definition table for return link */
-	FmtDefinitionTable * ret_modcod_def;
+	const FmtDefinitionTable &ret_modcod_def;
 	
 	/** The current MODCOD id read in TTP, this is used to inform sat and gw upon
 	 *  frames reception instead of keeping TTP contexts.

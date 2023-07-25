@@ -43,19 +43,30 @@
 #include <memory>
 
 #include "Types.h"
-#include "TimerEvent.h"
+#include "TemplateHelper.h"
 
 
-class Block;
-class RtFifo;
-class RtEvent;
 class OutputLog;
+
+
+namespace Rt
+{
+
+
+class Fifo;
+class Event;
+class MessageEvent;
+class TimerEvent;
+class SignalEvent;
+class FileEvent;
+class NetSocketEvent;
+class TcpListenEvent;
 
 
 //#define TIME_REPORTS
 
 /**
- * @class RtChannelBase
+ * @class ChannelBase
  * @brief Base for all channel classes
  *
  * channel direction is always relative to its position.
@@ -63,10 +74,14 @@ class OutputLog;
  * Its previous channel is the channel it will receive data from.
  *
  */
-class RtChannelBase
+class ChannelBase
 {
+#if __cplusplus < 202002L
+	template<class Bl, class Specific>
+#else
+	template<IsBlock Bl, class Specific>
+#endif
 	friend class Block;
-	friend class BlockManager;
 
  protected:
 	/// Output Log
@@ -80,30 +95,10 @@ class RtChannelBase
 	 *
 	 * @param name       The name of the block channel
 	 * @param type       The type of the block channel (upward or downward)
-	 *
 	 */
-	RtChannelBase(const std::string &name, const std::string &type);
+	ChannelBase(const std::string &name, const std::string &type);
 
-	virtual ~RtChannelBase();
-
-	/**
-	 * @brief Initialize the channel
-	 *        Can be use to initialize elements specific to a channel
-	 *
-	 * @warning: called at the end of initialization, if you have to do some
-	 *           processing, you can do them here
-	 *
-	 * @return true on success, false otherwise
-	 */
-	virtual bool onInit(void) {return true;};
-
-	/**
-	 * @param Process an event
-	 *
-	 * @param event  The event
-	 * @return true on success, false otherwise
-	 */
-	virtual bool onEvent(const RtEvent *const event) = 0;
+	virtual ~ChannelBase();
 
  public:
 	/**
@@ -228,26 +223,50 @@ class RtChannelBase
 	/**
 	 * @brief Transmit a message to the opposite channel (in the same block)
 	 *
-	 * @param data  IN: A pointer on the  message to enqueue
-	 *              OUT: NULL
-	 * @param size  The size of data in message
+	 * @param data  A pointer on the  message to enqueue
 	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool shareMessage(void **data, size_t size=0, uint8_t type=0);
+	bool shareMessage(Ptr<void> data, uint8_t type);
+
+	/**
+	 * @brief Initialize the channel
+	 *        Can be use to initialize elements specific to a channel
+	 *
+	 * @warning: called at the end of initialization, if you have to do some
+	 *           processing, you can do them here
+	 *
+	 * @return true on success, false otherwise
+	 */
+	virtual bool onInit();
+
+	/**
+	 * @param Process an event
+	 *
+	 * @param event  The event
+	 * @return true on success, false otherwise
+	 */
+	virtual bool onEvent(const Event& event);
+	virtual bool onEvent(const MessageEvent& event);
+	virtual bool onEvent(const TimerEvent& event);
+	virtual bool onEvent(const SignalEvent& event);
+	virtual bool onEvent(const FileEvent& event);
+	virtual bool onEvent(const NetSocketEvent& event);
+	virtual bool onEvent(const TcpListenEvent& event);
 
  protected:
 	/**
 	 * @brief Internal channel initialization
 	 *        Call specific onInit function
 	 *
+	 * @param stop_fd  file descriptor to the stop signals listener
 	 * @return true on success, false otherwise
 	 */
-	bool init(void);
+	bool init(int stop_fd);
 
 	virtual bool initPreviousFifo() = 0;
 
-	bool initSingleFifo(std::shared_ptr<RtFifo> &fifo);
+	bool initSingleFifo(std::shared_ptr<Fifo> &fifo);
 
 	/**
 	 * @brief Set the block initialization status
@@ -262,7 +281,7 @@ class RtChannelBase
 	 * @param in_fifo   The fifo for incoming messages
 	 * @param out_fifo  The fifo for outgoing messages
 	 */
-	void setOppositeFifo(std::shared_ptr<RtFifo> &in_fifo, std::shared_ptr<RtFifo> &out_fifo);
+	void setOppositeFifo(std::shared_ptr<Fifo> &in_fifo, std::shared_ptr<Fifo> &out_fifo);
 
 	/**
 	 * @brief Add a message  event to the channel
@@ -272,19 +291,16 @@ class RtChannelBase
 	 * @param opposite  Whether this is a message for opposite channels
 	 * @return true on success, false otherwise
 	 */
-	bool addMessageEvent(std::shared_ptr<RtFifo> &fifo, uint8_t priority = 6, bool opposite = false);
+	bool addMessageEvent(std::shared_ptr<Fifo> &fifo, uint8_t priority = 6, bool opposite = false);
 
 	/**
 	 * @brief Push a message in another channel fifo
 	 *
-	 * @param fifo  The fifo
-	 * @param data  IN: A pointer on the message to enqueue
-	 *              OUT: NULL
-	 * @param size  The size of data in message
-	 * @param type  The type of message
+	 * @param fifo    The fifo
+	 * @param message The message to enqueue
 	 * @return true on success, false otherwise
 	 */
-	bool pushMessage(std::shared_ptr<RtFifo> &fifo, void **data, size_t size, uint8_t type = 0);
+	bool pushMessage(std::shared_ptr<Fifo> &fifo, Message message);
 
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)
@@ -293,7 +309,7 @@ class RtChannelBase
 	/**
 	 * @brief print statistics on events durations
 	 */
-	void getDurationsStatistics(void) const;
+	void getDurationsStatistics() const;
 #endif
 
  private:
@@ -306,21 +322,18 @@ class RtChannelBase
 	bool block_initialized;
 	
 	/// events that are currently monitored by the channel thread
-	std::map<event_id_t, std::unique_ptr<RtEvent>> events;
+	std::map<event_id_t, std::unique_ptr<Event>> events;
 
 	/// the list of new events (used to avoid updates inside the loop)
-	std::vector<std::unique_ptr<RtEvent>> new_events;
+	std::vector<std::unique_ptr<Event>> new_events;
 
 	/// the list of removed event id
 	std::vector<event_id_t> removed_events;
 
 	/// The fifo for incoming messages from opposite channel
-	std::shared_ptr<RtFifo> in_opp_fifo;
+	std::shared_ptr<Fifo> in_opp_fifo;
 	/// The fifo for outgoing messages to opposite channel
-	std::shared_ptr<RtFifo> out_opp_fifo;
-
-	/// contains the highest FD of input events
-	int32_t max_input_fd;
+	std::shared_ptr<Fifo> out_opp_fifo;
 
 	/// fd_set containing monitored input FDs
 	fd_set input_fd_set;
@@ -337,7 +350,7 @@ class RtChannelBase
 	 * @brief the loop
 	 *
 	 */
-	void executeThread(void);
+	void executeThread();
 
 	/**
 	 * @brief Add an event in event map
@@ -345,27 +358,14 @@ class RtChannelBase
 	 * @param event  The event
 	 * @return true on success, false otherwise
 	 */
-	bool addEvent(std::unique_ptr<RtEvent> event);
+	bool addEvent(std::unique_ptr<Event> event);
 
 	/**
 	 * @brief Update the events map with the new received event
 	 *        We need to do that in order to avoid modifying the event
 	 *        map while itering on it
 	 */
-	void updateEvents(void);
-
-	/**
-	 * @brief Update the maximum input fd after event removal
-	 */
-	void updateMaxFd(void);
-
-	/**
-	 * @brief Add a fd to input_fd_set
-	 *        Should be called each time the channel got a new event
-	 *
-	 * @param fd  The file descriptor to monitor
-	 */
-	void addInputFd(int32_t fd);
+	void updateEvents();
 
 	/**
 	 * @brief Get a timer
@@ -375,6 +375,9 @@ class RtChannelBase
 	 */
 	TimerEvent *getTimer(event_id_t id);
 };
+
+
+};  // namespace Rt
 
 
 #endif

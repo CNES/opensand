@@ -91,13 +91,13 @@ public:
 		 */
 		~Context();
 
-		bool init();
-		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &(time_contexts));
-		NetBurst *deencapsulate(NetBurst *burst);
-		char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet);
-		bool handleTap();
-		void updateStats(unsigned int period);
-		bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
+		bool init() override;
+		Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &time_contexts) override;
+		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst) override;
+		char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet) override;
+		bool handleTap() override;
+		void updateStats(const time_ms_t &period) override;
+		bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch) override;
 
 	protected:
 		/**
@@ -107,7 +107,7 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the Ethernet frame
 		 */
-		std::unique_ptr<NetPacket> createEthFrameData(const std::unique_ptr<NetPacket>& packet, uint8_t &evc_id);
+		Rt::Ptr<NetPacket> createEthFrameData(const Rt::Ptr<NetPacket>& packet, uint8_t &evc_id);
 
 		/**
 		 * @brief create an Ethernet frame from IP data
@@ -125,15 +125,16 @@ public:
 		 * @param desired_frame_type The frame type we want to build
 		 * @return the Ethernet frame
 		 */
-		std::unique_ptr<NetPacket> createEthFrameData(Data data,
-		                                              MacAddress mac_src, MacAddress mac_dst,
-		                                              NET_PROTO ether_type,
-		                                              uint16_t q_tci,
-		                                              uint16_t ad_tci,
-		                                              qos_t qos,
-		                                              tal_id_t src_tal_id,
-		                                              tal_id_t dst_tal_id,
-		                                              NET_PROTO desired_frame_type);
+		Rt::Ptr<NetPacket> createEthFrameData(Rt::Data data,
+		                                     const MacAddress &mac_src,
+		                                     const MacAddress &mac_dst,
+		                                     NET_PROTO ether_type,
+		                                     uint16_t q_tci,
+		                                     uint16_t ad_tci,
+		                                     qos_t qos,
+		                                     tal_id_t src_tal_id,
+		                                     tal_id_t dst_tal_id,
+		                                     NET_PROTO desired_frame_type);
 
 		/**
 		 * @brief Get the EVC corresponding to Ethernet flow
@@ -144,8 +145,8 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
-		Evc *getEvc(const MacAddress src_mac,
-		            const MacAddress dst_mac,
+		Evc *getEvc(const MacAddress &src_mac,
+		            const MacAddress &dst_mac,
 		            NET_PROTO ether_type,
 		            uint8_t &evc_id) const;
 
@@ -159,8 +160,8 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
-		Evc *getEvc(const MacAddress src_mac,
-		            const MacAddress dst_mac,
+		Evc *getEvc(const MacAddress &src_mac,
+		            const MacAddress &dst_mac,
 		            uint16_t q_tci,
 		            NET_PROTO ether_type,
 		            uint8_t &evc_id) const;
@@ -176,8 +177,8 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
-		Evc *getEvc(const MacAddress src_mac,
-		            const MacAddress dst_mac,
+		Evc *getEvc(const MacAddress &src_mac,
+		            const MacAddress &dst_mac,
 		            uint16_t q_tci,
 		            uint16_t ad_tci,
 		            NET_PROTO ether_type,
@@ -207,7 +208,7 @@ public:
 		bool initTrafficCategories();
 
 		/// The Ethernet Virtual Connections
-		std::map<uint8_t, Evc *> evc_map;
+		std::map<uint8_t, std::unique_ptr<Evc>> evc_map;
 		/// The amount of data sent per EVC between two updates
 		std::map<uint8_t, size_t> evc_data_size;
 		/// The throughput per EVC
@@ -219,10 +220,10 @@ public:
 		NET_PROTO sat_frame_type; //< The type of Ethernet frame transmitted on satellite
 
 		/// The traffic categories
-		std::map<qos_t, TrafficCategory *> category_map;
+		std::map<qos_t, std::unique_ptr<TrafficCategory>> category_map;
 
 		/// The default traffic category
-		TrafficCategory *default_category;
+		const TrafficCategory *default_category;
 	};
 
 	/**
@@ -249,11 +250,11 @@ public:
 			return length;
 		}
 
-		std::unique_ptr<NetPacket> build(const Data &data,
-		                                 std::size_t data_length,
-		                                 uint8_t qos,
-		                                 uint8_t src_tal_id,
-		                                 uint8_t dst_tal_id) const override;
+		Rt::Ptr<NetPacket> build(const Rt::Data &data,
+		                         std::size_t data_length,
+		                         uint8_t qos,
+		                         uint8_t src_tal_id,
+		                         uint8_t dst_tal_id) const override;
 
 	};
 
@@ -264,7 +265,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the type of frame
 	 */
-	static NET_PROTO getFrameType(const Data &data);
+	static NET_PROTO getFrameType(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the EtherType of a payload carried by an Ethernet frame
@@ -272,7 +273,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the EtherType
 	 */
-	static NET_PROTO getPayloadEtherType(const Data &data);
+	static NET_PROTO getPayloadEtherType(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the Q TCI from an Ethernet frame
@@ -280,7 +281,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the Q TCI
 	 */
-	static uint16_t getQTci(const Data &data);
+	static uint16_t getQTci(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the ad TCI from an Ethernet frame
@@ -288,7 +289,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the ad TCI
 	 */
-	static uint16_t getAdTci(const Data &data);
+	static uint16_t getAdTci(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the source MAC address from an Ethernet frame
@@ -296,7 +297,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the source MAC address on success, an empty sring otherwise
 	 */
-	static MacAddress getSrcMac(const Data &data);
+	static MacAddress getSrcMac(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the destination MAC address from an Ethernet frame
@@ -304,7 +305,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the destination MAC address on success, an empty sring otherwise
 	 */
-	static MacAddress getDstMac(const Data &data);
+	static MacAddress getDstMac(const Rt::Data &data);
 
 };
 

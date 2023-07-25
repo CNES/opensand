@@ -37,15 +37,16 @@
 #ifndef PHYSICAL_LAYER_PLUGIN_H
 #define PHYSICAL_LAYER_PLUGIN_H
 
-#include "OpenSandCore.h"
-#include "OpenSandPlugin.h"
 
 #include <memory>
 #include <mutex>
-#include <string>
+
+#include <opensand_rt/Data.h>
+
+#include "OpenSandCore.h"
+#include "OpenSandPlugin.h"
 
 
-class Data;
 class OutputLog;
 enum class EmulatedMessageType: uint8_t;
 
@@ -65,13 +66,11 @@ protected:
 	double attenuation;
 
 	/* channel refreshing period */
-	time_ms_t refresh_period_ms;
+	time_ms_t refresh_period;
 
 public:
 	/**
 	 * @brief AttenuationModelPlugin constructor
-	 *
-	 * @param refresh_period_ms  the attenuation model refreshing period
 	 */
 	AttenuationModelPlugin();
 
@@ -87,7 +86,7 @@ public:
 	 * @param link        the link
 	 * @return true on success, false otherwise
 	 */
-	virtual bool init(time_ms_t refresh_period_ms, std::string link) = 0;
+	virtual bool init(time_ms_t refresh_period, std::string link) = 0;
 
 	/**
 	 * @brief Get the model current attenuation
@@ -205,7 +204,7 @@ public:
 	 *         If packet is modified by the function but should be forwarded
 	 *         to other layers return false else it will be discarded
 	 */
-	virtual bool modifyPacket(const Data &payload) = 0;
+	virtual bool modifyPacket(const Rt::Data &payload) = 0;
 
 protected:
 	/* Output log */
@@ -229,7 +228,7 @@ protected:
 	time_ms_t delay;
 
 	/* satdelay refreshing period */
-	time_ms_t refresh_period_ms;
+	time_ms_t refresh_period;
 
 private:
 	/* Mutex to prevent concurrent access to delay */

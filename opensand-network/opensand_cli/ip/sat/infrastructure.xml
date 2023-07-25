@@ -15,8 +15,21 @@
         <mac_address>TAP_MAC_GW</mac_address>
       </entity_gw>
       <entity_gw_net_acc>
+        <entity_id>0</entity_id>
+        <tap_iface>opensand_tap</tap_iface>
+        <mac_address>FF:FF:FF:00:00:01</mac_address>
+        <interconnect_params>
+          <interconnect_address>192.168.1.1</interconnect_address>
+          <interconnect_remote>192.168.1.2</interconnect_remote>
+        </interconnect_params>
       </entity_gw_net_acc>
       <entity_gw_phy>
+        <entity_id>0</entity_id>
+        <interconnect_params>
+          <interconnect_address>192.168.1.2</interconnect_address>
+          <interconnect_remote>192.168.1.1</interconnect_remote>
+        </interconnect_params>
+        <emu_address>192.168.0.1</emu_address>
       </entity_gw_phy>
       <entity_st>
         <entity_id>ST_ID</entity_id>
@@ -32,9 +45,6 @@
       <lan_adaptation>
         <level>warning</level>
       </lan_adaptation>
-      <encap>
-        <level>warning</level>
-      </encap>
       <dvb>
         <level>warning</level>
       </dvb>
@@ -73,12 +83,6 @@
           <entity_id>ST_ID</entity_id>
           <emu_address>EMU_IP_ST</emu_address>
           <mac_address>TAP_MAC_ST</mac_address>
-        </item>
-        <item>
-          <entity_id>GW_ID</entity_id>
-        </item>
-        <item>
-          <entity_id>ST_ID</entity_id>
         </item>
       </terminals>
       <default_gw>GW_ID</default_gw>

@@ -34,6 +34,8 @@
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com> / Viveris technologies
 */
 
+#include <opensand_rt/Types.h>
+
 #include "SlottedAlohaTal.h"
 #include "SlottedAlohaBackoffBeb.h"
 #include "SlottedAlohaBackoffEied.h"
@@ -42,6 +44,7 @@
 
 #include "OpenSandModelConf.h"
 #include "PhysicalLayerPlugin.h"
+#include "DvbFifo.h"
 #include "FifoElement.h"
 
 
@@ -55,7 +58,7 @@ SlottedAlohaTal::SlottedAlohaTal():
 	nb_replicas(0),
 	nb_max_retransmissions(0),
 	base_id(0),
-	backoff(NULL),
+	backoff(nullptr),
 	category(NULL),
 	dvb_fifos()
 {
@@ -74,22 +77,20 @@ void SlottedAlohaTal::generateConfiguration()
 
 	auto ra = conf->getOrCreateComponent("random_access", "Random Access");
 	Conf->setProfileReference(ra, enabled, true);
-	ra->getOrCreateParameter("timeout", "Timeout", types->getType("int"))->setUnit("slotted aloha frames");
-	ra->getOrCreateParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
-	ra->getOrCreateParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
-	ra->getOrCreateParameter("max_retry", "Max Retransmissions", types->getType("int"))->setUnit("packets");
+	ra->getOrCreateParameter("timeout", "Timeout", types->getType("ushort"))->setUnit("slotted aloha frames");
+	ra->getOrCreateParameter("replicas", "Replicas", types->getType("ushort"))->setUnit("packets");
+	ra->getOrCreateParameter("max_packets", "Max Packets", types->getType("ushort"))->setUnit("packets");
+	ra->getOrCreateParameter("max_retry", "Max Retransmissions", types->getType("ushort"))->setUnit("packets");
 	ra->getOrCreateParameter("backoff_algo", "Back Off Algorithm", types->getType("backoff_algo"));
-	ra->getOrCreateParameter("max_cw", "Max Cw", types->getType("int"))->setUnit("slotted aloha frames");
-	ra->getOrCreateParameter("backoff_multiple", "Back Off Multiple", types->getType("int"));
+	ra->getOrCreateParameter("max_cw", "Max Cw", types->getType("ushort"))->setUnit("slotted aloha frames");
+	ra->getOrCreateParameter("backoff_multiple", "Back Off Multiple", types->getType("ushort"));
 }
 
 bool SlottedAlohaTal::init(tal_id_t tal_id,
-                           TerminalCategorySaloha *category,
-                           const fifos_t &dvb_fifos,
-                           UnitConverter *converter)
+                           std::shared_ptr<TerminalCategorySaloha> category,
+                           std::shared_ptr<fifos_t> dvb_fifos,
+                           UnitConverter &converter)
 {
-	uint16_t max;
-	uint16_t multiple;
 	time_ms_t sat_delay_ms;
 	time_ms_t timeout_ms;
 	time_ms_t min_timeout_ms;
@@ -116,23 +117,19 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	auto Conf = OpenSandModelConf::Get();
 	auto saloha_section = Conf->getProfileData()->getComponent("access")->getComponent("random_access");
 
-	int nb_max_packets;
-	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_packets"), nb_max_packets))
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_packets"), this->nb_max_packets))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'random_access': missing parameter 'max packets'\n");
 		return false;
 	}
-	this->nb_max_packets = nb_max_packets;
 
-	int nb_replicas;
-	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("replicas"), nb_replicas))
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("replicas"), this->nb_replicas))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'random_access': missing parameter 'replicas'\n");
 		return false;
 	}
-	this->nb_replicas = nb_replicas;
 
 	/// check nb_max_packets
 	//  we limit maximum to the number of slots per carrier to avoid two packets to
@@ -149,14 +146,12 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		                       (this->nb_replicas * this->category->getCarriersNumber());
 	}
 
-	int timeout_saf;
-	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("timeout"), timeout_saf))
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("timeout"), this->timeout_saf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'random_access': missing parameter 'timeout'\n");
 		return false;
 	}
-	this->timeout_saf = timeout_saf;
 
 	// Get the max delay
 	if(!Conf->getCrdsaMaxSatelliteDelay(sat_delay_ms))
@@ -166,8 +161,9 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	timeout_ms = this->timeout_saf * this->frame_duration_ms * this->sf_per_saframe;
-	min_timeout_ms = 2 * sat_delay_ms + this->sf_per_saframe * this->frame_duration_ms;
+	auto sf_duration = std::chrono::duration_cast<time_ms_t>(this->frame_duration * this->sf_per_saframe);
+	timeout_ms = this->timeout_saf * sf_duration;
+	min_timeout_ms = 2 * sat_delay_ms + sf_duration;
 	if (timeout_ms <= min_timeout_ms)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -176,14 +172,12 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	int max_retry;
-	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_retry"), max_retry))
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_retry"), this->nb_max_retransmissions))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'random_access': missing parameter 'maximum retransmissions'\n");
 		return false;
 	}
-	this->nb_max_retransmissions = max_retry;
 
 	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("backoff_algo"), backoff_name))
 	{
@@ -192,36 +186,33 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	int max_cw;
-	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_cw"), max_cw))
+	uint16_t max;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_cw"), max))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'random_access': missing parameter 'max CW'\n");
 		return false;
 	}
-	max = max_cw;
 
-	int backoff_multiple;
-	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("backoff_multiple"),
-	                                            backoff_multiple))
+	uint16_t multiple;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("backoff_multiple"), multiple))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'random_access': missing parameter 'backoff multiple'\n");
 		return false;
 	}
-	multiple = backoff_multiple;
 
 	if(backoff_name == "BEB")
 	{
-		this->backoff = new SlottedAlohaBackoffBeb(max, multiple);
+		this->backoff = std::make_unique<SlottedAlohaBackoffBeb>(max, multiple);
 	}
 	else if(backoff_name == "EIED")
 	{
-		this->backoff = new SlottedAlohaBackoffEied(max, multiple);
+		this->backoff = std::make_unique<SlottedAlohaBackoffEied>(max, multiple);
 	}
 	else if(backoff_name == "MIMD")
 	{
-		this->backoff = new SlottedAlohaBackoffMimd(max, multiple);
+		this->backoff = std::make_unique<SlottedAlohaBackoffMimd>(max, multiple);
 	}
 	else
 	{
@@ -232,10 +223,9 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	}
 
 	auto output = Output::Get();
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
-		if(it->second->getAccessType() != ReturnAccessType::saloha)
+		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
 			continue;
 		}
@@ -243,41 +233,30 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		std::shared_ptr<Probe<int>> probe_wait;
 		std::shared_ptr<Probe<int>> probe_nb_drop;
 
-		probe_ret = output->registerProbe<int>(true, SAMPLE_SUM,
-		                                       "Aloha.retransmissions.%s",
-		                                       it->second->getName().c_str());
-		probe_wait = output->registerProbe<int>(true, SAMPLE_LAST,
-		                                       "Aloha.wait.%s",
-		                                       it->second->getName().c_str());
-		probe_nb_drop = output->registerProbe<int>(true, SAMPLE_SUM,
-		                                       "Aloha.drops.%s",
-		                                       it->second->getName().c_str());
-		this->probe_retransmission.emplace(it->first, probe_ret);
-		this->probe_wait_ack.emplace(it->first, probe_wait);
-		this->probe_drop.emplace(it->first, probe_nb_drop);
+		probe_ret = output->registerProbe<int>("Aloha.retransmissions." + fifo->getName(), true, SAMPLE_SUM);
+		probe_wait = output->registerProbe<int>("Aloha.wait." + fifo->getName(), true, SAMPLE_LAST);
+		probe_nb_drop = output->registerProbe<int>("Aloha.drops." + fifo->getName(), true, SAMPLE_SUM);
+		this->probe_retransmission.emplace(qos, probe_ret);
+		this->probe_wait_ack.emplace(qos, probe_wait);
+		this->probe_drop.emplace(qos, probe_nb_drop);
 	}
-	this->probe_backoff = output->registerProbe<int>(true, SAMPLE_MAX, "Aloha.backoff");
+	this->probe_backoff = output->registerProbe<int>("Aloha.backoff", true, SAMPLE_MAX);
 
 	return true;
 }
 
-SlottedAlohaTal::~SlottedAlohaTal()
-{
-	delete this->backoff;
-}
 
-std::unique_ptr<SlottedAlohaPacketData> SlottedAlohaTal::addSalohaHeader(std::unique_ptr<NetPacket> encap_packet,
-                                                                         uint16_t offset,
-                                                                         uint16_t burst_size)
+Rt::Ptr<SlottedAlohaPacketData> SlottedAlohaTal::addSalohaHeader(Rt::Ptr<NetPacket> encap_packet,
+                                                                 uint16_t offset,
+                                                                 uint16_t burst_size)
 {
-	auto sa_packet = std::unique_ptr<SlottedAlohaPacketData>(
-		new SlottedAlohaPacketData(encap_packet->getData(),
-		                           this->base_id,     // id
-		                           0,                 // ts - set after initialization
-		                           offset,            // seq
-		                           burst_size,        // pdu_nb
-		                           this->nb_replicas, // nb_replicas
-		                           this->timeout_saf));
+	auto sa_packet = Rt::make_ptr<SlottedAlohaPacketData>(encap_packet->getData(),
+		                                                  this->base_id,     // id
+		                                                  0,                 // ts - set after initialization
+		                                                  offset,            // seq
+		                                                  burst_size,        // pdu_nb
+		                                                  this->nb_replicas, // nb_replicas
+		                                                  this->timeout_saf);
 	sa_packet->setSrcTalId(encap_packet->getSrcTalId());
 	sa_packet->setQos(encap_packet->getQos());
 	LOG(this->log_saloha, LEVEL_DEBUG,
@@ -291,36 +270,33 @@ std::unique_ptr<SlottedAlohaPacketData> SlottedAlohaTal::addSalohaHeader(std::un
 }
 
 
-bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
+bool SlottedAlohaTal::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame)
 {
-	SlottedAlohaFrame *frame;
-	size_t previous_length;
-
-	// TODO static cast
-	frame = dvb_frame->operator SlottedAlohaFrame*();
-
+	auto frame = dvb_frame_upcast<SlottedAlohaFrame>(std::move(dvb_frame));
 	if(frame->getDataLength() <= 0)
 	{
 		LOG(this->log_saloha, LEVEL_DEBUG,
 		    "skip Slotted Aloha frame with no packet");
-		goto skip;
+		return true;
 	}
+
 	LOG(this->log_saloha, LEVEL_INFO,
 	    "New Slotted Aloha frame containing %u packets\n",
 	    frame->getDataLength());
 
-	previous_length = 0;
+	std::size_t previous_length = 0;
 	for(unsigned int cpt = 0; cpt < frame->getDataLength(); cpt++)
 	{
-		SlottedAlohaPacketCtrl *ctrl_pkt;
-		Data payload = frame->getPayload(previous_length);
-		size_t current_length =
-			SlottedAlohaPacketCtrl::getPacketLength(payload);
+		std::unique_ptr<SlottedAlohaPacketCtrl> ctrl_pkt;
+		Rt::Data payload = frame->getPayload(previous_length);
+		std::size_t current_length = SlottedAlohaPacketCtrl::getPacketLength(payload);
 
-		ctrl_pkt = new SlottedAlohaPacketCtrl(payload.c_str(),
-		                                      current_length);
-		previous_length += current_length;
-		if(!ctrl_pkt)
+		try
+		{
+			ctrl_pkt = std::make_unique<SlottedAlohaPacketCtrl>(payload.c_str(), current_length);
+			previous_length += current_length;
+		}
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "cannot create a Slotted Aloha control packet\n");
@@ -329,7 +305,6 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 		if(ctrl_pkt->getTerminalId() != this->tal_id)
 		{
 			// control packet for another terminal
-			delete ctrl_pkt;
 			continue;
 		}
 
@@ -341,7 +316,6 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 				bool dup = true;
 				saloha_packets_data_t::iterator packet;
 				saloha_id_t id = ctrl_pkt->getId();
-				delete ctrl_pkt;
 
 				SlottedAlohaPacket::convertPacketId(id, ids);
 				packet = this->packets_wait_ack[ids[SALOHA_ID_QOS]].begin();
@@ -384,18 +358,16 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 		}
 	}
 
-skip:
-	delete dvb_frame;
 	return true;
 }
 
-bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
+bool SlottedAlohaTal::schedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                time_sf_t sf_counter)
 {
 	uint16_t nb_retransmissions;
 	std::map<qos_t, saloha_packets_data_t>::iterator wack_it;
 	saloha_packets_data_t::iterator packet;
-	SlottedAlohaFrame *frame;
+	Rt::Ptr<SlottedAlohaFrame> frame = Rt::make_ptr<SlottedAlohaFrame>(nullptr);
 	saloha_ts_list_t ts;
 	saloha_ts_list_t::iterator i_ts;
 	uint16_t nbr_packets = 0;
@@ -482,7 +454,7 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 
 	try
 	{
-		frame = new SlottedAlohaFrameData();
+		frame = Rt::make_ptr<SlottedAlohaFrameData>();
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -503,7 +475,7 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 		auto replicas = sa_packet->getNbReplicas();
 
 		if(!this->addPacketInFrames(complete_dvb_frames,
-		                            &frame, std::move(sa_packet),
+		                            frame, std::move(sa_packet),
 		                            i_ts, qos))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
@@ -527,8 +499,7 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 	}
 
 	// Send new packets (low priority)
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
 		// the allocated slot limits the capacity
 		if(nbr_packets_total >= ts.size())
@@ -536,47 +507,43 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 			break;
 		}
 
-		qos_t qos = (*it).first;
-		DvbFifo *fifo = (*it).second;
 		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
 			continue;
 		}
-		while(fifo->getCurrentSize() &&
-		      nbr_packets_total + this->nb_replicas <= ts.size())
+		for (auto &&elem: *fifo)
 		{
-			FifoElement *elem = fifo->pop();
-			std::unique_ptr<SlottedAlohaPacketData> sa_packet = elem->getElem<SlottedAlohaPacketData>();
+			Rt::Ptr<SlottedAlohaPacketData> sa_packet = elem->releaseElem<SlottedAlohaPacketData>();
 			auto replicas = sa_packet->getNbReplicas();
 
 			if(!this->addPacketInFrames(complete_dvb_frames,
-			                            &frame, std::move(sa_packet),
+			                            frame, std::move(sa_packet),
 			                            i_ts, qos))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "failed to add a Slotted Aloha packet in data frame");
 				continue;
 			}
-			delete elem;
 			nbr_packets++;
 			nbr_packets_total += replicas;
+
+			if (nbr_packets_total + this->nb_replicas > ts.size())
+			{
+				break;
+			}
 		}
 		if(nbr_packets)
 		{
 			LOG(this->log_saloha, LEVEL_INFO,
 			    "%u packets added to Slotted Aloha frames from %s fifo\n",
-			    nbr_packets, fifo->getName().c_str());
+			    nbr_packets, fifo->getName());
 			nbr_packets = 0;
 		}
 	}
 	// add last frame in complete_dvb_frames
 	if(frame->getDataLength())
 	{
-		complete_dvb_frames.push_back((DvbFrame *)frame);
-	}
-	else
-	{
-		delete frame;
+		complete_dvb_frames.push_back(dvb_frame_downcast(std::move(frame)));
 	}
 	if(complete_dvb_frames.size())
 	{
@@ -594,15 +561,14 @@ skip:
 	}
 
 	// keep the probes refreshing
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
-		if((*it).second->getAccessType() != ReturnAccessType::saloha)
+		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
 			continue;
 		}
-		this->probe_retransmission[(*it).first]->put(0);
-		this->probe_drop[(*it).first]->put(0);
+		this->probe_retransmission[qos]->put(0);
+		this->probe_drop[qos]->put(0);
 	}
 	return true;
 }
@@ -621,12 +587,11 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 	                                       this->category->getCarriersNumber());
 
 	nb_packets = this->retransmission_packets.size();
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: *(this->dvb_fifos))
 	{
-		if((*it).second->getAccessType() == ReturnAccessType::saloha)
+		if(fifo->getAccessType() == ReturnAccessType::saloha)
 		{
-			nb_packets += (*it).second->getCurrentSize();
+			nb_packets += fifo->getCurrentSize();
 		}
 	}
 	max = std::min(nb_packets, this->nb_max_packets) * this->nb_replicas;
@@ -658,9 +623,9 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 	return time_slots;
 }
 
-bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_frames,
-                                        SlottedAlohaFrame **frame,
-                                        std::unique_ptr<SlottedAlohaPacketData> packet,
+bool SlottedAlohaTal::addPacketInFrames(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+                                        Rt::Ptr<SlottedAlohaFrame>& frame,
+                                        Rt::Ptr<SlottedAlohaPacketData> packet,
                                         saloha_ts_list_t::iterator &slot,
                                         qos_t qos)
 {
@@ -679,12 +644,12 @@ bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_fram
 	// add each replicas in the frame
 	for(uint16_t cpt = 0; cpt < nbr_replicas; cpt++)
 	{
-		if((*frame)->getFreeSpace() < packet->getTotalLength())
+		if(frame->getFreeSpace() < packet->getTotalLength())
 		{
-			complete_dvb_frames.push_back((DvbFrame *)(*frame));
+			complete_dvb_frames.push_back(dvb_frame_downcast(std::move(frame)));
 			try
 			{
-				*frame = new SlottedAlohaFrameData();
+				frame = Rt::make_ptr<SlottedAlohaFrameData>();
 			}
 			catch (const std::bad_alloc&)
 			{
@@ -695,7 +660,7 @@ bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_fram
 		}
 		packet->setTs(replicas[cpt]);
 		// This copies packet->data() so we can do with bare pointers for now
-		if(!(*frame)->addPacket(packet.get()))
+		if(!frame->addPacket(*packet))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "Failed to add packet into Slotted Aloha frame\n");

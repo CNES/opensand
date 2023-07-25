@@ -45,7 +45,7 @@
 
 FmtGroup::FmtGroup(unsigned int group_id,
                    std::string ids,
-                   const FmtDefinitionTable *modcod_def):
+                   const FmtDefinitionTable &modcod_def):
 	id(group_id),
 	fmt_ids(),
 	num_fmt_ids(),
@@ -60,7 +60,7 @@ FmtGroup::FmtGroup(unsigned int group_id,
 fmt_id_t FmtGroup::getNearest(fmt_id_t fmt_id) const
 {
 	std::list<FmtId>::const_reverse_iterator it; 
-	double esn0 = this->modcod_def->getRequiredEsN0(fmt_id);
+	double esn0 = this->modcod_def.getRequiredEsN0(fmt_id);
 	if(esn0 == 0.0)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
@@ -113,7 +113,7 @@ void FmtGroup::parse(std::string ids)
 			if(std::find(this->fmt_ids.begin(),
 			             this->fmt_ids.end(), val) == this->fmt_ids.end())
 			{
-				double esn0 = this->modcod_def->getRequiredEsN0(val);
+				double esn0 = this->modcod_def.getRequiredEsN0(val);
 				if(esn0 == 0.0)
 				{
 					LOG(this->log_fmt, LEVEL_ERROR,
@@ -139,7 +139,7 @@ void FmtGroup::parse(std::string ids)
 				if(std::find(this->fmt_ids.begin(),
 				             this->fmt_ids.end(), i) == this->fmt_ids.end())
 				{
-					double esn0 = this->modcod_def->getRequiredEsN0(i);
+					double esn0 = this->modcod_def.getRequiredEsN0(i);
 					if(esn0 == 0.0)
 					{
 						LOG(this->log_fmt, LEVEL_ERROR,
@@ -173,7 +173,7 @@ const std::list<fmt_id_t> FmtGroup::getFmtIds() const
 	return this->num_fmt_ids;
 }
 
-const FmtDefinitionTable *FmtGroup::getModcodDefinitions() const
+const FmtDefinitionTable &FmtGroup::getModcodDefinitions() const
 {
 	return this->modcod_def;
 }

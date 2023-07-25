@@ -13,14 +13,12 @@ PACKED_COMMON_CPPFLAGS = \
 	-I$(top_srcdir)/src/lan_adaptation \
 	-I$(top_srcdir)/src/interconnect \
 	-I$(top_srcdir)/src/sat_carrier \
-	-I$(top_srcdir)/src/encap \
 	-I$(top_srcdir)/src/physical_layer \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common
 
 PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/sat/libopensand_sat.la \
-	$(top_builddir)/src/encap/libopensand_encap.la \
 	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \
 	$(top_builddir)/src/dvb/libopensand_dvb.la \

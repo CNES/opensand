@@ -58,7 +58,7 @@ public:
 	 * @param  access_type     The carriers access type
 	 */
 	CarriersGroupSaloha(unsigned int carriers_id,
-	                    const FmtGroup *const fmt_group,
+	                    std::shared_ptr<const FmtGroup> fmt_group,
 	                    unsigned int ratio,
 	                    rate_symps_t rate_symps,
 	                    AccessType access_type);
@@ -87,11 +87,11 @@ public:
 	 *
 	 * @return the slots
 	 */
-	std::map<unsigned int, Slot *> getSlots(void) const;
+	const std::map<unsigned int, std::shared_ptr<Slot>> &getSlots() const;
 
 private:
 	/** The slots */
-	std::map<unsigned int, Slot *> slots;
+	std::map<unsigned int, std::shared_ptr<Slot>> slots;
 };
 
 

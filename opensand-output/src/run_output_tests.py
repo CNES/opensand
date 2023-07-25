@@ -211,7 +211,7 @@ class EnvironmentPlaneBaseTester:
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "i")
         self.assert_line("info\n")
         msg = self.get_message(MessageSendLog)
-        msg.assert_values('INFO', 'info', '[test_output.cpp:main():167] This is the info log message.')
+        msg.assert_values('INFO', 'info', '[test_output.cpp:main():172] This is the info log message.')
 
     def check_default_log(self):
         print("Test: default log")
@@ -295,7 +295,7 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "d")
         self.assert_line("debug\n")
         msg = self.get_message(MessageSendLog)
-        msg.assert_values('DEBUG', 'debug', '[test_output.cpp:main():161] This is a debug log message.')
+        msg.assert_values('DEBUG', 'debug', '[test_output.cpp:main():166] This is a debug log message.')
 
     def run(self):
         self.check_startup()

@@ -251,25 +251,60 @@ BOOST_PYTHON_MODULE(py_opensand_conf)
 		.def("from_string", &DataValue<float>::fromString)
 	;
 
-	python::class_<DataValue<int>, shared_ptr<DataValue<int>>, python::bases<Data>, boost::noncopyable>("DataInt", python::no_init)
-		.def("get", &DataValue<int>::get)
-		.def("set", &DataValue<int>::set)
-		.def("__str__", &DataValue<int>::toString)
-		.def("from_string", &DataValue<int>::fromString)
+	python::class_<DataValue<int8_t>, shared_ptr<DataValue<int8_t>>, python::bases<Data>, boost::noncopyable>("DataByte", python::no_init)
+		.def("get", &DataValue<int8_t>::get)
+		.def("set", &DataValue<int8_t>::set)
+		.def("__str__", &DataValue<int8_t>::toString)
+		.def("from_string", &DataValue<int8_t>::fromString)
 	;
 
-	python::class_<DataValue<short>, shared_ptr<DataValue<short>>, python::bases<Data>, boost::noncopyable>("DataShort", python::no_init)
-		.def("get", &DataValue<short>::get)
-		.def("set", &DataValue<short>::set)
-		.def("__str__", &DataValue<short>::toString)
-		.def("from_string", &DataValue<short>::fromString)
+	python::class_<DataValue<int16_t>, shared_ptr<DataValue<int16_t>>, python::bases<Data>, boost::noncopyable>("DataShort", python::no_init)
+		.def("get", &DataValue<int16_t>::get)
+		.def("set", &DataValue<int16_t>::set)
+		.def("__str__", &DataValue<int16_t>::toString)
+		.def("from_string", &DataValue<int16_t>::fromString)
 	;
 
-	python::class_<DataValue<long>, shared_ptr<DataValue<long>>, python::bases<Data>, boost::noncopyable>("DataLong", python::no_init)
-		.def("get", &DataValue<long>::get)
-		.def("set", &DataValue<long>::set)
-		.def("__str__", &DataValue<long>::toString)
-		.def("from_string", &DataValue<long>::fromString)
+	python::class_<DataValue<int32_t>, shared_ptr<DataValue<int32_t>>, python::bases<Data>, boost::noncopyable>("DataInt", python::no_init)
+		.def("get", &DataValue<int32_t>::get)
+		.def("set", &DataValue<int32_t>::set)
+		.def("__str__", &DataValue<int32_t>::toString)
+		.def("from_string", &DataValue<int32_t>::fromString)
+	;
+
+	python::class_<DataValue<int64_t>, shared_ptr<DataValue<int64_t>>, python::bases<Data>, boost::noncopyable>("DataLong", python::no_init)
+		.def("get", &DataValue<int64_t>::get)
+		.def("set", &DataValue<int64_t>::set)
+		.def("__str__", &DataValue<int64_t>::toString)
+		.def("from_string", &DataValue<int64_t>::fromString)
+	;
+
+	python::class_<DataValue<uint8_t>, shared_ptr<DataValue<uint8_t>>, python::bases<Data>, boost::noncopyable>("DataUnsignedByte", python::no_init)
+		.def("get", &DataValue<uint8_t>::get)
+		.def("set", &DataValue<uint8_t>::set)
+		.def("__str__", &DataValue<uint8_t>::toString)
+		.def("from_string", &DataValue<uint8_t>::fromString)
+	;
+
+	python::class_<DataValue<uint16_t>, shared_ptr<DataValue<uint16_t>>, python::bases<Data>, boost::noncopyable>("DataUnsignedShort", python::no_init)
+		.def("get", &DataValue<uint16_t>::get)
+		.def("set", &DataValue<uint16_t>::set)
+		.def("__str__", &DataValue<uint16_t>::toString)
+		.def("from_string", &DataValue<uint16_t>::fromString)
+	;
+
+	python::class_<DataValue<uint32_t>, shared_ptr<DataValue<uint32_t>>, python::bases<Data>, boost::noncopyable>("DataUnsignedInt", python::no_init)
+		.def("get", &DataValue<uint32_t>::get)
+		.def("set", &DataValue<uint32_t>::set)
+		.def("__str__", &DataValue<uint32_t>::toString)
+		.def("from_string", &DataValue<uint32_t>::fromString)
+	;
+
+	python::class_<DataValue<uint64_t>, shared_ptr<DataValue<uint64_t>>, python::bases<Data>, boost::noncopyable>("DataUnsignedLong", python::no_init)
+		.def("get", &DataValue<uint64_t>::get)
+		.def("set", &DataValue<uint64_t>::set)
+		.def("__str__", &DataValue<uint64_t>::toString)
+		.def("from_string", &DataValue<uint64_t>::fromString)
 	;
 
 	python::class_<DataValue<string>, shared_ptr<DataValue<string>>, python::bases<Data>, boost::noncopyable>("DataString", python::no_init)

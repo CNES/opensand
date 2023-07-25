@@ -38,11 +38,10 @@
 
 
 #include <list>
-#include <string>
-#include <memory>
+#include <opensand_rt/Ptr.h>
+#include <opensand_rt/Data.h>
 
 
-class Data;
 class NetPacket;
 class OutputLog;
 enum class NET_PROTO : uint16_t;
@@ -52,7 +51,7 @@ enum class NET_PROTO : uint16_t;
  * @class NetBurst
  * @brief Generic network burst
  */
-class NetBurst: public std::list<std::unique_ptr<NetPacket>>
+class NetBurst: public std::list<Rt::Ptr<NetPacket>>
 {
 protected:
 	/// The maximum number of network packets in the burst
@@ -95,7 +94,7 @@ public:
 	 * @return        true if packet was successfully added (the burst was not
 	 *                full), false otherwise
 	 */
-	bool add(std::unique_ptr<NetPacket> packet);
+	bool add(Rt::Ptr<NetPacket> packet);
 
 	/**
 	 * Is the network burst full?
@@ -118,7 +117,7 @@ public:
 	 *
 	 * @return a string with the raw content of the burst
 	 */
-	Data data() const;
+	Rt::Data data() const;
 
 	/**
 	 * Get the amount of data (in bytes) stored in the burst

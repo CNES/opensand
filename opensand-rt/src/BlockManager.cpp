@@ -50,6 +50,10 @@
 #include "RtFifo.h"
 
 
+namespace Rt
+{
+
+
 // taken from http://oroboro.com/stack-trace-on-crash/
 static inline void print_stack(unsigned int max_frames = 63)
 {
@@ -158,21 +162,19 @@ static void crash_handler(int sig)
 
 BlockManager::BlockManager():
 	stopped(false),
-	status(true)
+	status(true),
+	stop_fd(-1)
 {
 }
 
 
 BlockManager::~BlockManager()
 {
-	for(auto &&block: block_list)
-	{
-		delete block;
-	}
+	block_list.clear();
 }
 
 
-void BlockManager::stop(void)
+void BlockManager::stop()
 {
 	if(this->stopped)
 	{
@@ -193,7 +195,7 @@ void BlockManager::stop(void)
 }
 
 
-bool BlockManager::init(void)
+bool BlockManager::init()
 {
 	// TODO use that in debug mode only => option in configure.ac
 	// core dumps may be disallowed by parent of this process; change that
@@ -203,6 +205,28 @@ bool BlockManager::init(void)
 
 	// Output log
 	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "Rt");
+
+	//block all signals
+	sigset_t blocked_signals;
+	sigfillset(&blocked_signals);
+	int ret = pthread_sigmask(SIG_SETMASK, &blocked_signals, nullptr);
+	if(ret == -1)
+	{
+		Rt::reportError("manager", std::this_thread::get_id(),
+		                true, "error setting signal mask");
+		return false;
+	}
+
+	signal(SIGSEGV, crash_handler);
+	signal(SIGABRT, crash_handler);
+
+	// TODO handle SIGSTOP in threads because it breaks select
+	sigset_t signal_mask;
+	sigemptyset(&signal_mask);
+	sigaddset(&signal_mask, SIGINT);
+	sigaddset(&signal_mask, SIGQUIT);
+	sigaddset(&signal_mask, SIGTERM);
+	this->stop_fd = signalfd(-1, &signal_mask, 0);
 
 	for(auto &&block: block_list)
 	{
@@ -217,7 +241,7 @@ bool BlockManager::init(void)
 			continue;
 		}
 
-		if(!block->init())
+		if(!block->init(this->stop_fd))
 		{
 			// only return false, the block init function should call
 			// report error with critical to true
@@ -270,7 +294,7 @@ void BlockManager::reportError(const std::string& msg, bool critical)
 }
 
 
-bool BlockManager::start(void)
+bool BlockManager::start()
 {
 	//start all threads
 	for(auto &&block: block_list)
@@ -292,40 +316,14 @@ bool BlockManager::start(void)
 }
 
 
-void BlockManager::wait(void)
+void BlockManager::wait()
 {
-	sigset_t signal_mask;
 	fd_set fds;
-	int fd = -1; 
-	int ret;
-
-	sigset_t blocked_signals;
-	
-	signal(SIGSEGV, crash_handler);
-	signal(SIGABRT, crash_handler);
-
-	//block all signals
-	sigfillset(&blocked_signals);
-	ret = pthread_sigmask(SIG_SETMASK, &blocked_signals, NULL);
-	if(ret == -1)
-	{
-		Rt::reportError("manager", std::this_thread::get_id(),
-		                true, "error setting signal mask");
-		this->status = false;
-	}
-
-// TODO handle SIGSTOP in threads because it breaks select
-	sigemptyset(&signal_mask);
-	sigaddset(&signal_mask, SIGINT);
-	sigaddset(&signal_mask, SIGQUIT);
-	sigaddset(&signal_mask, SIGTERM);
-	fd = signalfd(-1, &signal_mask, 0);
-
 	FD_ZERO(&fds);
-	FD_SET(fd, &fds);
+	FD_SET(stop_fd, &fds);
 
-	ret = select(fd + 1, &fds, NULL, NULL, NULL);
-	if(ret == -1 || !FD_ISSET(fd, &fds))
+	int ret = select(stop_fd + 1, &fds, nullptr, nullptr, nullptr);
+	if(ret == -1 || !FD_ISSET(stop_fd, &fds))
 	{
 		Rt::reportError("manager", std::this_thread::get_id(),
 		                true, "select error");
@@ -333,8 +331,9 @@ void BlockManager::wait(void)
 	}
 	else if(ret)
 	{
+		this->stop();
 		struct signalfd_siginfo fdsi;
-		auto rlen = read(fd, &fdsi, sizeof(struct signalfd_siginfo));
+		auto rlen = read(stop_fd, &fdsi, sizeof(struct signalfd_siginfo));
 		if(rlen != sizeof(struct signalfd_siginfo))
 		{
 			Rt::reportError("manager", std::this_thread::get_id(),
@@ -343,7 +342,6 @@ void BlockManager::wait(void)
 		}
 		LOG(this->log_rt, LEVEL_INFO,
 		    "signal received: %d\n", fdsi.ssi_signo);
-		this->stop();
 	}
 }
 
@@ -354,39 +352,4 @@ bool BlockManager::getStatus()
 }
 
 
-void BlockManager::setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward)
-{
-	block->upward = upward;
-	block->downward = downward;
-
-	auto up_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
-	auto down_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
-
-	upward->setOppositeFifo(up_opp_fifo, down_opp_fifo);
-	downward->setOppositeFifo(down_opp_fifo, up_opp_fifo);
-
-	this->block_list.push_back(block);
-}
-
-
-bool BlockManager::checkConnectedBlocks(const Block *upper, const Block *lower)
-{
-	if (!upper)
-	{
-		LOG(log_rt, LEVEL_ERROR, "Upper block to connect is null");
-		return false;
-	}
-	if (!lower)
-	{
-		LOG(log_rt, LEVEL_ERROR, "Lower block to connect is null");
-		return false;
-	}
-	return true;
-}
-
-
-std::shared_ptr<RtFifo> BlockManager::createFifo()
-{
-	// Do we catch bad_alloc to return nullptr here?
-	return std::shared_ptr<RtFifo>{new RtFifo()};
-}
+};

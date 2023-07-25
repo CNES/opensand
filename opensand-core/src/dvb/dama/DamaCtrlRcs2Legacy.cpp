@@ -63,38 +63,27 @@ DamaCtrlRcs2Legacy::~DamaCtrlRcs2Legacy()
 
 bool DamaCtrlRcs2Legacy::init()
 {
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
-
 	if(!DamaCtrlRcs2::init())
 	{
 		return false;
 	}
 
 	// check that we have only one MODCOD per carrier
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
+	for (auto &&category_it: this->categories)
 	{
-		TerminalCategoryDama *category = (*category_it).second;
-		std::vector<CarriersGroupDama *> carriers_group;
+		std::shared_ptr<TerminalCategoryDama> category = category_it.second;
 		std::string label = category->getLabel();
 
-		carriers_group = category->getCarriersGroups();
-		if(carriers_group.size() > 1 || carriers_group[0]->getCarriersNumber() > 1)
+		for (auto &&carriers: category->getCarriersGroups())
 		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "you should only define one carrier per category "
-			    "for DVB-RCS2 Legacy DAMA\n");
-			return false;
-		}
-
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
-		{
-			CarriersGroupDama *carriers = *carrier_it;
-			if(carriers->getFmtIds().size() == 0)
+			if(carriers.getCarriersNumber() > 1)
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "you should only define one carrier per category "
+				    "for DVB-RCS2 Legacy DAMA\n");
+				return false;
+			}
+			if(carriers.getFmtIds().size() == 0)
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "you should define at least one FMT ID per FMT "
@@ -103,7 +92,7 @@ bool DamaCtrlRcs2Legacy::init()
 			}
 			// Output probes and stats
 			std::shared_ptr<Probe<int>> probe_carrier;
-			unsigned int carrier_id = carriers->getCarriersId();
+			unsigned int carrier_id = carriers.getCarriersId();
 			probe_carrier = this->generateCarrierCapacityProbe(label, carrier_id, "Available");
 			this->probes_carrier_return_capacity[label].emplace(carrier_id, probe_carrier);
 
@@ -131,29 +120,20 @@ bool DamaCtrlRcs2Legacy::computeTerminalsCraAllocation()
 {
 	bool stat = true;
 	rate_kbps_t gw_cra_request_kbps = 0;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 
 	this->gw_cra_alloc_kbps = 0;
-
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
+	for (auto &&category_it: this->categories)
 	{
-		TerminalCategoryDama *category = category_it->second;
-		std::vector<CarriersGroupDama *> carriers_group;
-		std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+		std::shared_ptr<TerminalCategoryDama> category = category_it.second;
 
 		// we can compute CRA per carriers group because a terminal
 		// is assigned to one on each frame, depending on its DRA
-		carriers_group = category->getCarriersGroups();
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
+		for (auto &&carriers: category->getCarriersGroups())
 		{
 			rate_kbps_t cra_request_kbps = 0;
 			rate_kbps_t cra_alloc_kbps = 0;
 
-			this->computeDamaCraPerCarrier(*carrier_it,
+			this->computeDamaCraPerCarrier(carriers,
 			                               category,
 				                           cra_request_kbps,
 				                           cra_alloc_kbps);
@@ -176,30 +156,20 @@ bool DamaCtrlRcs2Legacy::computeTerminalsRbdcAllocation()
 	rate_kbps_t gw_rbdc_request_kbps = 0;
 	rate_kbps_t gw_rbdc_alloc_kbps = 0;
 
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
-
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
+	for (auto &&category_it: this->categories)
 	{
-		TerminalCategoryDama *category = (*category_it).second;
-		std::vector<CarriersGroupDama *> carriers_group;
-
+		std::shared_ptr<TerminalCategoryDama> category = category_it.second;
 		// we ca compute RBDC per carriers group because a terminal
 		// is assigned to one on each frame, depending on its DRA
-		carriers_group = category->getCarriersGroups();
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
+		for (auto &&carriers: category->getCarriersGroups())
 		{
 			rate_kbps_t rbdc_request_kbps = 0;
 			rate_kbps_t rbdc_alloc_kbps = 0;
 
-			this->computeDamaRbdcPerCarrier(*carrier_it,
-			                            category,
-			                            rbdc_request_kbps,
-			                            rbdc_alloc_kbps);
+			this->computeDamaRbdcPerCarrier(carriers,
+			                                category,
+			                                rbdc_request_kbps,
+			                                rbdc_alloc_kbps);
 			gw_rbdc_request_kbps += rbdc_request_kbps;
 			gw_rbdc_alloc_kbps += rbdc_alloc_kbps;
 		}
@@ -218,28 +188,19 @@ bool DamaCtrlRcs2Legacy::computeTerminalsVbdcAllocation()
 {
 	vol_kb_t gw_vbdc_request_kb = 0;
 	vol_kb_t gw_vbdc_alloc_kb = 0;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
+	for (auto &&category_it: this->categories)
 	{
-		TerminalCategoryDama *category = (*category_it).second;
-		std::vector<CarriersGroupDama *> carriers_group;
-
-		carriers_group = category->getCarriersGroups();
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
+		std::shared_ptr<TerminalCategoryDama> category = category_it.second;
+		for (auto &&carriers: category->getCarriersGroups())
 		{
 			vol_kb_t vbdc_request_kb = 0;
 			vol_kb_t vbdc_alloc_kb = 0;
 
-			this->computeDamaVbdcPerCarrier(*carrier_it,
-			                            category,
-			                            vbdc_request_kb,
-			                            vbdc_alloc_kb);
+			this->computeDamaVbdcPerCarrier(carriers,
+			                                category,
+			                                vbdc_request_kb,
+			                                vbdc_alloc_kb);
 			gw_vbdc_request_kb += vbdc_request_kb;
 			gw_vbdc_alloc_kb += vbdc_alloc_kb;
 		}
@@ -258,8 +219,6 @@ bool DamaCtrlRcs2Legacy::computeTerminalsVbdcAllocation()
 bool DamaCtrlRcs2Legacy::computeTerminalsFcaAllocation()
 {
 	rate_kbps_t gw_fca_alloc_kbps = 0;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 	if(this->fca_kbps == 0)
 	{
@@ -268,23 +227,16 @@ bool DamaCtrlRcs2Legacy::computeTerminalsFcaAllocation()
 		return true;
 	}
 
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
+	for (auto &&category_it: this->categories)
 	{
-		TerminalCategoryDama *category = (*category_it).second;
-		std::vector<CarriersGroupDama *> carriers_group;
-
-		carriers_group = category->getCarriersGroups();
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
+		std::shared_ptr<TerminalCategoryDama> category = category_it.second;
+		for (auto &&carriers: category->getCarriersGroups())
 		{
 			rate_kbps_t fca_alloc_kbps = 0;
 
-			this->computeDamaFcaPerCarrier(*carrier_it,
-			                            category,
-			                            fca_alloc_kbps);
+			this->computeDamaFcaPerCarrier(carriers,
+			                               category,
+			                               fca_alloc_kbps);
 			gw_fca_alloc_kbps += fca_alloc_kbps;
 		}
 	}
@@ -296,8 +248,8 @@ bool DamaCtrlRcs2Legacy::computeTerminalsFcaAllocation()
 	return true;
 }
 
-void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
-                                                  const TerminalCategoryDama *category,
+void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama &carriers,
+                                                  std::shared_ptr<const TerminalCategoryDama> category,
                                                   rate_kbps_t &request_rate_kbps,
                                                   rate_kbps_t &alloc_rate_kbps)
 {
@@ -305,13 +257,9 @@ void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 	std::string label = category->getLabel();
 	std::string debug;
 
-	std::vector<TerminalContextDamaRcs *> tal;
-	TerminalContextDamaRcs *terminal;
-	unsigned int carrier_id = carriers->getCarriersId();
+	unsigned int carrier_id = carriers.getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
-	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
-	tal_id_t tal_id;
 	rate_kbps_t simu_cra_kbps = 0;
 
 	buf << "SF#" << this->current_superframe_sf << " carrier "
@@ -319,26 +267,25 @@ void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 	debug = buf.str();
 
 	// Get the remaining capacity in timeslot number (per frame)
-	remaining_capacity_pktpf = carriers->getRemainingCapacity();
-	total_capacity_pktpf = this->converter->symToPkt(carriers->getTotalCapacity());
+	remaining_capacity_pktpf = carriers.getRemainingCapacity();
+	total_capacity_pktpf = this->converter->symToPkt(carriers.getTotalCapacity());
 
 	LOG(this->log_run_dama, LEVEL_INFO,
 	    "%s remaining capacity = %u packets per superframe before CRA allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
-	tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
+	auto tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
 
 	// get total CRA allocation
-	for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+	for (auto &&terminal: tal)
 	{
 		FmtDefinition *fmt_def;
 		rate_pktpf_t cra_pktpf;
 		rate_kbps_t cra_kbps;
 
-		terminal = *tal_it;
-		tal_id = terminal->getTerminalId();
+		tal_id_t tal_id = terminal->getTerminalId();
 		fmt_def = terminal->getFmt();
-		if(fmt_def == NULL)
+		if(fmt_def == nullptr)
 		{
 			continue;
 		}
@@ -399,11 +346,11 @@ void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 	    "%s remaining capacity = %u packets per superframe after CRA allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
-	carriers->setRemainingCapacity(remaining_capacity_pktpf);
+	carriers.setRemainingCapacity(remaining_capacity_pktpf);
 }
 
-void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
-                                                   const TerminalCategoryDama *category,
+void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama &carriers,
+                                                   std::shared_ptr<const TerminalCategoryDama> category,
                                                    rate_kbps_t &request_rate_kbps,
                                                    rate_kbps_t &alloc_rate_kbps)
 {
@@ -413,14 +360,10 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	rate_kbps_t rbdc_alloc_kbps;
 	double fair_share;
 	rate_pktpf_t rbdc_alloc_pktpf = 0;
-	std::vector<TerminalContextDamaRcs *> tal;
-	TerminalContextDamaRcs *terminal;
-	unsigned int carrier_id = carriers->getCarriersId();
+	unsigned int carrier_id = carriers.getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
-	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_rbdc = 0;
-	tal_id_t tal_id;
 	std::ostringstream buf;
 	std::string label = category->getLabel();
 	std::string debug;
@@ -436,8 +379,8 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	debug = buf.str();
 
 	// Get the remaining capacity in timeslot number (per frame)
-	remaining_capacity_pktpf = carriers->getRemainingCapacity();
-	total_capacity_pktpf = this->converter->symToPkt(carriers->getTotalCapacity());
+	remaining_capacity_pktpf = carriers.getRemainingCapacity();
+	total_capacity_pktpf = this->converter->symToPkt(carriers.getTotalCapacity());
 
 	if(remaining_capacity_pktpf == 0)
 	{
@@ -451,16 +394,14 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	    "%s remaining capacity = %u packets per superframe before RBDC allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
-	tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
+	auto tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
 
 	// get total RBDC requests
-	for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+	for (auto &&terminal: tal)
 	{
-		FmtDefinition *fmt_def;
-		terminal = *tal_it;
-		tal_id = terminal->getTerminalId();
-		fmt_def = terminal->getFmt();
-		if(fmt_def == NULL)
+		tal_id_t tal_id = terminal->getTerminalId();
+		FmtDefinition *fmt_def = terminal->getFmt();
+		if(fmt_def == nullptr)
 		{
 			continue;
 		}
@@ -505,9 +446,8 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 		    "%s no RBDC request for this frame.\n", debug.c_str());
 
 		// Output stats and probes
-		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+		for (auto &&terminal: tal)
 		{
-			terminal = *tal_it;
 			tal_id_t tal_id = terminal->getTerminalId();
 			if(tal_id < BROADCAST_TAL_ID)
 			{
@@ -539,16 +479,14 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 
 	// first step : serve the integer part of the fair RBDC
 	alloc_rate_kbps = 0;
-	for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+	for (auto &&terminal: tal)
 	{
-		FmtDefinition *fmt_def;
 		rate_symps_t rbdc_alloc_symps;
 		double fair_rbdc_pktpf;
 
-		terminal = *tal_it;
-		tal_id = terminal->getTerminalId();
-		fmt_def = terminal->getFmt();
-		if(fmt_def == NULL)
+		tal_id_t tal_id = terminal->getTerminalId();
+		FmtDefinition *fmt_def = terminal->getFmt();
+		if(fmt_def == nullptr)
 		{
 			if(tal_id <= BROADCAST_TAL_ID)
 			{
@@ -603,7 +541,7 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 			// add the decimal part of the fair RBDC
 			double rbdc_credit_kbps = (fair_rbdc_pktpf - rbdc_alloc_pktpf)
 				* this->converter->getPacketBitLength()
-				/ (double)(this->converter->getFrameDuration());
+				/ (double)(this->converter->getFrameDuration().count());
 			rbdc_credit_kbps /= (fmt_def->getCodingRate());
 			terminal->addRbdcCredit(rbdc_credit_kbps);
 
@@ -623,16 +561,18 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 		// sort terminal according to their remaining credit
 		std::stable_sort(tal.begin(), tal.end(),
 		                 TerminalContextDamaRcs::sortByRemainingCredit);
-		for(tal_it = tal.begin(); tal_it != tal.end() && remaining_capacity_pktpf > 0; ++tal_it)
+		for (auto &&terminal: tal)
 		{
-			FmtDefinition *fmt_def;
+			if (remaining_capacity_pktpf <= 0)
+			{
+				break;
+			}
 			rate_kbps_t slot_kbps;
 			double credit_kbps;
 
-			terminal = *tal_it;
-			tal_id = terminal->getTerminalId();
-			fmt_def = terminal->getFmt();
-			if(fmt_def == NULL)
+			tal_id_t tal_id = terminal->getTerminalId();
+			FmtDefinition *fmt_def = terminal->getFmt();
+			if(fmt_def == nullptr)
 			{
 				continue;
 			}
@@ -679,20 +619,17 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	    "%s remaining capacity = %u packets per superframe after RBDC allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
-	carriers->setRemainingCapacity(remaining_capacity_pktpf);
+	carriers.setRemainingCapacity(remaining_capacity_pktpf);
 }
 
-void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
-                                                   const TerminalCategoryDama *category,
+void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama &carriers,
+                                                   std::shared_ptr<const TerminalCategoryDama> category,
                                                    vol_kb_t &request_vol_kb,
                                                    vol_kb_t &alloc_vol_kb)
 {
-	std::vector<TerminalContextDamaRcs *> tal;
-	TerminalContextDamaRcs *terminal;
-	unsigned int carrier_id = carriers->getCarriersId();
+	unsigned int carrier_id = carriers.getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
-	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_vbdc = 0;
 	std::ostringstream buf;
 	std::string label = category->getLabel();
@@ -706,10 +643,10 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	debug = buf.str();
 
 	// Get the remaining capacity in timeslot number (per frame)
-	remaining_capacity_pktpf = carriers->getRemainingCapacity();
-	total_capacity_pktpf = this->converter->symToPkt(carriers->getTotalCapacity());
+	remaining_capacity_pktpf = carriers.getRemainingCapacity();
+	total_capacity_pktpf = this->converter->symToPkt(carriers.getTotalCapacity());
 
-	tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
+	auto tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
 	if(remaining_capacity_pktpf == 0)
 	{
 		LOG(this->log_run_dama, LEVEL_NOTICE,
@@ -717,9 +654,8 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 		    "capacity\n", debug.c_str());
 
 		// Output stats and probes
-		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+		for (auto &&terminal: tal)
 		{
-			terminal = *tal_it;
 			tal_id_t tal_id = terminal->getTerminalId();
 			if(tal_id < BROADCAST_TAL_ID)
 			{
@@ -738,11 +674,7 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	    "%s remaining capacity = %u packets per superframe before VBDC allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
-	// sort terminal according to their VBDC requests
-	std::stable_sort(tal.begin(), tal.end(),
-	                 TerminalContextDamaRcs::sortByVbdcReq);
-	tal_it = tal.begin();
-	if(tal_it == tal.end())
+	if(tal.empty())
 	{
 		// no ST
 		return;
@@ -751,6 +683,7 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	// try to serve the required VBDC
 	// the setVbdcAllocation functions had updated the VBDC requests
 	// sort terminal according to their new VBDC requests
+	decltype(tal)::iterator tal_it;
 	std::stable_sort(tal.begin(), tal.end(),
 	                 TerminalContextDamaRcs::sortByVbdcReq);
 	for(tal_it = tal.begin(); tal_it != tal.end() && 0 < remaining_capacity_pktpf; ++tal_it)
@@ -762,10 +695,10 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 		rate_symps_t alloc_symps;
 		FmtDefinition *fmt_def;
 
-		terminal = *tal_it;
+		auto terminal = *tal_it;
 		tal_id_t tal_id = terminal->getTerminalId();
 		fmt_def = terminal->getFmt();
-		if(fmt_def == NULL)
+		if(fmt_def == nullptr)
 		{
 			// Output probes and stats
 			if(tal_id <= BROADCAST_TAL_ID)
@@ -850,7 +783,7 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	for(; tal_it != tal.end(); ++tal_it)
 	{
 		vol_kb_t request_kb;
-		terminal = *tal_it;
+		auto terminal = *tal_it;
 		request_kb = terminal->getRequiredVbdc();
 		if(request_kb > 0)
 		{
@@ -863,25 +796,22 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	    "%s remaining capacity = %u packets per superframe after VBDC allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
-	carriers->setRemainingCapacity(remaining_capacity_pktpf);
+	carriers.setRemainingCapacity(remaining_capacity_pktpf);
 }
 
 // TODO it would be better if, at the end of allocations computation,
 //      we try to move some terminals not totally served in supported carriers
 //      (in the same category and with supported MODCOD value) in which there
 //      is still capacity
-void DamaCtrlRcs2Legacy::computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
-                                                  const TerminalCategoryDama *category,
+void DamaCtrlRcs2Legacy::computeDamaFcaPerCarrier(CarriersGroupDama &carriers,
+                                                  std::shared_ptr<const TerminalCategoryDama> category,
                                                   rate_kbps_t &alloc_rate_kbps)
 {
-	std::vector<TerminalContextDamaRcs *> tal;
-	TerminalContextDamaRcs *terminal;
-	unsigned int carrier_id = carriers->getCarriersId();
+	unsigned int carrier_id = carriers.getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
 	rate_pktpf_t fca_pktpf;
 	int simu_fca = 0;
-	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
 	std::ostringstream buf;
 	std::string label = category->getLabel();
 	std::string debug;
@@ -892,16 +822,16 @@ void DamaCtrlRcs2Legacy::computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
 	    << carrier_id << ", category " << label << ":";
 	debug = buf.str();
 
-	tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
-	tal_it = tal.begin();
+	auto tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
+	auto tal_it = tal.begin();
 	if(tal_it == tal.end())
 	{
 		// no ST
 		return;
 	}
 
-	remaining_capacity_pktpf = carriers->getRemainingCapacity();
-	total_capacity_pktpf = this->converter->symToPkt(carriers->getTotalCapacity());
+	remaining_capacity_pktpf = carriers.getRemainingCapacity();
+	total_capacity_pktpf = this->converter->symToPkt(carriers.getTotalCapacity());
 
 	if(remaining_capacity_pktpf <= 0)
 	{
@@ -940,11 +870,10 @@ void DamaCtrlRcs2Legacy::computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
 	{
 		rate_pktpf_t fca_alloc_pktpf;
 		rate_kbps_t fca_alloc_kbps;
-		FmtDefinition *fmt_def;
-		terminal = *tal_it;
+		auto terminal = *tal_it;
 		tal_id_t tal_id = terminal->getTerminalId();
-		fmt_def = terminal->getFmt();
-		if(fmt_def == NULL)
+		FmtDefinition *fmt_def = terminal->getFmt();
+		if(fmt_def == nullptr)
 		{
 			continue;
 		}
@@ -995,5 +924,5 @@ void DamaCtrlRcs2Legacy::computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
 	    "%s remaining capacity = %u packets per superframe after FCA allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
-	carriers->setRemainingCapacity(remaining_capacity_pktpf);
+	carriers.setRemainingCapacity(remaining_capacity_pktpf);
 }

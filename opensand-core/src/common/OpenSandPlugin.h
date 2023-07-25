@@ -83,7 +83,7 @@ public:
 	/**
 	 * @brief Plugins destuctor
 	 */
-	virtual ~OpenSandPlugin() {};
+	virtual ~OpenSandPlugin() = default;
 
 	/**
 	 * @brief Create the plugin, this function should be called instead of constructor
