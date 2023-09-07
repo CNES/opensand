@@ -73,7 +73,8 @@
 #include "Ethernet.h"
 
 
-EntityGw::EntityGw(tal_id_t instance_id): Entity("gw" + std::to_string(instance_id), instance_id)
+EntityGw::EntityGw(tal_id_t instance_id, bool check_mode):
+	Entity("gw" + std::to_string(instance_id), instance_id, check_mode)
 {
 }
 

@@ -61,7 +61,7 @@ GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
 	fifo_timer{-1}
 {
 	// Initialize logs
-	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
+	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.Channel");
 }
 
 void GroundPhysicalChannel::generateConfiguration()
@@ -131,7 +131,7 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 	this->fifo_timer = channel.addTimerEvent("fifo_timer", ArgumentWrapper(refresh_period_ms));
 
 	// Initialize log
-	this->log_event = output->registerLog(LEVEL_WARNING, "PhysicalLayer." + link + "ward.Event");
+	this->log_event = output->registerLog(LEVEL_WARNING, "Physical_Layer." + link + "ward.Event");
 
 	// Get the refresh period
 	if(!Conf->getAcmRefreshPeriod(refresh_period_ms))

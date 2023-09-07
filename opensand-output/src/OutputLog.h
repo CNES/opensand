@@ -91,6 +91,20 @@ class OutputLog
 	 */
 	log_level_t getDisplayLevel(void) const;
 
+	/**
+	 * @brief Get the current log display level as a string
+	 *
+	 * @return a string representation of the current log display level
+	 */
+	std::string getDisplayLevelString() const;
+
+	/**
+	 * @brief Get the name of the log
+	 *
+	 * @return the name of the log
+	 **/
+	inline const std::string getName() const { return this->name; };
+
 	void addHandler(std::shared_ptr<LogHandler> handler);
 
 	template<typename... Args>
@@ -105,17 +119,10 @@ class OutputLog
 	 */
 	OutputLog(log_level_t display_level, const std::string &name);
 
-	/**
-	 * @brief Get the name of the log
-	 *
-	 * @return the name of the log
-	 **/
-	inline const std::string getName() const { return this->name; };
-
 	/// The levels string representation
 	const static char *levels[];
 
-private:
+ private:
 	std::string name;
 	log_level_t display_level;
 	std::vector<std::shared_ptr<LogHandler>> handlers;

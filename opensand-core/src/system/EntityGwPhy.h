@@ -51,7 +51,7 @@ public:
 	/**
 	 * Build an entity physical gateway process
 	 */
-	EntityGwPhy(tal_id_t instance_id);
+	EntityGwPhy(tal_id_t instance_id, bool check_mode);
 
 	/**
 	 * Destroy an entity physical gateway process

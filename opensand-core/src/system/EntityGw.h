@@ -51,7 +51,7 @@ public:
 	/**
 	 * Build an entity gateway process
 	 */
-	EntityGw(tal_id_t instance_id);
+	EntityGw(tal_id_t instance_id, bool check_mode);
 
 	/**
 	 * Destroy an entity gateway process

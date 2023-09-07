@@ -40,6 +40,7 @@
 #define _OUTPUT_H
 
 #include <map>
+#include <ostream>
 #include <vector>
 #include <memory>
 #include <string>
@@ -244,6 +245,8 @@ class Output
 	 * @param levels    The log levels defined in configuration
 	 */
 	void setLevels(const std::map<std::string, log_level_t> &levels);
+
+	friend std::ostream& operator << (std::ostream& os, const Output& o);
 
  private:
 	Output();

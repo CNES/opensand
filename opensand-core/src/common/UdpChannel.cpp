@@ -576,7 +576,7 @@ UdpStack::UdpStack():
 	std::vector<Rt::Ptr<Rt::Data>>(NullPtrIterator(), NullPtrIterator(256))
 {
 	// Output log
-	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
+	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "Sat_Carrier.Channel");
 	this->counter = 0;
 }
 
