@@ -1907,9 +1907,9 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 			total_ratio += value;
 		}
 
-		// Ensure all ratios sum up to 1000 so we can force 1 carrier per carrier
+		// Ensure all ratios sum up to 1 so we can force 1 carrier per carrier
 		for (auto& format_ratio : format_ratios) {
-			format_ratio.second = 1000 * format_ratio.second / total_ratio;
+			format_ratio.second = format_ratio.second / total_ratio;
 		}
 
 		// freq_khz_t bandwidth = symbol_rate * (spot.roll_off + 1) / 1000;

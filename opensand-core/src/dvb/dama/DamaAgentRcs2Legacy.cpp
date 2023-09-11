@@ -139,7 +139,7 @@ vol_kb_t DamaAgentRcs2Legacy::computeVbdcRequest()
 	    vbdc_need_kb, this->vbdc_credit_kb);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
-	vbdc_request_kb = std::max(0, (vbdc_need_kb - this->vbdc_credit_kb));
+	vbdc_request_kb = std::max(0U, (vbdc_need_kb - this->vbdc_credit_kb));
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "SF#%u: theoretical VBDC request = %u kbits",
 	    this->current_superframe_sf,

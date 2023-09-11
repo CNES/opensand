@@ -698,19 +698,18 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
                                  time_us_t duration,
                                  TerminalCategories<T> &categories)
 {
-	double weighted_sum_ksymps = 0.0;
+	double weighted_sum_symps = 0.0;
 
 	// compute weighted sum
 	for (auto&& category_it : categories)
 	{
-		// Compute weighted sum in ks/s since available bandplan is in kHz.
-		weighted_sum_ksymps += category_it.second->getWeightedSum();
+		weighted_sum_symps += category_it.second->getWeightedSum();
 	}
 
 	LOG(this->log_init_channel, LEVEL_DEBUG,
-	    "Weigthed ratio sum: %f ksym/s\n", weighted_sum_ksymps);
+	    "Weigthed ratio sum: %f sym/s\n", weighted_sum_symps);
 
-	if (weighted_sum_ksymps == 0.0)
+	if (weighted_sum_symps == 0.0)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Weighted ratio sum is 0\n");
@@ -724,9 +723,10 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 		std::shared_ptr<T> category = category_it.second;
 		unsigned int ratio = category->getRatio();
 
+		// convert bandwidth in Hz since weighted sum is in sym/s
 		carriers_number = round(
-		    (ratio / weighted_sum_ksymps) *
-		    (available_bandplan_khz / (1 + roll_off)));
+		    (ratio / weighted_sum_symps) *
+		    (1000 * available_bandplan_khz / (1 + roll_off)));
 		// create at least one carrier
 		if(carriers_number == 0)
 		{

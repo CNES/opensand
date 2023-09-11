@@ -201,8 +201,8 @@ typedef uint16_t group_id_t; ///< Groupe ID
 // TODO check types according to max value
 // TODO link with config
 // data
-typedef uint16_t rate_bps_t;    ///< Bitrate in b/s (suffix bps)
-typedef uint16_t rate_kbps_t;   ///< Bitrate in kb/s (suffix kbps)
+typedef uint32_t rate_bps_t;    ///< Bitrate in b/s (suffix bps)
+typedef uint32_t rate_kbps_t;   ///< Bitrate in kb/s (suffix kbps)
 typedef uint16_t rate_pktpf_t;  ///< Rate in packets per frame (suffix pktpf)
 typedef double rate_symps_t;    ///< Rate in symbols per second (bauds) (suffix symps)
 
@@ -215,7 +215,7 @@ typedef uint16_t time_pkt_t;   ///< time in number of packets, cells, ... (suffi
 
 // volume
 typedef uint16_t vol_pkt_t;    ///< volume in number of packets/cells (suffix pkt)
-typedef uint16_t vol_kb_t;     ///< volume in kbits (suffix kb)
+typedef uint32_t vol_kb_t;     ///< volume in kbits (suffix kb)
 typedef uint32_t vol_b_t;      ///< volume in bits (suffix b)
 typedef uint32_t vol_bytes_t;  ///< volume in Bytes (suffix bytes)
 typedef uint32_t vol_sym_t;    ///< volume in number of symbols (suffix sym)

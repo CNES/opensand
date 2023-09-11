@@ -1,3 +1,8 @@
+2023-09-11 opensand-7.0.1
+
+   * Added liboutput dump in a new 'check' mode
+   * Fix carrier capacity computation when determining the amount of carriers for each category.
+
 2023-07-25 opensand-7.0.0
 
    * Rework memory model in the opensand-rt library
