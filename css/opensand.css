@@ -303,6 +303,8 @@ p {
 .shell {
 	background-color: #222222;
 	color: #e8e8e8;
+  display: block;
+  text-align: start;
 }
 
 .well {

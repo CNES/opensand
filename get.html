@@ -188,17 +188,23 @@
               <li>Add the OpenSAND repository:</li>
               <ul style="padding-left: 2em;">
                 <div class="shell-div">
-                  <li> Update sources.list with net4sat opensand repository
-                    <br>
-                    <code class="shell">
-                    $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
-                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                  </li>
                   <li> Add Net4Sat repository GPG key
                       <br>
                       <code class="shell">
-                      $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+                        $ sudo mkdir /etc/apt/keyrings <br />
+                        $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo dd of=/etc/apt/keyrings/net4sat.gpg
                       </code>
+                  </li>
+                  <li> Update sources.list with net4sat opensand repository
+                    <br>
+                    <code class="shell">
+                      $ cat &lt;&lt; EOF | sudo tee /etc/apt/sources.list.d/github.net4sat.sources <br />
+                      Types: deb <br />
+                      URIs: https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/ <br />
+                      Suites: jammy <br />
+                      Components: stable <br />
+                      Signed-By: /etc/apt/keyrings/net4sat.gpg <br />
+                      EOF
                   </li>
                 </div>
               </ul>
