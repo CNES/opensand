@@ -61,6 +61,8 @@ bool Rt::UpwardChannel<BlockSatAsymetricHandler>::onEvent(const Event &)
 
 bool Rt::UpwardChannel<BlockSatAsymetricHandler>::onEvent(const MessageEvent &event)
 {
+	LOG(this->log_receive, LEVEL_DEBUG, "Incoming DVB frame");
+
 	auto frame = event.getMessage<DvbFrame>();
 	const bool is_data = isDataCarrier(extractCarrierType(frame->getCarrierId()));
 

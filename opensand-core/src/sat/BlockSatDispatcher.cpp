@@ -161,7 +161,9 @@ bool Rt::UpwardChannel<BlockSatDispatcher>::onEvent(const Event &event)
 
 bool Rt::UpwardChannel<BlockSatDispatcher>::onEvent(const MessageEvent &event)
 {
-	switch (to_enum<InternalMessageType>(event.getMessageType()))
+	auto msg_type = event.getMessageType();
+	LOG(log_receive, LEVEL_DEBUG, "Message received (type: %d)", msg_type);
+	switch (to_enum<InternalMessageType>(msg_type))
 	{
 		// sent by SatCarrier
 		case InternalMessageType::unknown:
@@ -375,7 +377,9 @@ bool Rt::DownwardChannel<BlockSatDispatcher>::onEvent(const Event &event)
 
 bool Rt::DownwardChannel<BlockSatDispatcher>::onEvent(const MessageEvent &event)
 {
-	switch (to_enum<InternalMessageType>(event.getMessageType()))
+	auto msg_type = event.getMessageType();
+	LOG(log_receive, LEVEL_DEBUG, "Message received (type: %d)", msg_type);
+	switch (to_enum<InternalMessageType>(msg_type))
 	{
 		// sent by SatCarrier
 		case InternalMessageType::unknown:
