@@ -1423,7 +1423,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const TimerEvent& event)
 		if(burst_size > 0)
 		{
 			// send the message to the lower layer
-			if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+			if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::encap_data)))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "cannot send burst to lower layer failed\n");

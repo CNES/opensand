@@ -61,14 +61,13 @@ bool Rt::UpwardChannel<BlockSatAsymetricHandler>::onEvent(const Event &)
 
 bool Rt::UpwardChannel<BlockSatAsymetricHandler>::onEvent(const MessageEvent &event)
 {
-	LOG(this->log_receive, LEVEL_DEBUG, "Incoming DVB frame");
+	auto type = event.getMessageType();
+	LOG(this->log_receive, LEVEL_DEBUG, "Incoming DVB frame (type %d)", type);
 
 	auto frame = event.getMessage<DvbFrame>();
 	const bool is_data = isDataCarrier(extractCarrierType(frame->getCarrierId()));
 
-	if (!this->enqueueMessage(split_traffic && is_data,
-	                          std::move(frame),
-	                          event.getMessageType()))
+	if (!this->enqueueMessage(split_traffic && is_data, std::move(frame), type))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "Failed to send data to upper layer");
