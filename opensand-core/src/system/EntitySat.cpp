@@ -202,11 +202,11 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 	{
 		case Component::gateway:
 			suffix_builder << "GW";
-			is_transparent = return_regen_level == RegenLevel::Transparent;
+			is_transparent = forward_regen_level == RegenLevel::Transparent;
 			break;
 		case Component::terminal:
 			suffix_builder << "ST";
-			is_transparent = forward_regen_level == RegenLevel::Transparent;
+			is_transparent = return_regen_level == RegenLevel::Transparent;
 			break;
 		default:
 			DFLTLOG(LEVEL_ERROR,
