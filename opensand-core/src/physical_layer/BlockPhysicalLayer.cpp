@@ -197,8 +197,7 @@ bool Rt::UpwardChannel<BlockPhysicalLayer>::onEvent(const TimerEvent &event)
 
 bool Rt::UpwardChannel<BlockPhysicalLayer>::onEvent(const MessageEvent &event)
 {
-	LOG(this->log_event, LEVEL_DEBUG,
-	    "Incoming DVB frame");
+	LOG(this->log_event, LEVEL_DEBUG, "Incoming DVB frame");
 	Ptr<DvbFrame> dvb_frame = event.getMessage<DvbFrame>();
 
 	// Ignore SAC messages if ST

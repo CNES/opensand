@@ -264,22 +264,7 @@ bool Rt::UpwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_burs
 		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
-		Component dest;
-		if (src == Component::gateway)
-		{
-			dest = Component::terminal;
-		}
-		else if (src == Component::terminal)
-		{
-			dest = Component::gateway;
-		}
-		else
-		{
-			LOG(log_receive, LEVEL_ERROR, "The type of the src entity %d is %s", src_id, getComponentName(src).c_str());
-			return false;
-		}
-
+		Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
 		SpotComponentPair spot_dest{spot_id, dest};
 		auto burst_it = bursts.find(spot_dest);
 		if (burst_it == bursts.end())
@@ -463,22 +448,7 @@ bool Rt::DownwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_bu
 		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
-		Component dest;
-		if (src == Component::gateway)
-		{
-			dest = Component::terminal;
-		}
-		else if (src == Component::terminal)
-		{
-			dest = Component::gateway;
-		}
-		else
-		{
-			LOG(log_receive, LEVEL_ERROR, "The type of the src entity %d is %s", src_id, getComponentName(src).c_str());
-			return false;
-		}
-
+		Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
 		SpotComponentPair spot_dest{spot_id, dest};
 		auto burst_it = bursts.find(spot_dest);
 		if (burst_it == bursts.end())

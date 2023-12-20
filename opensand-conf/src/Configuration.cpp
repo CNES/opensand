@@ -33,9 +33,9 @@
  */
 
 #define LIBXML_SCHEMAS_ENABLED
-#include <libxml/xmlschemastypes.h>
 #include <libxml/tree.h>
 #include <libxml/parser.h>
+#include <libxml/xmlschemastypes.h>
 
 #include <cstdio>
 #include <locale>
