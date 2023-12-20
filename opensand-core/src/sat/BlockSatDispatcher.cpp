@@ -128,6 +128,14 @@ bool BlockSatDispatcher::onInit()
 		    spot.first, topo.spot_id);
 	}
 
+	for (auto &&[dest, sat_id] : routes)
+	{
+		auto regen_level = regen_levels.at(dest);
+		LOG(log_init, LEVEL_WARNING,
+		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
+			dest.spot_id, dest.dest, sat_id, regen_level);
+	}
+
 	upward.initDispatcher(spot_by_entity, routes, regen_levels);
 	downward.initDispatcher(spot_by_entity, routes, regen_levels);
 	return true;
