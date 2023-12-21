@@ -1307,6 +1307,7 @@ bool SpotDownward::addCniExt()
 				if(it != this->is_tal_scpc.end() && this->getCniInputHasChanged(tal_id))
 				{
 					list_st.push_back(tal_id);
+					vol_bytes_t packet_length = packet->getTotalLength();
 					// we could make specific SCPC function
 					packet = this->setPacketExtension(this->pkt_hdl,
 						                              std::move(packet),
@@ -1318,7 +1319,20 @@ bool SpotDownward::addCniExt()
 					if (!packet)
 					{
 						fifo->erase(elem_it);
+						fifo->decreaseFifoSize(packet_length);
 						return false;
+					}
+					else
+					{
+						vol_bytes_t new_length = packet->getTotalLength();
+						if (new_length > packet_length)
+						{
+							fifo->increaseFifoSize(new_length - packet_length);
+						}
+						if (packet_length > new_length)
+						{
+							fifo->decreaseFifoSize(packet_length - new_length);
+						}
 					}
 
 					LOG(this->log_send_channel, LEVEL_DEBUG,

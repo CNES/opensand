@@ -221,6 +221,12 @@ public:
 	 */
 	void flush() override;
 
+	/**
+	 * @brief Correct the fifo stats when you modify packets stored inside the FifoElements
+	 */
+	void increaseFifoSize(vol_bytes_t length);
+	void decreaseFifoSize(vol_bytes_t length);
+
 protected:
 	/**
 	 * @brief Remove an element at the head of the list

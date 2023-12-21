@@ -317,6 +317,21 @@ void DvbFifo::flush()
 }
 
 
+void DvbFifo::increaseFifoSize(vol_bytes_t length)
+{
+	this->cur_length_bytes += length;
+	this->stat_context.current_length_bytes += length;
+}
+
+
+void DvbFifo::decreaseFifoSize(vol_bytes_t length)
+{
+	this->cur_length_bytes -= length;
+	this->stat_context.current_length_bytes -= length;
+	this->stat_context.current_pkt_nbr = this->queue.size();
+}
+
+
 void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 {
 	Rt::Lock lock(this->fifo_mutex);
