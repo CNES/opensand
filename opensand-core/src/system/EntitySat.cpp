@@ -79,9 +79,8 @@
 #include "Ethernet.h"
 
 
-EntitySat::EntitySat(tal_id_t instance_id):
-	Entity("sat" + std::to_string(instance_id), instance_id),
-	instance_id{instance_id},
+EntitySat::EntitySat(tal_id_t instance_id, bool check_mode):
+	Entity("sat" + std::to_string(instance_id), instance_id, check_mode),
 	isl_enabled{false}
 {
 }

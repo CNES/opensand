@@ -120,14 +120,14 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 		auto dama_enabled = settings->addParameter("dama_enabled", "Enable DAMA", types->getType("bool"));
 		auto dama = access->addComponent("dama", "DAMA");
 		Conf->setProfileReference(dama, dama_enabled, true);
-		dama->addParameter("cra", "CRA", types->getType("ushort"))->setUnit("kb/s");
+		dama->addParameter("cra", "CRA", types->getType("uint"))->setUnit("kb/s");
 		auto enabled = dama->addParameter("rbdc_enabled", "Enable RBDC", types->getType("bool"));
-		auto rbdc = dama->addParameter("rbdc_max", "Max RBDC", types->getType("ushort"));
+		auto rbdc = dama->addParameter("rbdc_max", "Max RBDC", types->getType("uint"));
 		rbdc->setUnit("kb/s");
 		Conf->setProfileReference(rbdc, enabled, true);
 		enabled = dama->addParameter("vbdc_enabled", "Enable VBDC", types->getType("bool"));
 		Conf->setProfileReference(enabled, dama_enabled, true);
-		auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("ushort"));
+		auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("uint"));
 		vbdc->setUnit("kb/sync period");
 		Conf->setProfileReference(vbdc, enabled, true);
 		dama->addParameter("algorithm", "DAMA Agent Algorithm", types->getType("dama_algorithm"));

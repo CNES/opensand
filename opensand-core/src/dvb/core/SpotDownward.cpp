@@ -180,7 +180,7 @@ void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParam
 	parameter->setUnit("kbps");
 	Conf->setProfileReference(parameter, simulation, "Random");
 
-	auto fca = conf->addParameter("fca", "FCA", types->getType("ushort"));
+	auto fca = conf->addParameter("fca", "FCA", types->getType("uint"));
 	Conf->setProfileReference(fca, disable_ctrl_plane, false);
 	auto dama_algo = conf->addParameter("dama_algorithm", "DAMA Algorithm", types->getType("dama_algorithm"));
 	Conf->setProfileReference(dama_algo, disable_ctrl_plane, false);

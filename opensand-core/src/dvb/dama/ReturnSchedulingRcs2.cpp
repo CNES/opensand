@@ -43,9 +43,10 @@
 #include <opensand_output/Output.h>
 
 #include <algorithm>
+#include <limits>
 
 
-constexpr const uint32_t max_allocation = 1U << (8 * sizeof(vol_kb_t));
+constexpr const uint32_t max_allocation = std::numeric_limits<vol_kb_t>::max();
 
 
 ReturnSchedulingRcs2::ReturnSchedulingRcs2(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,

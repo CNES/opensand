@@ -356,7 +356,7 @@ def create_default_profile(meta_model, entity_type):
     _set_parameter(scpc, "carrier_duration", 5)
 
     dama = _get_component(access, 'dama')
-    _set_parameter(dama, 'cra', 100)
+    _set_parameter(dama, 'cra', 1000)
     _set_parameter(dama, 'algorithm', 'Legacy')
     _set_parameter(dama, 'duration', 23)
 

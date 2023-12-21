@@ -72,7 +72,8 @@
 #include "Ethernet.h"
 
 
-EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id): Entity("gw_net_acc" + std::to_string(instance_id), instance_id)
+EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id, bool check_mode):
+	Entity("gw_net_acc" + std::to_string(instance_id), instance_id, check_mode)
 {
 }
 

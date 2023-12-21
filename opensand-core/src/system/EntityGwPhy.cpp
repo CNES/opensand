@@ -64,7 +64,8 @@
 #include "UdpChannel.h"
 
 
-EntityGwPhy::EntityGwPhy(tal_id_t instance_id): Entity("gw_phy" + std::to_string(instance_id), instance_id)
+EntityGwPhy::EntityGwPhy(tal_id_t instance_id, bool check_mode):
+	Entity("gw_phy" + std::to_string(instance_id), instance_id, check_mode)
 {
 }
 

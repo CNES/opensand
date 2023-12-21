@@ -98,7 +98,7 @@ public:
 	/**
 	 * @brief Get the weighted sum among all carriers groups on this category
 	 *
-	 * @return the weighted sum
+	 * @return the weighted sum in sym/s
 	 */
 	double getWeightedSum() const
 	{
@@ -108,8 +108,8 @@ public:
 		};
 
 		// Compute weighted sum in ks/s since available bandplan is in kHz
-		return (std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), 0.0, get_symbols_rate)
-		      + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), 0.0, get_symbols_rate)) / 1e3;
+		return std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), 0.0, get_symbols_rate)
+		     + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), 0.0, get_symbols_rate);
 	};
 
 	/**

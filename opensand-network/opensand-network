@@ -151,7 +151,7 @@ def _extract_file_name(filepath: File) -> str:
     return filepath
 
 
-def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: File, profile: File=None, debug: bool=False):
+def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: File, profile: File=None, debug: bool=False, check: bool=False):
     topology = _extract_file_name(topology)
     infrastructure = _extract_file_name(infrastructure)
     if profile is not None:
@@ -169,6 +169,8 @@ def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: Fil
     command.extend(('opensand', '-v', '-i', infrastructure, '-t', topology))
     if profile is not None:
         command.extend(('-p', profile))
+    if check:
+        command.append('-c')
 
     subprocess.run(command, check=True)
 
@@ -350,6 +352,12 @@ def command_line_parser() -> argparse.ArgumentParser:
             '--debug', '--gdb',
             action='store_true',
             help='Run the OpenSAND process inside GDB')
+    parser_launch.add_argument(
+            '--check', '-c',
+            action='store_true',
+            help='Perform basic checks of the configuration '
+            'files instead of a full OpenSAND run and print '
+            'the liboutput whole configuration')
     parser_launch.add_argument(
             'entity_kind',
             choices=('st', 'gw', 'sat'),

@@ -149,7 +149,7 @@ bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)
 
 				// remove the CRA of the RBDC request
 				// the CRA is not taken into acount on ST side
-				request_kbps = std::max(request_kbps - terminal->getRequiredCra(), 0);
+				request_kbps = std::max(0U, request_kbps - terminal->getRequiredCra());
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated RBDC requests %u kb/s (removing CRA %u kb/s)\n",
 				    this->current_superframe_sf, tal_id, request_kbps, terminal->getRequiredCra());

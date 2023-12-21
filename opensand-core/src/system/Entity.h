@@ -55,7 +55,7 @@ public:
 	/**
 	 * Build an entity process
 	 */
-	Entity(const std::string& name, tal_id_t instance_id);
+	Entity(const std::string& name, tal_id_t instance_id, bool check_mode);
 
 	/**
 	 * Destroy an entity process
@@ -126,8 +126,9 @@ protected:
 	 */
 	virtual bool createSpecificConfiguration(const std::string &filepath) const = 0;
 
-	std::string name;
-	tal_id_t instance_id;
+	const std::string name;
+	const tal_id_t instance_id;
+	const bool check_mode;
 
 	std::shared_ptr<OutputEvent> status;
 };
