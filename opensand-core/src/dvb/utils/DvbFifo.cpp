@@ -320,8 +320,6 @@ void DvbFifo::flush()
 void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 {
 	Rt::Lock lock(this->fifo_mutex);
-	stat_info = this->stat_context;
-	/*
 	stat_info.current_pkt_nbr = this->stat_context.current_pkt_nbr;
 	stat_info.current_length_bytes = this->stat_context.current_length_bytes;
 	stat_info.in_pkt_nbr = this->stat_context.in_pkt_nbr;
@@ -330,7 +328,6 @@ void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 	stat_info.out_length_bytes = this->stat_context.out_length_bytes;
 	stat_info.drop_pkt_nbr = this->stat_context.drop_pkt_nbr;
 	stat_info.drop_bytes = this->stat_context.drop_bytes;
-	*/
 
 	// reset counters
 	this->resetStats();
