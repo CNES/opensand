@@ -131,7 +131,7 @@ bool BlockSatDispatcher::onInit()
 	for (auto &&[dest, sat_id] : routes)
 	{
 		auto regen_level = regen_levels.at(dest);
-		LOG(log_init, LEVEL_WARNING,
+		LOG(log_init, LEVEL_DEBUG,
 		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
 			dest.spot_id, dest.dest, sat_id, regen_level);
 	}
@@ -156,6 +156,14 @@ void Rt::UpwardChannel<BlockSatDispatcher>::initDispatcher(const SpotByEntity& s
 	this->spot_by_entity = spot_by_entity;
 	this->routes = routes;
 	this->regen_levels = regen_levels;
+
+	for (auto &&[dest, sat_id] : routes)
+	{
+		auto regen_level = regen_levels.at(dest);
+		LOG(log_init, LEVEL_DEBUG,
+		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
+			dest.spot_id, dest.dest, sat_id, regen_level);
+	}
 }
 
 
@@ -357,6 +365,14 @@ void Rt::DownwardChannel<BlockSatDispatcher>::initDispatcher(const SpotByEntity&
 	this->spot_by_entity = spot_by_entity;
 	this->routes = routes;
 	this->regen_levels = regen_levels;
+
+	for (auto &&[dest, sat_id] : routes)
+	{
+		auto regen_level = regen_levels.at(dest);
+		LOG(log_init, LEVEL_DEBUG,
+		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
+			dest.spot_id, dest.dest, sat_id, regen_level);
+	}
 }
 
 
