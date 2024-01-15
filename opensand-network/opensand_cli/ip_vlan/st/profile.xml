@@ -101,7 +101,7 @@
         <scpc_enabled>false</scpc_enabled>
       </settings>
       <dama>
-        <cra>100</cra>
+        <cra>3000</cra>
         <algorithm>Legacy</algorithm>
         <duration>23</duration>
       </dama>
