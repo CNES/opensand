@@ -708,7 +708,7 @@ Rt::Ptr<NetBurst> Ethernet::Context::deencapsulate(Rt::Ptr<NetBurst> burst)
 		else
 		{
 			// TODO factorize
-			tal_id_t dst{};  // Do we need a proper initial value here?
+			tal_id_t dst = packet->getDstTalId();
 
 			// Here we have errors because if we received this packets
 			// the information should be in sarp table

@@ -48,6 +48,19 @@ constexpr uint8_t DATA_IN_GW_ID = 8;
 constexpr uint8_t CTRL_IN_GW_ID = 4;
 
 
+Rt::Ptr<NetBurst>& getNetBurstOrCreate(std::unordered_map<SpotComponentPair, Rt::Ptr<NetBurst>>& map, SpotComponentPair key)
+{
+	auto it = map.find(key);
+	if (it == map.end())
+	{
+		auto result = map.emplace(key, Rt::make_ptr<NetBurst>());
+		it = result.first;
+	}
+
+	return it->second;
+}
+
+
 SpotByEntity::SpotByEntity():
 	spot_by_entity{},
 	default_spot{0}
@@ -157,9 +170,9 @@ void Rt::UpwardChannel<BlockSatDispatcher>::initDispatcher(const SpotByEntity& s
 	this->routes = routes;
 	this->regen_levels = regen_levels;
 
-	for (auto &&[dest, sat_id] : routes)
+	for (auto &&[dest, sat_id] : this->routes)
 	{
-		auto regen_level = regen_levels.at(dest);
+		auto regen_level = this->regen_levels.at(dest);
 		LOG(log_init, LEVEL_DEBUG,
 		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
 			dest.spot_id, dest.dest, sat_id, regen_level);
@@ -242,13 +255,12 @@ bool Rt::UpwardChannel<BlockSatDispatcher>::handleDvbFrame(Ptr<DvbFrame> frame)
 	    spot_id, carrier_id, frame->getMessageType());
 
 	const Component dest = isGatewayCarrier(carrier_type) ? Component::terminal : Component::gateway;
-
-	const auto dest_sat_id_it = routes.find({spot_id, dest});
+	SpotComponentPair key{spot_id, dest};
+	const auto dest_sat_id_it = routes.find(key);
 	if (dest_sat_id_it == routes.end())
 	{
-		LOG(log_receive, LEVEL_ERROR,
-		    "No route found for %s in spot %d",
-		    dest == Component::gateway ? "GW" : "ST", spot_id);
+		auto name = getComponentName(dest);
+		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), spot_id);
 		return false;
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
@@ -280,15 +292,21 @@ bool Rt::UpwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_burs
 		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
-		SpotComponentPair spot_dest{spot_id, dest};
-		auto burst_it = bursts.find(spot_dest);
-		if (burst_it == bursts.end())
+		Component dest = Component::unknown;
+		switch (OpenSandModelConf::Get()->getEntityType(src_id))
 		{
-			auto result = bursts.emplace(spot_dest, make_ptr<NetBurst>());
-			burst_it = result.first;
+			case Component::gateway:
+				dest = Component::terminal;
+				break;
+			case Component::terminal:
+				dest = Component::gateway;
+				break;
+			default:
+				LOG(log_receive, LEVEL_ERROR, "Invalid source type for NetBurst (ID %d)", src_id);
+				return false;
 		}
-		burst_it->second->push_back(std::move(pkt));
+
+		getNetBurstOrCreate(bursts, SpotComponentPair{spot_id, dest})->push_back(std::move(pkt));
 	}
 
 	// Send all bursts to their respective destination
@@ -298,8 +316,8 @@ bool Rt::UpwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_burs
 		const auto dest_sat_id_it = routes.find(dest);
 		if (dest_sat_id_it == routes.end())
 		{
-			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-			    dest.dest == Component::gateway ? "GW" : "ST", dest.spot_id);
+			auto name = getComponentName(dest.dest);
+			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), dest.spot_id);
 			ok = false;
 			continue;
 		}
@@ -366,9 +384,9 @@ void Rt::DownwardChannel<BlockSatDispatcher>::initDispatcher(const SpotByEntity&
 	this->routes = routes;
 	this->regen_levels = regen_levels;
 
-	for (auto &&[dest, sat_id] : routes)
+	for (auto &&[dest, sat_id] : this->routes)
 	{
-		auto regen_level = regen_levels.at(dest);
+		auto regen_level = this->regen_levels.at(dest);
 		LOG(log_init, LEVEL_DEBUG,
 		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
 			dest.spot_id, dest.dest, sat_id, regen_level);
@@ -429,11 +447,12 @@ bool Rt::DownwardChannel<BlockSatDispatcher>::handleDvbFrame(Ptr<DvbFrame> frame
 	                       ? std::make_tuple(Component::terminal, Component::gateway)
 	                       : std::make_tuple(Component::gateway, Component::terminal);
 
-	const auto dest_sat_id_it = routes.find({spot_id, dest});
+	SpotComponentPair key{spot_id, dest};
+	const auto dest_sat_id_it = routes.find(key);
 	if (dest_sat_id_it == routes.end())
 	{
-		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-		    dest == Component::gateway ? "GW" : "ST", spot_id);
+		auto name = getComponentName(dest);
+		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), spot_id);
 		return false;
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
@@ -449,7 +468,7 @@ bool Rt::DownwardChannel<BlockSatDispatcher>::handleDvbFrame(Ptr<DvbFrame> frame
 
 		// add one to the input carrier id to get the corresponding output carrier id
 		frame->setCarrierId(carrier_id + 1);
-		bool is_transparent = regen_levels.at({spot_id, dest}) == RegenLevel::Transparent
+		bool is_transparent = regen_levels.at(key) == RegenLevel::Transparent
 		                   && (is_data_carrier || regen_levels.at({spot_id, src}) == RegenLevel::Transparent);
 		return sendToLowerBlock({spot_id, dest, is_transparent}, std::move(frame), msg_type);
 	}
@@ -472,15 +491,43 @@ bool Rt::DownwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_bu
 		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
-		SpotComponentPair spot_dest{spot_id, dest};
-		auto burst_it = bursts.find(spot_dest);
-		if (burst_it == bursts.end())
+		if (dest_id == BROADCAST_TAL_ID)
 		{
-			auto result = bursts.emplace(spot_dest, make_ptr<NetBurst>());
-			burst_it = result.first;
+			SpotComponentPair to_st{spot_id, Component::terminal};
+			SpotComponentPair to_gw{spot_id, Component::gateway};
+			bool forward_transparent = regen_levels.at(to_st) == RegenLevel::Transparent;
+			bool return_transparent = regen_levels.at(to_gw) == RegenLevel::Transparent;
+			if (forward_transparent)
+			{
+				if (return_transparent)
+				{
+					LOG(log_receive, LEVEL_ERROR, "Both directions are transparent in sat_dispatch, cannot handle NetBurst");
+					return false;
+				}
+				else
+				{
+					getNetBurstOrCreate(bursts, to_gw)->push_back(std::move(pkt));
+				}
+			}
+			else
+			{
+				if (return_transparent)
+				{
+					getNetBurstOrCreate(bursts, to_st)->push_back(std::move(pkt));
+				}
+				else
+				{
+					Ptr<NetPacket> copy = make_ptr<NetPacket>(*pkt);
+					getNetBurstOrCreate(bursts, to_gw)->push_back(std::move(copy));
+					getNetBurstOrCreate(bursts, to_st)->push_back(std::move(pkt));
+				}
+			}
 		}
-		burst_it->second->push_back(std::move(pkt));
+		else
+		{
+			Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+			getNetBurstOrCreate(bursts, SpotComponentPair{spot_id, dest})->push_back(std::move(pkt));
+		}
 	}
 
 	// Send all bursts to their respective destination
@@ -490,8 +537,8 @@ bool Rt::DownwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_bu
 		const auto dest_sat_id_it = routes.find(dest);
 		if (dest_sat_id_it == routes.end())
 		{
-			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-			    dest.dest == Component::gateway ? "GW" : "ST", dest.spot_id);
+			auto name = getComponentName(dest.dest);
+			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), dest.spot_id);
 			ok = false;
 			continue;
 		}

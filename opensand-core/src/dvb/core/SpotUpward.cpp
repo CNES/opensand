@@ -681,6 +681,9 @@ bool SpotUpward::onRcvLogonReq(DvbFrame& dvb_frame)
 				return false;
 			}
 		}
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "Registered ST%u on spot %u as an SCPC terminal",
+		    mac, this->spot_id);
 	}
 	else
 	{
@@ -696,6 +699,9 @@ bool SpotUpward::onRcvLogonReq(DvbFrame& dvb_frame)
 				return false;
 			}
 		}
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "Registered ST%u on spot %u as a regular terminal",
+		    mac, this->spot_id);
 	}
 
 	// Inform SlottedAloha

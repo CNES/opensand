@@ -72,11 +72,15 @@ bool PacketSwitch::learn(const Rt::Data &packet, tal_id_t src_id)
 bool TerminalPacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
+	MacAddress src_mac = Ethernet::getSrcMac(packet);
 	Rt::Lock(this->mutex);
-	src_id = this->tal_id;
 	if (!this->sarp_table.getTalByMac(dst_mac, dst_id))
 	{
 		dst_id = this->gw_id;
+	}
+	if(!this->sarp_table.getTalByMac(src_mac, src_id))
+	{
+		src_id = this->tal_id;
 	}
 	return true;
 }
@@ -92,11 +96,14 @@ bool GatewayPacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t 
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
 	Rt::Lock(this->mutex);
-	src_id = this->tal_id;	
 
 	if(!this->sarp_table.getTalByMac(dst_mac, dst_id))
 	{
 		return false;
+	}
+	if(!this->sarp_table.getTalByMac(src_mac, src_id))
+	{
+		src_id = this->tal_id;
 	}
 	return true;
 }
@@ -105,14 +112,26 @@ bool GatewayPacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t, bool &
 {
 	tal_id_t dst_id;
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
-	MacAddress src_mac = Ethernet::getSrcMac(packet);
 	Rt::Lock(this->mutex);
 	if(!this->sarp_table.getTalByMac(dst_mac, dst_id))
 	{
 		return false;
 	}
 	forward = true;
-	return  ((dst_id == BROADCAST_TAL_ID) ||  (dst_id == this->tal_id));
+	return ((dst_id == BROADCAST_TAL_ID) || (dst_id == this->tal_id));
+}
+
+bool RegenGatewayPacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t, bool &forward)
+{
+	tal_id_t dst_id;
+	MacAddress dst_mac = Ethernet::getDstMac(packet);
+	Rt::Lock(this->mutex);
+	if(!this->sarp_table.getTalByMac(dst_mac, dst_id))
+	{
+		return false;
+	}
+	forward = false;
+	return ((dst_id == BROADCAST_TAL_ID) || (dst_id == this->tal_id));
 }
 
 SatellitePacketSwitch::SatellitePacketSwitch(tal_id_t tal_id,

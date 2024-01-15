@@ -391,8 +391,7 @@ bool Rt::DownwardChannel<BlockPhysicalLayer>::onEvent(const MessageEvent &event)
 	}
 
 	// Forward packet
-	LOG(this->log_event, LEVEL_DEBUG,
-	    "Forward the DVB frame");
+	LOG(this->log_event, LEVEL_DEBUG, "Forward the DVB frame");
 	if(!this->forwardPacket(std::move(dvb_frame)))
 	{
 		LOG(this->log_event, LEVEL_ERROR,

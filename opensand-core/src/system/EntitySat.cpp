@@ -171,7 +171,7 @@ bool EntitySat::createSpecificBlocks()
 				{
 					DFLTLOG(LEVEL_CRITICAL,
 					        "%s: error during block creation: could not "
-					        "create DvbTal stack to communicate with the GW",
+					        "create DvbNcc stack to communicate with the ST",
 					        this->getName().c_str());
 					return false;
 				}

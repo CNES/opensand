@@ -1301,6 +1301,7 @@ bool SpotDownward::addCniExt()
 			{
 				std::unique_ptr<FifoElement>& elem = *elem_it;
 				Rt::Ptr<NetPacket> packet = elem->releaseElem<NetPacket>();
+				tal_id_t gw_id = packet->getSrcTalId();
 				tal_id_t tal_id = packet->getDstTalId();
 
 				auto it = std::find(this->is_tal_scpc.begin(), this->is_tal_scpc.end(), tal_id);
@@ -1311,7 +1312,7 @@ bool SpotDownward::addCniExt()
 					// we could make specific SCPC function
 					packet = this->setPacketExtension(this->pkt_hdl,
 						                              std::move(packet),
-						                              this->mac_id,
+						                              gw_id,
 						                              tal_id,
 						                              "encodeCniExt",
 						                              this->super_frame_counter,

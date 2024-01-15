@@ -253,11 +253,10 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const MessageEvent& event)
 	LOG(this->log_receive, LEVEL_DEBUG,
 	    "Get a forward burst from opposite channel\n");
 	Ptr<NetBurst> forward_burst = event.getMessage<NetBurst>();
-	if (!this->enqueueMessage(std::move(forward_burst),
-				to_underlying(InternalMessageType::decap_data)))
+	if (!this->enqueueMessage(std::move(forward_burst), to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-				"failed to forward burst to lower layer\n");
+		    "failed to forward burst to lower layer\n");
 		return false;
 	}
 
@@ -273,17 +272,17 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const FileEvent& event)
 	if(this->state != SatelliteLinkState::UP)
 	{
 		LOG(this->log_receive, LEVEL_NOTICE,
-				"packets received from TAP, but link is down "
-				"=> drop packets\n");
+		    "packets received from TAP, but link is down "
+		    "=> drop packets\n");
 		return false;
 	}
 
 	LOG(this->log_receive, LEVEL_INFO,
-			"new %u-bytes packet received from network\n", length);
+	    "new %u-bytes packet received from network\n", length);
 	Ptr<NetPacket> packet = make_ptr<NetPacket>(read_data.substr(TUNTAP_FLAGS_LEN), length);
 	// Learn source_mac address
-	tal_id_t pkt_tal_id_src = packet->getSrcTalId();
-	packet_switch->learn(packet->getData(), pkt_tal_id_src);
+	packet->setSrcTalId(tal_id);
+	packet_switch->learn(packet->getData(), tal_id);
 
 	Ptr<NetBurst> burst = make_ptr<NetBurst>();
 	burst->add(std::move(packet));
@@ -294,8 +293,8 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const FileEvent& event)
 		if(burst == nullptr)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
-					"failed to handle packet in %s context\n",
-					context->getName().c_str());
+			    "failed to handle packet in %s context\n",
+			    context->getName().c_str());
 			return false;
 		}
 	}
@@ -303,7 +302,7 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const FileEvent& event)
 	if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-				"failed to send burst to lower layer\n");
+		    "failed to send burst to lower layer\n");
 		return false;
 	}
 
@@ -313,8 +312,8 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const FileEvent& event)
 bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const Event& event)
 {
 	LOG(this->log_receive, LEVEL_ERROR,
-			"unknown event received %s",
-			event.getName().c_str());
+	    "unknown event received %s",
+	    event.getName().c_str());
 	return false;
 }
 
@@ -347,9 +346,9 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const MessageEvent& event)
 		// 'link is up' message advertised
 		Ptr<T_LINK_UP> link_up_msg = event.getMessage<T_LINK_UP>();
 		LOG(this->log_receive, LEVEL_INFO,
-				"link up message received (group = %u, tal = %u)\n",
-				link_up_msg->group_id,
-				link_up_msg->tal_id);
+		    "link up message received (group = %u, tal = %u)\n",
+		    link_up_msg->group_id,
+		    link_up_msg->tal_id);
 
 		if(this->state == SatelliteLinkState::UP)
 		{
@@ -366,8 +365,8 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const MessageEvent& event)
 				if(!context->initLanAdaptationContext(this->tal_id, packet_switch))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-							"cannot initialize %s context\n",
-							context->getName().c_str());
+					    "cannot initialize %s context\n",
+					    context->getName().c_str());
 					return false;
 				}
 			}
@@ -376,8 +375,8 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const MessageEvent& event)
 			if(!this->shareMessage(std::move(link_up_msg), event.getMessageType()))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-						"failed to transmit link up message to "
-						"opposite channel\n");
+				    "failed to transmit link up message to "
+				    "opposite channel\n");
 				return false;
 			}
 		}
@@ -387,14 +386,14 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const MessageEvent& event)
 
 	// not a link up message
 	LOG(this->log_receive, LEVEL_INFO,
-			"packet received from lower layer\n");
+	    "packet received from lower layer\n");
 
 	Ptr<NetBurst> burst = event.getMessage<NetBurst>();
 	if(this->state != SatelliteLinkState::UP)
 	{
 		LOG(this->log_receive, LEVEL_NOTICE,
-				"packets received from lower layer, but "
-				"link is down => drop packets\n");
+		    "packets received from lower layer, but "
+		    "link is down => drop packets\n");
 		return false;
 	}
 
@@ -406,7 +405,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 	if(burst == nullptr)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-				"burst is not valid\n");
+		    "burst is not valid\n");
 		return false;
 	}
 
@@ -416,20 +415,20 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 		if(burst == nullptr)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
-					"failed to handle packet in %s context\n",
-					context->getName().c_str());
+			    "failed to handle packet in %s context\n",
+			    context->getName().c_str());
 			return false;
 		}
 	}
 
 	bool success = true;
-	auto burst_it = burst->begin();
+	auto packet_iterator = burst->begin();
 	Ptr<NetBurst> forward_burst = make_ptr<NetBurst>(nullptr);
-	while(burst_it != burst->end())
+	while(packet_iterator != burst->end())
 	{
-		Data packet = (*burst_it)->getData();
-		tal_id_t pkt_tal_id_src = (*burst_it)->getSrcTalId();
-		tal_id_t pkt_tal_id_dst = (*burst_it)->getDstTalId();
+		Data packet = (*packet_iterator)->getData();
+		tal_id_t pkt_tal_id_src = (*packet_iterator)->getSrcTalId();
+		tal_id_t pkt_tal_id_dst = (*packet_iterator)->getDstTalId();
 		bool forward = false;
 
 		LOG(this->log_receive, LEVEL_INFO,
@@ -440,7 +439,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			// with broadcast, we would receive our own packets
 			LOG(this->log_receive, LEVEL_INFO,
 			    "reject packet with own terminal ID\n");
-			++burst_it;
+			++packet_iterator;
 			continue;
 		}
 		// Learn source mac address
@@ -457,13 +456,13 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "%s packet received from lower layer & should be read\n",
-			    (*burst_it)->getName().c_str());
+			    (*packet_iterator)->getName().c_str());
 
 			unsigned char head[TUNTAP_FLAGS_LEN];
 			for(unsigned int i = 0; i < TUNTAP_FLAGS_LEN; i++)
 			{
 				// add the protocol flag in the header
-				head[i] = (this->contexts.front())->getLanHeader(i, *burst_it);
+				head[i] = (this->contexts.front())->getLanHeader(i, *packet_iterator);
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "Add 0x%2x for bit %u in TAP header\n",
 				    head[i], i);
@@ -475,7 +474,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 				if(!this->writePacket(packet))
 				{
 					success = false;
-					++burst_it;
+					++packet_iterator;
 					continue;
 				}
 			}
@@ -485,15 +484,15 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 				{
 					LOG(this->log_receive, LEVEL_ERROR, "failed to push the message in the fifo\n");
 					success = false;
-					++burst_it;
+					++packet_iterator;
 					continue;
 				}
 			}
 
 			LOG(this->log_receive, LEVEL_INFO,
-					"%s packet received from lower layer & forwarded "
-					"to network layer\n",
-					(*burst_it)->getName().c_str());
+			    "%s packet received from lower layer & forwarded "
+			    "to network layer\n",
+			    (*packet_iterator)->getName().c_str());
 		}
 
 		auto Conf = OpenSandModelConf::Get();
@@ -510,20 +509,20 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 				catch (const std::bad_alloc& e)
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-							"cannot create the burst for forward packets\n");
-					++burst_it;
+					    "cannot create the burst for forward packets\n");
+					++packet_iterator;
 					continue;
 				}
 			}
-			forward_burst->add(std::move(*burst_it));
+			forward_burst->add(std::move(*packet_iterator));
 			// remove packet from burst to avoid releasing it as it is now forwarded
 			// erase return next element
-			burst_it = burst->erase(burst_it);
+			packet_iterator = burst->erase(packet_iterator);
 		}
 		else
 		{
 			// go to next element
-			++burst_it;
+			++packet_iterator;
 		}
 	}
 
@@ -535,15 +534,15 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			if(forward_burst == nullptr)
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-						"failed to handle packet in %s context\n",
-						context->getName().c_str());
+				    "failed to handle packet in %s context\n",
+				    context->getName().c_str());
 				return false;
 			}
 		}
 
 		LOG(this->log_receive, LEVEL_INFO,
-				"%d packet should be forwarded (multicast/broadcast or "
-				"unicast not for GW)\n", forward_burst->length());
+		    "%d packet should be forwarded (multicast/broadcast or "
+		    "unicast not for GW)\n", forward_burst->length());
 
 		// transmit message to the opposite channel that will
 		// send it to lower layer 

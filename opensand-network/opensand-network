@@ -39,11 +39,11 @@ def create_entity(entity: str, entity_id: int, dev_bridge: str, emu_bridge: str,
     name = f'{entity}{entity_id}'
     utils.create_netns(name)
     utils.set_up('lo', name)
-    create_network('dev', name, f'192.168.100.{entity_id}/24', dev_bridge)
-    create_network('emu', name, f'192.168.18.{entity_id}/24', emu_bridge)
+    create_network('dev', name, f'192.168.100.{entity_id+1}/24', dev_bridge)
+    create_network('emu', name, f'192.168.18.{entity_id+1}/24', emu_bridge)
 
     if setup_tap:
-        create_tap('opensand_tap', name, f'192.168.63.{entity_id}/24', f'00:00:00:00:00:{entity_id:0>2X}')
+        create_tap('opensand_tap', name, f'192.168.63.{entity_id}/24', f'00:00:00:00:00:{entity_id+1:0>2X}')
 
 
 def _prepare_isl_env(satellite_id: int, isl_id: int = None, isl_bridge: str = 'opensand_isl'):

@@ -905,14 +905,14 @@ bool Rt::DownwardChannel<BlockDvbNcc>::handleLogonReq(Ptr<DvbFrame> dvb_frame)
 	auto logon_resp = make_ptr<LogonResponse>(mac, this->mac_id, mac);
 
 	LOG(this->log_send, LEVEL_DEBUG,
-			"SF#%u: logon response sent to lower layer\n",
-			this->super_frame_counter);
+	    "SF#%u: logon response sent to lower layer\n",
+	    this->super_frame_counter);
 
 	if(!this->sendDvbFrame(dvb_frame_downcast(std::move(logon_resp)),
 	                       this->spot->getCtrlCarrierId()))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-				"Failed send logon response\n");
+		    "Failed send logon response\n");
 		return false;
 	}
 

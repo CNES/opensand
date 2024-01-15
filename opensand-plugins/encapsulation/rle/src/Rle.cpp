@@ -627,7 +627,7 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	if((src_tal_id & 0x1f) != src_tal_id)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "The source terminal id %u of %s packet is too longer\n",
+		    "The source terminal id %u of %s packet is too long\n",
 		    src_tal_id, this->getName().c_str());
 		return false;
 	}
@@ -635,7 +635,7 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	if((dst_tal_id & 0x1f) != dst_tal_id)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "The destination terminal id %u of %s packet is too longer\n",
+		    "The destination terminal id %u of %s packet is too long\n",
 		    dst_tal_id, this->getName().c_str());
 		return false;
 	}
@@ -643,7 +643,7 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	if((qos & 0x07) != qos)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "The QoS %u of %s packet is too longer\n",
+		    "The QoS %u of %s packet is too long\n",
 		    qos, this->getName().c_str());
 		return false;
 	}
@@ -908,6 +908,20 @@ bool Rle::PacketHandler::getSrc(const Rt::Data &data, tal_id_t &tal_id) const
 	}
 
 	tal_id = label[0];
+	return true;
+}
+
+bool Rle::PacketHandler::getDst(const Rt::Data &data, tal_id_t &tal_id) const
+{
+	uint8_t label[LABEL_SIZE];
+
+	// Get label (this will success if it is the first fragment)
+	if(!Rle::getLabel(data, label))
+	{
+		return false;
+	}
+
+	tal_id = label[1];
 	return true;
 }
 

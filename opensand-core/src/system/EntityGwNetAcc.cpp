@@ -87,9 +87,23 @@ bool EntityGwNetAcc::createSpecificBlocks()
 {
 	try
 	{
+		auto Conf = OpenSandModelConf::Get();
+		const auto &spot_topo = Conf->getSpotsTopology();
+		bool isRegen = false;
+		for (auto &&[spot_id, topo]: spot_topo)
+		{
+			if (topo.gw_id == this->instance_id)
+			{
+				isRegen = topo.forward_regen_level != RegenLevel::Transparent
+				       && topo.return_regen_level != RegenLevel::Transparent;
+				break;
+			}
+		}
+
 		la_specific spec_la;
 		spec_la.tap_iface = this->tap_iface;
 		spec_la.packet_switch = std::make_shared<GatewayPacketSwitch>(this->instance_id);
+		spec_la.packet_switch = isRegen ? std::make_shared<RegenGatewayPacketSwitch>(this->instance_id) : std::make_shared<GatewayPacketSwitch>(this->instance_id);
 
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = false;

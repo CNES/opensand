@@ -85,6 +85,15 @@ public:
 		virtual bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const = 0;
 
 		/**
+		 * @brief Get the destination terminal ID of a packet
+		 *
+		 * @param data    The packet content
+		 * @param tal_id  OUT: the data terminal ID of the packet
+		 * @return true on success, false otherwise
+		 */
+		virtual bool getDst(const Rt::Data &data, tal_id_t &tal_id) const = 0;
+
+		/**
 		 * @brief Get the QoS of a packet
 		 *
 		 * @param data   The packet content
@@ -140,8 +149,6 @@ public:
 		virtual bool getHeaderExtensions(const Rt::Ptr<NetPacket>& packet,
 		                                 std::string callback_name,
 		                                 void *opaque) = 0;
-
-		// std::list<std::string> getCallback();
 
 	protected:
 		/**

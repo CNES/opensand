@@ -151,6 +151,7 @@ class Gse: public EncapPlugin
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
 		bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const;
+		bool getDst(const Rt::Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Rt::Data &data, qos_t &qos) const;
 
 		bool checkPacketForHeaderExtensions(Rt::Ptr<NetPacket> &packet) override;

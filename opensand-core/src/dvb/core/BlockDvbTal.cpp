@@ -1650,13 +1650,14 @@ bool Rt::DownwardChannel<BlockDvbTal>::addCniExt()
 		{
 			std::unique_ptr<FifoElement>& elem = *it;
 			Ptr<NetPacket> packet = elem->releaseElem<NetPacket>();
+			tal_id_t st = packet->getSrcTalId();
 			tal_id_t gw = packet->getDstTalId();
 
-			if(gw == this->gw_id && this->is_scpc && this->getCniInputHasChanged(this->tal_id))
+			if(gw == this->gw_id && this->is_scpc && this->getCniInputHasChanged(st))
 			{
 				packet = this->setPacketExtension(this->pkt_hdl,
 				                                  std::move(packet),
-				                                  this->tal_id, gw,
+				                                  st, gw,
 				                                  "encodeCniExt",
 				                                  this->super_frame_counter,
 				                                  false);

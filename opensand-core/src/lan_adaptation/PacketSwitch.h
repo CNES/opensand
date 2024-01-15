@@ -119,18 +119,18 @@ public:
 	 *
 	 * @return true if destination found, false otherwise
 	 */
-	bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dest_id);
+	bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dest_id) override;
 
 	/**
 	 * @brief Check a packet is destinated to the current entity
 	 *
 	 * @param packet   The packet
 	 * @param src_id   The OpenSAND source of the packet
-	 * @param forward  True if forwardis required, false otherwise
+	 * @param forward  True if forward is required, false otherwise
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward);
+	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward) override;
 
 protected:
 	/// The gateway id of the terminal entity
@@ -154,18 +154,39 @@ public:
 	 *
 	 * @return true if destination found, false otherwise
 	 */
-	bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id);
+	bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id) override;
 
 	/**
 	 * @brief Check a packet is destinated to the current entity
 	 *
 	 * @param packet   The packet
 	 * @param src_id   The OpenSAND source of the packet
-	 * @param forward  True if forwardis required, false otherwise
+	 * @param forward  True if forward is required, false otherwise
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward);
+	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward) override;
+};
+
+/**
+ * @class RegenGatewayPacketSwitch
+ * @brief Get switch information about packets for gateway when no transparency is involved in the satellite
+ */
+class RegenGatewayPacketSwitch: public GatewayPacketSwitch
+{
+public:
+	using GatewayPacketSwitch::GatewayPacketSwitch;
+
+	/**
+	 * @brief Check a packet is destinated to the current entity
+	 *
+	 * @param packet   The packet
+	 * @param src_id   The OpenSAND source of the packet
+	 * @param forward  True if forward is required, false otherwise
+	 *
+	 * @return true if packet is for the current entity, false otherwise
+	 */
+	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward) override;
 };
 
 class SatellitePacketSwitch: public PacketSwitch
@@ -188,7 +209,7 @@ public:
 	 *
 	 * @param packet   The packet
 	 * @param src_id   The OpenSAND source of the packet
-	 * @param forward  True if forwardis required, false otherwise
+	 * @param forward  True if forward is required, false otherwise
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */

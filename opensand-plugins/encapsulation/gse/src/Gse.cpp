@@ -1200,20 +1200,15 @@ Rt::Ptr<NetBurst> Gse::Context::flushAll()
 
 Rt::Ptr<NetPacket> Gse::PacketHandler::build(const Rt::Data &data,
                                              size_t data_length,
-                                             uint8_t,
-                                             uint8_t,
-                                             uint8_t _dst_tal_id) const
+                                             uint8_t qos,
+                                             uint8_t src_tal_id,
+                                             uint8_t dst_tal_id) const
 {
 	gse_status_t status;
-	uint8_t label[6];
 	uint8_t s;
 	uint8_t e;
 	uint8_t label_length = 6;
 
-	uint8_t qos;
-	uint8_t src_tal_id = BROADCAST_TAL_ID;
-	uint8_t dst_tal_id = BROADCAST_TAL_ID;
-	uint8_t frag_id;
 	uint16_t header_length = 0;
 	unsigned char *packet = const_cast<unsigned char *>(data.data());
 
@@ -1238,17 +1233,6 @@ Rt::Ptr<NetPacket> Gse::PacketHandler::build(const Rt::Data &data,
 	// subsequent fragment
 	if(s == 0)
 	{
-		status = gse_get_frag_id(packet, &frag_id);
-		if(status != GSE_STATUS_OK)
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "cannot get frag ID (%s)\n",
-			    gse_get_status(status));
-			return Rt::make_ptr<NetPacket>(nullptr);
-		}
-		qos = Gse::getQosFromFragId(frag_id);
-		src_tal_id = Gse::getSrcTalIdFromFragId(frag_id);
-		dst_tal_id = _dst_tal_id;
 		LOG(this->log, LEVEL_DEBUG,
 		    "build a subsequent fragment "
 		    "SRC TAL Id = %u, QoS = %u, DST TAL Id=  %u\n",
@@ -1260,18 +1244,6 @@ Rt::Ptr<NetPacket> Gse::PacketHandler::build(const Rt::Data &data,
 	// complete or first fragment
 	else
 	{
-		status = gse_get_label(packet, label);
-		if(status != GSE_STATUS_OK)
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "cannot get label (%s)\n",
-			    gse_get_status(status));
-			return Rt::make_ptr<NetPacket>(nullptr);
-		}
-		qos = Gse::getQosFromLabel(label);
-		src_tal_id = Gse::getSrcTalIdFromLabel(label);
-		dst_tal_id = Gse::getDstTalIdFromLabel(label);
-
 		// first fragment
 		if(e == 0)
 		{
@@ -1522,6 +1494,64 @@ bool Gse::PacketHandler::getSrc(const Rt::Data &data, tal_id_t &tal_id) const
 	return true;
 }
 
+bool Gse::PacketHandler::getDst(const Rt::Data &data, tal_id_t &tal_id) const
+{
+	gse_status_t status;
+	uint8_t s;
+	uint8_t e;
+
+	unsigned char *packet = const_cast<unsigned char *>(data.data());
+
+	status = gse_get_start_indicator(packet, &s);
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot get start indicator (%s)\n",
+		    gse_get_status(status));
+		return false;
+	}
+
+	status = gse_get_end_indicator(packet, &e);
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot get end indicator (%s)\n",
+		    gse_get_status(status));
+		return false;
+	}
+
+	// subsequent fragment
+	if(s == 0)
+	{
+		uint8_t frag_id;
+		status = gse_get_frag_id(packet, &frag_id);
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot get frag ID (%s)\n",
+			    gse_get_status(status));
+			return false;
+		}
+		tal_id = Gse::getDstTalIdFromFragId(frag_id);
+	}
+	// complete or first fragment
+	else
+	{
+		uint8_t label[6];
+		status = gse_get_label(packet, label);
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot get label (%s)\n",
+			    gse_get_status(status));
+			return false;
+		}
+		tal_id = Gse::getDstTalIdFromLabel(label);
+	}
+
+	return true;
+}
+
 bool Gse::PacketHandler::getQos(const Rt::Data &data, qos_t &qos) const
 {
 	gse_status_t status;
@@ -1719,8 +1749,8 @@ bool Gse::PacketHandler::setHeaderExtensions(Rt::Ptr<NetPacket> packet,
 	{
 		new_packet = this->build(gse_frag,
 		                         gse_get_vfrag_length(vfrag),
-		                         /* qos and tal_ids are read from label */
-		                         0, 0, packet->getDstTalId());
+		                         packet->getQos(),
+		                         tal_id_src, tal_id_dst);
 	}
 	catch (const std::bad_alloc&)
 	{

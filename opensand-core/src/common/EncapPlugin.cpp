@@ -145,11 +145,14 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContaine
 		Rt::Ptr<NetPacket> current = Rt::make_ptr<NetPacket>(nullptr);
 		try
 		{
+			auto packet_data = packet->getPayload(previous_length);
+			tal_id_t src = BROADCAST_TAL_ID, dst = BROADCAST_TAL_ID;
+			qos_t qos = 0;
+			this->getSrc(packet_data, src);
+			this->getDst(packet_data, dst);
+			this->getQos(packet_data, qos);
 			current = this->build(packet->getPayload(previous_length),
-			                      current_length,
-			                      0x00,
-			                      BROADCAST_TAL_ID,
-			                      BROADCAST_TAL_ID);
+			                      current_length, qos, src, dst);
 		}
 		catch (const std::bad_alloc&)
 		{
