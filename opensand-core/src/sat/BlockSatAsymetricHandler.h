@@ -47,7 +47,8 @@
 
 struct AsymetricConfig
 {
-	bool is_transparent;
+	bool upward_transparent;
+	bool downward_transparent;
 	PhyLayerConfig phy_config;
 };
 

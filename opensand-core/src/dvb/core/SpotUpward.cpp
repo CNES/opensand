@@ -33,6 +33,9 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+
+#include <sstream>
+
 #include "SpotUpward.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
@@ -46,7 +49,6 @@
 #include "UnitConverterFixedSymbolLength.h"
 #include "OpenSandModelConf.h"
 
-
 #include <opensand_output/OutputEvent.h>
 
 
@@ -55,7 +57,7 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
                        StackPlugin *upper_encap,
                        std::shared_ptr<StFmtSimuList> input_sts,
                        std::shared_ptr<StFmtSimuList> output_sts):
-	DvbChannel{upper_encap},
+	DvbChannel{upper_encap, [spot_id](){std::stringstream stream; stream << "gw" << spot_id << ".upward"; return stream.str();}()},
 	DvbFmt{},
 	spot_id{spot_id},
 	mac_id{mac_id},

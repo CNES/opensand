@@ -34,6 +34,9 @@
  *
  */
 
+
+#include <sstream>
+
 #include "SpotDownward.h"
 
 #include "ForwardSchedulingS2.h"
@@ -61,7 +64,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
                            std::shared_ptr<StFmtSimuList> input_sts,
                            std::shared_ptr<StFmtSimuList> output_sts):
-	DvbChannel{upper_encap},
+	DvbChannel{upper_encap, [spot_id](){std::stringstream stream; stream << "gw" << spot_id << ".downward"; return stream.str();}()},
 	DvbFmt(),
 	dama_ctrl(nullptr),
 	scheduling(),

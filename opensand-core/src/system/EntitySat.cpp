@@ -195,17 +195,19 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
                             RegenLevel forward_regen_level,
                             RegenLevel return_regen_level)
 {
-	bool is_transparent{};
+	AsymetricConfig asym_config;
 	std::ostringstream suffix_builder;
 	switch (destination)
 	{
 		case Component::gateway:
 			suffix_builder << "GW";
-			is_transparent = forward_regen_level == RegenLevel::Transparent;
+			asym_config.upward_transparent = forward_regen_level == RegenLevel::Transparent;
+			asym_config.downward_transparent = return_regen_level == RegenLevel::Transparent;
 			break;
 		case Component::terminal:
 			suffix_builder << "ST";
-			is_transparent = return_regen_level == RegenLevel::Transparent;
+			asym_config.upward_transparent = return_regen_level == RegenLevel::Transparent;
+			asym_config.downward_transparent = forward_regen_level == RegenLevel::Transparent;
 			break;
 		default:
 			DFLTLOG(LEVEL_ERROR,
@@ -223,7 +225,7 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 	specific.destination_host = destination;
 	auto& block_sc = Rt::Rt::createBlock<BlockSatCarrier>("Sat_Carrier." + suffix, specific);
 
-	if (forward_regen_level != RegenLevel::Transparent || return_regen_level != RegenLevel::Transparent)
+	if (!asym_config.upward_transparent || !asym_config.downward_transparent)
 	{
 		dvb_specific dvb_spec;
 		dvb_spec.disable_acm_loop = false;
@@ -243,10 +245,7 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 		phy_config.mac_id = instance_id;
 		phy_config.spot_id = spot_id;
 		phy_config.entity_type = destination;
-
-		AsymetricConfig asym_config;
 		asym_config.phy_config = phy_config;
-		asym_config.is_transparent = is_transparent;
 
 		auto& block_dvb = Rt::Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
 		auto& block_asym = Rt::Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);

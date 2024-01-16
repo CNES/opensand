@@ -55,7 +55,7 @@
 std::shared_ptr<OutputLog> DvbChannel::dvb_fifo_log = nullptr;
 
 
-DvbChannel::DvbChannel(StackPlugin *upper_encap):
+DvbChannel::DvbChannel(StackPlugin *upper_encap, const std::string& name):
 	req_burst_length(0),
 	super_frame_counter(0),
 	fwd_down_frame_duration(),
@@ -69,9 +69,9 @@ DvbChannel::DvbChannel(StackPlugin *upper_encap):
 	// register static log
 	auto output = Output::Get();
 	dvb_fifo_log = output->registerLog(LEVEL_WARNING, "Dvb.FIFO");
-	this->log_init_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.init");
-	this->log_receive_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.receive");
-	this->log_send_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.send");
+	this->log_init_channel = output->registerLog(LEVEL_WARNING, "Dvb." + name + ".Channel.init");
+	this->log_receive_channel = output->registerLog(LEVEL_WARNING, "Dvb." + name + ".Channel.receive");
+	this->log_send_channel = output->registerLog(LEVEL_WARNING, "Dvb." + name + ".Channel.send");
 };
 
 

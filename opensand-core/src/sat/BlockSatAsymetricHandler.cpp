@@ -46,7 +46,7 @@
 
 Rt::UpwardChannel<BlockSatAsymetricHandler>::UpwardChannel(const std::string& name, AsymetricConfig specific):
 	Channels::UpwardDemux<UpwardChannel<BlockSatAsymetricHandler>, bool>{name},
-	split_traffic{specific.is_transparent}
+	split_traffic{specific.upward_transparent}
 {
 }
 
@@ -80,7 +80,7 @@ bool Rt::UpwardChannel<BlockSatAsymetricHandler>::onEvent(const MessageEvent &ev
 Rt::DownwardChannel<BlockSatAsymetricHandler>::DownwardChannel(const std::string& name, AsymetricConfig specific):
 	GroundPhysicalChannel{specific.phy_config},
 	Channels::DownwardMux<DownwardChannel<BlockSatAsymetricHandler>>{name},
-	is_regenerated_traffic{!specific.is_transparent}
+	is_regenerated_traffic{!specific.downward_transparent}
 {
 }
 

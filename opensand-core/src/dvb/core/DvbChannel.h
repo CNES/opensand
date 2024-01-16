@@ -64,7 +64,7 @@ class DvbFifo;
 class DvbChannel
 {
 public:
-	DvbChannel(StackPlugin *upper_encap);
+	DvbChannel(StackPlugin *upper_encap, const std::string& name);
 
 protected:
 	/**

@@ -219,7 +219,7 @@ bool BlockDvbTal::initListsSts()
 /*****************************************************************************/
 
 Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{specific.upper_encap},
+	DvbChannel{specific.upper_encap, [&specific](){std::stringstream stream; stream << "st" << specific.spot_id << ".downward"; return stream.str();}()},
 	Channels::Downward<DownwardChannel<BlockDvbTal>>{name},
 	DvbFmt{},
 	mac_id{specific.mac_id},
@@ -2311,7 +2311,7 @@ void Rt::DownwardChannel<BlockDvbTal>::deletePackets()
 /*****************************************************************************/
 
 Rt::UpwardChannel<BlockDvbTal>::UpwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{specific.upper_encap},
+	DvbChannel{specific.upper_encap, [&specific](){std::stringstream stream; stream << "st" << specific.spot_id << ".upward"; return stream.str();}()},
 	Channels::Upward<UpwardChannel<BlockDvbTal>>{name},
 	DvbFmt{},
 	reception_std{nullptr},

@@ -37,6 +37,8 @@
  */
 
 
+#include <sstream>
+
 #include "BlockDvbNcc.h"
 
 #include "OpenSandModelConf.h"
@@ -134,7 +136,7 @@ bool BlockDvbNcc::initListsSts()
 
 // TODO lot of duplicated code for fifos between ST and GW
 Rt::DownwardChannel<BlockDvbNcc>::DownwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{specific.upper_encap},
+	DvbChannel{specific.upper_encap, [&specific](){std::stringstream stream; stream << "gw" << specific.spot_id << ".downward"; return stream.str();}()},
 	Channels::Downward<DownwardChannel<BlockDvbNcc>>{name},
 	DvbFmt{},
 	pep_interface{},
@@ -925,7 +927,7 @@ bool Rt::DownwardChannel<BlockDvbNcc>::handleLogonReq(Ptr<DvbFrame> dvb_frame)
 /*****************************************************************************/
 
 Rt::UpwardChannel<BlockDvbNcc>::UpwardChannel(const std::string &name, dvb_specific specific):
-	DvbChannel{specific.upper_encap},
+	DvbChannel{specific.upper_encap, [&specific](){std::stringstream stream; stream << "gw" << specific.spot_id << ".upward"; return stream.str();}()},
 	Channels::Upward<UpwardChannel<BlockDvbNcc>>{name},
 	DvbFmt{},
 	mac_id{specific.mac_id},
