@@ -131,7 +131,7 @@ bool FileSimulator::simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
 			event_selected = EventType::cr;
 		}
 		else if(5 == sscanf(this->simu_buffer.c_str(),
-		                    "SF%hu LOGON st%hu rt=%hu rbdc=%hu vbdc=%hu",
+		                    "SF%hu LOGON st%hu rt=%u rbdc=%u vbdc=%u",
 		                    &sf_nr, &st_id, &st_rt, &st_rbdc, &st_vbdc))
 		{
 			event_selected = EventType::logon;

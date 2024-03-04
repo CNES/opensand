@@ -37,6 +37,12 @@
 #include "MacAddress.h"
 
 
+SarpEthEntry::SarpEthEntry(std::unique_ptr<MacAddress>&& m, tal_id_t id):
+	mac(std::move(m)), tal_id(id)
+{
+}
+
+
 SarpTable::SarpTable(unsigned int max_entries):
 	eth_sarp{}
 {
@@ -71,7 +77,7 @@ bool SarpTable::add(std::unique_ptr<MacAddress> mac_address, tal_id_t tal)
 	if(!SarpTable::getTalByMac(*mac_address, tal_id))
 	{
 		// set entry
-		this->eth_sarp.push_back({std::move(mac_address), tal});
+		this->eth_sarp.emplace_back(std::move(mac_address), tal);
 	}	
 
 	return true;

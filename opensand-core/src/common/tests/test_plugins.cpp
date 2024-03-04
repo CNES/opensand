@@ -315,7 +315,6 @@ static void test_encap_and_decap(
 	std::string folder,
 	bool compare)
 {
-	PluginConfigurationContainer encap_plug;
 	std::string stack = "";
 
 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
@@ -328,13 +327,11 @@ static void test_encap_and_decap(
 		stack += (*ctxit)->getName();
 	}
 
-	Plugin::getAllEncapsulationPlugins(encap_plug);
-
 	// test each encap context
-	for (auto &&plugit: encap_plug)
+	auto encap_names = Plugin::getAllEncapsulationPlugins();
+	for (auto &&name: encap_names)
 	{
 		encap_contexts_t encap_contexts;
-		std::string name = plugit.first;
 		std::string name_low;
 		EncapPlugin *plugin = nullptr;
 		int found;
@@ -361,7 +358,7 @@ static void test_encap_and_decap(
 			// try to add a supported upper layer
 			for (auto &&upper_name: upper)
 			{
-				if(encap_plug[upper_name].second != NULL)
+				if(std::find(encap_names.begin(), encap_names.end(), upper_name) != encap_names.end())
 				{
 					EncapPlugin *up_plugin;
 					if(!Plugin::getEncapsulationPlugin(upper_name, &up_plugin))

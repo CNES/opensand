@@ -50,6 +50,8 @@ struct SarpEthEntry
 {
 	std::unique_ptr<MacAddress> mac;
 	tal_id_t tal_id;
+
+	SarpEthEntry(std::unique_ptr<MacAddress>&&, tal_id_t tal_id);
 };
 
 
