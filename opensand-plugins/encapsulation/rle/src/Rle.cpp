@@ -373,7 +373,6 @@ bool Rle::Context::decapNextPacket(Rt::Ptr<NetPacket> packet, NetBurst &burst)
 	uint8_t src_tal_id, dst_tal_id, qos;
 	uint8_t label[LABEL_SIZE];
 	unsigned char label_str[LABEL_SIZE];
-	RleIdentifier *identifier = nullptr;
 	std::map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier>::iterator it;
 
 	struct rle_receiver *receiver;
@@ -412,33 +411,32 @@ bool Rle::Context::decapNextPacket(Rt::Ptr<NetPacket> packet, NetBurst &burst)
 	    src_tal_id, dst_tal_id, qos);
 
 	// Get receiver
-	identifier = new RleIdentifier(src_tal_id, dst_tal_id);
-	it = this->receivers.find(identifier);
-	if(it == this->receivers.end())
 	{
-		LOG(this->log, LEVEL_DEBUG, "Packet requiring a new RLE receiver");
-
-		// Create receiver
-		receiver = rle_receiver_new(&this->rle_conf);
-		if(!receiver)
+		std::unique_ptr<RleIdentifier> identifier = std::make_unique<RleIdentifier>(src_tal_id, dst_tal_id);
+		it = this->receivers.find(identifier.get());
+		if(it == this->receivers.end())
 		{
-			delete identifier;
-			LOG(this->log, LEVEL_ERROR,
-			    "cannot create a RLE receiver\n");
-			goto error;
-		}
+			LOG(this->log, LEVEL_DEBUG, "Packet requiring a new RLE receiver");
 
-		// Store receiver
-		this->receivers[identifier] = receiver;
-		LOG(this->log, LEVEL_DEBUG, "RLE receiver created");
-	}
-	else
-	{
-		LOG(this->log, LEVEL_DEBUG, "Packet requiring an existing RLE receiver");
-		// Get existing identifier and context
-		delete identifier;
-		identifier = it->first;
-		receiver = it->second;
+			// Create receiver
+			receiver = rle_receiver_new(&this->rle_conf);
+			if(!receiver)
+			{
+				LOG(this->log, LEVEL_ERROR,
+					"cannot create a RLE receiver\n");
+				goto error;
+			}
+
+			// Store receiver
+			this->receivers.emplace(identifier.release(), receiver);
+			LOG(this->log, LEVEL_DEBUG, "RLE receiver created");
+		}
+		else
+		{
+			LOG(this->log, LEVEL_DEBUG, "Packet requiring an existing RLE receiver");
+			// Get existing identifier and context
+			receiver = it->second;
+		}
 	}
 
 	// Prepare SDUs structures
@@ -533,14 +531,12 @@ Rle::PacketHandler::PacketHandler(EncapPlugin &plugin):
 
 Rle::PacketHandler::~PacketHandler()
 {
-	std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator trans_it;
-	
 	// Reset and clean encapsulation
-	for(auto &&trans_it: this->transmitters)
+	for(auto &&[identifier, transmitter]: this->transmitters)
 	{
-		delete trans_it.first;
-		rle_transmitter_destroy(&(trans_it.second.first));
-		trans_it.second.second.clear();
+		delete identifier;
+		rle_transmitter_destroy(&transmitter.first);
+		transmitter.second.clear();
 	}
 	this->transmitters.clear();
 }
@@ -598,7 +594,6 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	struct rle_transmitter *transmitter;
 	std::vector<NetPacket *>::iterator pkt_it;
 	std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator it;
-	RleIdentifier *identifier = nullptr;
 	uint8_t label[LABEL_SIZE];
 
 	enum rle_frag_status frag_status;
@@ -612,7 +607,7 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	size_t prev_queue_size, queue_size;
 
 	Rt::Data fpdu;
-	unsigned char *fpdu_buffer;
+	std::unique_ptr<unsigned char[]> fpdu_buffer = nullptr;
 	
 	// Set default returned values
 	bool partial_encap = false;
@@ -666,8 +661,8 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	frag_id = qos;
 
 	// Get transmitter
-	identifier = new RleIdentifier(src_tal_id, dst_tal_id);
-	it = this->transmitters.find(identifier);
+	std::unique_ptr<RleIdentifier> identifier = std::make_unique<RleIdentifier>(src_tal_id, dst_tal_id);
+	it = this->transmitters.find(identifier.get());
 	if(it == this->transmitters.end())
 	{
 		LOG(this->log, LEVEL_DEBUG, "Packet requiring a new RLE transmitter");
@@ -676,19 +671,17 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 		transmitter = rle_transmitter_new(&this->rle_conf);
 		if(!transmitter)
 		{
-			delete identifier;
 			LOG(this->log, LEVEL_ERROR,
 				"cannot create a RLE transmitter\n");
 			return false;
 		}
 
 		// Store transmitter
-		auto result = this->transmitters.emplace(identifier,
+		auto result = this->transmitters.emplace(identifier.release(),
 		                                         std::make_pair(transmitter, std::vector<NetPacket *>{}));
 		it = result.first;
 		if(it == this->transmitters.end() || !result.second)
 		{
-			delete identifier;
 			rle_transmitter_destroy(&transmitter);
 			LOG(this->log, LEVEL_ERROR,
 				"cannot store the RLE transmitter\n");
@@ -699,9 +692,7 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	else
 	{
 		LOG(this->log, LEVEL_DEBUG, "Packet requiring an existing RLE transmitter");
-		// Get existing identifier and context
-		delete identifier;
-		identifier = it->first;
+		// Get existing transmitter
 		transmitter = it->second.first;
 	}
 
@@ -726,18 +717,16 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 		// Build RLE SDU
 		sdu.protocol_type = to_underlying(packet->getType());
 		sdu.size = packet->getTotalLength();
-		sdu.buffer = new unsigned char[sdu.size];
-		memcpy(sdu.buffer, packet->getRawData(), sdu.size);
+		sdu.buffer = packet->getRawData();
 
 		// Encapsulate RLE SDU
 		if(rle_encapsulate(transmitter, &sdu, frag_id) != 0)
 		{
-			delete[] sdu.buffer;
 			LOG(this->log, LEVEL_ERROR,
 			    "RLE failed to encaspulate SDU\n");
 			return false;
 		}
-		delete[] sdu.buffer;
+		sdu.buffer = nullptr;
 		sdu.size = 0;
 	}
 	else
@@ -803,13 +792,13 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	// Prepare FPDU
 	fpdu_size = ppdu_size + label_size;
 	fpdu_cur_pos = 0;
-	fpdu_buffer = new unsigned char[fpdu_size];
+	fpdu_buffer = std::make_unique<unsigned char[]>(fpdu_size);
 
 	// Pack RLE PPD to RLE FPDU
 	LOG(this->log, LEVEL_DEBUG,
 	    "RLE packing (FPDU len=%u bytes, FPDU pos=%u)",
 	    fpdu_size, fpdu_cur_pos);
-	pack_status = rle_pack(ppdu, ppdu_size, label, label_size, fpdu_buffer, &fpdu_cur_pos, &fpdu_size);
+	pack_status = rle_pack(ppdu, ppdu_size, label, label_size, fpdu_buffer.get(), &fpdu_cur_pos, &fpdu_size);
 	if(pack_status == RLE_PACK_ERR_FPDU_TOO_SMALL)
 	{
 		LOG(this->log, LEVEL_INFO,
@@ -820,19 +809,18 @@ bool Rle::PacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
 	}
 	if(pack_status != 0)
 	{
-		delete[] fpdu_buffer;
 		LOG(this->log, LEVEL_ERROR,
 		    "RLE failed to pack PPDU (code=%d)\n",
 		    (int)pack_status);
 		return false;
 	}
-	fpdu.assign(fpdu_buffer, fpdu_cur_pos);
-	delete[] fpdu_buffer;
+	fpdu.assign(fpdu_buffer.get(), fpdu_cur_pos);
 
-	encap_packet.reset(new NetPacket(fpdu, fpdu_cur_pos,
-	                                 this->getName(),
-	                                 this->getEtherType(),
-	                                 qos, src_tal_id, dst_tal_id, 0));
+
+	encap_packet = Rt::make_ptr<NetPacket>(fpdu, fpdu_cur_pos,
+	                                       this->getName(),
+	                                       this->getEtherType(),
+	                                       qos, src_tal_id, dst_tal_id, 0);
 
 encap_end:
 	if((pkt_it == sent_packets.end()) && partial_encap)
