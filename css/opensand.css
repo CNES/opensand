@@ -319,11 +319,3 @@ blockquote {
 hr {
 	border-top: 1px solid #A9D0F5;
 }
-
-.temporary-notice {
-  margin: 75px auto -40px;
-  border: solid 4px brown;
-  border-radius: 10px;
-  padding: 10px;
-  background-color: lemonchiffon;
-}
