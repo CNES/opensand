@@ -25,7 +25,7 @@ const ColoredAppBar = styled(AppBar, {name: "ColoredAppBar", slot: "Wrapper"})((
 }));
 
 
-const TabPanel: React.FC<{index: any; value: any;}> = (props) => {
+const TabPanel: React.FC<React.PropsWithChildren<{index: any; value: any;}>> = (props) => {
     const {children, value, index, ...other} = props;
 
     return (

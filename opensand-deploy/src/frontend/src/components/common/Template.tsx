@@ -26,7 +26,7 @@ const FlexPaper = styled(Paper, {name: "FlexPaper", slot: "Wrapper"})({
 const opensandVersion = process.env.REACT_APP_OPENSAND_VERSION || `(${process.env.NODE_ENV}  build)`;
 
 
-const Template: React.FC<Props> = (props) => {
+const Template: React.FC<React.PropsWithChildren<Props>> = (props) => {
     const {pathname} = useLocation();
     const navigate = useNavigate();
 
