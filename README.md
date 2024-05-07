@@ -49,7 +49,7 @@ computers are connected to it.
 
 ### Operating System
 
-The testbed was tested using Ubuntu 20.04 LTS, but it should work on every Linux distribution
+The testbed was tested using Ubuntu 22.04 LTS, but it should work on every Linux distribution
 or Unix-like system provided that the required dependencies are installed. However, if you
 are not on a Debian-based system, you may need to [compile OpenSAND](opensand-packaging/README.md)
 yourself.
