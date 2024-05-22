@@ -1,5 +1,5 @@
 import React from 'react';
-import type {FormikProps} from 'formik';
+import {useFormikContext} from 'formik';
 
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -14,7 +14,6 @@ import List from './List';
 import Parameter from './Parameter';
 
 import {useSelector} from '../../redux';
-import {IActions, noActions} from '../../utils/actions';
 import {isParameterElement, isVisible} from '../../xsd';
 import type {Element, Component as ComponentType} from '../../xsd';
 
@@ -49,7 +48,8 @@ const findParameterValue = (component: ComponentType, id: string) => {
 
 
 const Component: React.FC<Props> = (props) => {
-    const {component, readOnly, prefix, form, actions, autosave} = props;
+    const {component, readOnly, prefix} = props;
+    const form = useFormikContext<ComponentType>();
 
     const visibility = useSelector((state) => state.form.visibility);
 
@@ -63,7 +63,7 @@ const Component: React.FC<Props> = (props) => {
     const entity = entityName != null && entityType != null ? {name: entityName, type: entityType} : undefined;
 
     const visibleComponents = component.elements.map(
-        (e, i): [number, Element] => [i, e]
+        (e: Element, i: number): [number, Element] => [i, e]
     ).filter(
         ([i, e]: [number, Element]): boolean => isVisible(e.element, visibility, form.values)
     );
@@ -72,7 +72,6 @@ const Component: React.FC<Props> = (props) => {
         <LargePaper elevation={0}>
             {visibleComponents.map(([i, e]: [number, Element]) => {
                 const childPrefix = `${prefix}.elements.${i}.element`;
-                const elementActions = actions['#'][e.element.id] || noActions;
                 switch (e.type) {
                     case "parameter":
                         return (
@@ -81,15 +80,12 @@ const Component: React.FC<Props> = (props) => {
                                 parameter={e.element}
                                 readOnly={isReadOnly}
                                 prefix={childPrefix}
-                                form={form}
-                                actions={elementActions}
                                 entity={entity}
-                                autosave={autosave}
                             />
                         );
                     case "list":
                         return (
-                            <Accordion key={e.element.id} defaultExpanded={false} TransitionProps={{unmountOnExit: true}}>
+                            <Accordion key={e.element.id} defaultExpanded TransitionProps={{unmountOnExit: true}}>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                     <Heading>
                                         {e.element.name}
@@ -103,16 +99,13 @@ const Component: React.FC<Props> = (props) => {
                                         list={e.element}
                                         readOnly={isReadOnly}
                                         prefix={childPrefix}
-                                        form={form}
-                                        actions={elementActions}
-                                        autosave={autosave}
                                     />
                                 </AccordionDetails>
                             </Accordion>
                         );
                     case "component":
                         return (
-                            <Accordion key={e.element.id} defaultExpanded={false} TransitionProps={{unmountOnExit: true}}>
+                            <Accordion key={e.element.id} defaultExpanded TransitionProps={{unmountOnExit: true}}>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                     <Heading>
                                         {e.element.name}
@@ -126,9 +119,6 @@ const Component: React.FC<Props> = (props) => {
                                         component={e.element}
                                         readOnly={isReadOnly}
                                         prefix={childPrefix}
-                                        form={form}
-                                        actions={elementActions}
-                                        autosave={autosave}
                                     />
                                 </AccordionDetails>
                             </Accordion>
@@ -146,9 +136,6 @@ interface Props {
     component: ComponentType;
     readOnly?: boolean;
     prefix: string;
-    form: FormikProps<ComponentType>;
-    actions: IActions;
-    autosave: boolean;
 }
 
 

@@ -11,7 +11,7 @@ const CardButton: React.FC<Props> = (props) => {
         onClick();
     }, [onClick]);
 
-    return <Button color="primary" onClick={handleClick}>{title}</Button>;
+    return <Button color="primary" variant="outlined" sx={{mt: 1, width: "100%"}} style={{marginLeft: 0}} onClick={handleClick}>{title}</Button>;
 };
 
 

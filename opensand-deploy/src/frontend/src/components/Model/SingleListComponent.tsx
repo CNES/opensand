@@ -1,5 +1,4 @@
 import React from 'react';
-import type {FormikProps} from 'formik';
 
 import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
@@ -14,8 +13,6 @@ import DeleteIcon from '@mui/icons-material/HighlightOff';
 
 import Component from './Component';
 
-import {noActions} from '../../utils/actions';
-import type {IActions} from '../../utils/actions';
 import {useListMutators} from '../../utils/hooks';
 import {isReadOnly} from '../../xsd';
 import type {List as ListType, Component as ComponentType} from '../../xsd';
@@ -56,10 +53,10 @@ const LeftPanel = styled(List, {name: "LeftPanel", slot: "Wrapper"})(({ theme })
 
 
 const SingleListComponent: React.FC<Props> = (props) => {
-    const {list, readOnly, prefix, form, autosave, actions} = props;
+    const {list, readOnly, prefix} = props;
 
     const [open, setOpen] = React.useState<number>(0);
-    const [addListItem, removeListItem] = useListMutators(list, actions.$, form, prefix);
+    const [addListItem, removeListItem] = useListMutators(list, prefix);
 
     const isEditable = !readOnly && !isReadOnly(list);
     const canGrow = list.elements.length < list.maxOccurences;
@@ -98,9 +95,6 @@ const SingleListComponent: React.FC<Props> = (props) => {
                             component={c}
                             readOnly={!isEditable}
                             prefix={`${prefix}.elements.${i}`}
-                            form={form}
-                            actions={actions['#'][c.id] || noActions}
-                            autosave={autosave}
                         />
                     </Collapse>
                 ))}
@@ -114,9 +108,6 @@ interface Props {
     list: ListType;
     readOnly?: boolean;
     prefix: string;
-    form: FormikProps<ComponentType>;
-    actions: IActions;
-    autosave: boolean;
 }
 
 

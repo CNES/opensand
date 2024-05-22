@@ -1,30 +1,20 @@
 import React from 'react';
 
 import Button from '@mui/material/Button';
-import CardActions from '@mui/material/CardActions';
-import CardContent from '@mui/material/CardContent';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
 
-import {styled} from '@mui/material/styles';
-
+import CardAdd from '../common/CardAdd';
 import CreateProjectButton from './CreateProjectButton';
 import UploadProjectButton from './UploadProjectButton';
-import ProjectCard, {LargeCard} from './ProjectCard';
+import ProjectCard from './ProjectCard';
 
 import {deleteProject, listProjects} from '../../api';
 import {useSelector, useDispatch} from '../../redux';
-
-
-const Root = styled('div')({
-    width: "96%",
-    marginLeft: "2%",
-    marginRight: "2%",
-});
 
 
 const Projects: React.FC<Props> = (props) => {
@@ -53,28 +43,22 @@ const Projects: React.FC<Props> = (props) => {
         }
     }, [loading, dispatch]);
 
-    const projectsCards = projects.map((p: string, i: number) => (
-        <ProjectCard
-            key={p}
-            project={p}
-            onDelete={setProjectToDelete}
-        />
-    ));
-
     return (
-        <Root>
-            <LargeCard key="app/root">
-                <CardContent>
-                    <Typography>
-                        New Project
-                    </Typography>
-                </CardContent>
-                <CardActions>
+        <Grid container spacing={1} sx={{p: 2}}>
+            <Grid item xs={12} sm={6} lg={4} xl={3}>
+                <CardAdd title="project" subtitle="Manage a new OpenSAND platform">
                     <CreateProjectButton />
                     <UploadProjectButton />
-                </CardActions>
-            </LargeCard>
-            {projectsCards}
+                </CardAdd>
+            </Grid>
+            {projects.map((p: string, i: number) => (
+				<Grid item xs={12} sm={6} lg={4} xl={3} key={p}>
+					<ProjectCard
+						project={p}
+						onDelete={setProjectToDelete}
+					/>
+				</Grid>
+			))}
             <Dialog open={deleteThis != null} onClose={clearDeleteProject}>
                 <DialogTitle>Delete a project</DialogTitle>
                 <DialogContent>
@@ -86,7 +70,7 @@ const Projects: React.FC<Props> = (props) => {
                     <Button onClick={handleDeleteProject} color="primary">Yes, Delete {deleteThis}</Button>
                 </DialogActions>
             </Dialog>
-        </Root>
+        </Grid>
     );
 };
 

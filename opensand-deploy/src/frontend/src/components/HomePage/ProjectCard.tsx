@@ -1,12 +1,15 @@
 import React from 'react';
 
+import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 
-import {styled} from '@mui/material/styles';
+import OpenIcon from '@mui/icons-material/Lan';
 
 import CardButton from './CardButton';
 import SingleFieldDialog from '../common/SingleFieldDialog';
@@ -14,13 +17,6 @@ import SingleFieldDialog from '../common/SingleFieldDialog';
 import {copyProject} from '../../api';
 import {useSelector, useDispatch} from '../../redux';
 import {useOpen, useProject} from '../../utils/hooks';
-
-
-export const LargeCard = styled(Card, {name: "LargeCard", slot: "Wrapper"})({
-    width: "100%",
-    marginTop: "2%",
-    marginBottom: "2%",
-});
 
 
 const ProjectCard = (props: Props) => {
@@ -67,20 +63,27 @@ const ProjectCard = (props: Props) => {
 
     return (
         <React.Fragment>
-            <LargeCard onClick={openProject}>
-                <CardContent>
-                    <Typography>
-                        {project}
-                    </Typography>
-                </CardContent>
-                <CardActions>
-                    <Box flexGrow="1" />
+            <Card variant="outlined">
+                <CardActionArea onClick={openProject}>
+                    <CardHeader
+                        avatar={<Avatar><OpenIcon /></Avatar>}
+                        title="Project"
+                    />
+					<CardContent>
+						<Box textAlign="center">
+							<Typography variant="button">
+								{project}
+							</Typography>
+						</Box>
+					</CardContent>
+                </CardActionArea>
+                <CardActions sx={{flexDirection: "column"}}>
                     <CardButton title="Open" onClick={openProject} />
                     <CardButton title="Download" onClick={downloadProject} />
                     <CardButton title="Copy" onClick={handleOpen} />
                     <CardButton title="Delete" onClick={removeProject} />
                 </CardActions>
-            </LargeCard>
+            </Card>
             <SingleFieldDialog
                 open={open}
                 title="New Project"

@@ -1,5 +1,5 @@
 import React from 'react';
-import type {FormikProps} from 'formik';
+import {useFormikContext} from 'formik';
 
 import AppBar from '@mui/material/AppBar';
 import Tab from '@mui/material/Tab';
@@ -13,8 +13,6 @@ import SingleListComponent from './SingleListComponent';
 
 import {useSelector, useDispatch} from '../../redux';
 import {changeTab} from '../../redux/tab';
-import {noActions} from '../../utils/actions';
-import type {IActions} from '../../utils/actions';
 import {getComponents} from '../../xsd';
 import type {Component as ComponentType} from '../../xsd';
 
@@ -37,7 +35,8 @@ const TabPanel: React.FC<React.PropsWithChildren<{index: any; value: any;}>> = (
 
 
 const RootComponent: React.FC<Props> = (props) => {
-    const {form, xsd, autosave, actions = noActions} = props;
+    const {xsd, root} = props;
+    const {values} = useFormikContext<ComponentType>();
 
     const selectedTabs = useSelector((state) => state.tab);
     const visibility = useSelector((state) => state.form.visibility);
@@ -47,7 +46,7 @@ const RootComponent: React.FC<Props> = (props) => {
         dispatch(changeTab({xsd, tab: index}));
     }, [dispatch, xsd]);
 
-    const components = getComponents(form.values, form.values, visibility);
+    const components = getComponents(root, values, visibility);
     const savedTab = selectedTabs[xsd];
     const value = !(savedTab && savedTab < components.length) ? 0 : savedTab;
 
@@ -71,7 +70,6 @@ const RootComponent: React.FC<Props> = (props) => {
                 </Tabs>
             </ColoredAppBar>
             {components.map(([idx, c]: [number, ComponentType], i: number) => {
-                const elementActions = actions['#'][c.id] || noActions;
                 return (
                     <TabPanel key={c.id} value={value} index={i}>
                         {c.elements.length === 1 && c.elements[0].type === "list" ? (
@@ -79,17 +77,11 @@ const RootComponent: React.FC<Props> = (props) => {
                                 list={c.elements[0].element}
                                 readOnly={c.readOnly}
                                 prefix={`elements.${idx}.element.elements.0.element`}
-                                form={form}
-                                actions={elementActions}
-                                autosave={Boolean(autosave)}
                             />
                         ) : (
                             <Component
                                 component={c}
                                 prefix={`elements.${idx}.element`}
-                                form={form}
-                                actions={elementActions}
-                                autosave={Boolean(autosave)}
                             />
                         )}
                     </TabPanel>
@@ -101,10 +93,8 @@ const RootComponent: React.FC<Props> = (props) => {
 
 
 interface Props {
-    form: FormikProps<ComponentType>;
     xsd: string;
-    actions?: IActions;
-    autosave?: boolean;
+    root: ComponentType;
 }
 
 

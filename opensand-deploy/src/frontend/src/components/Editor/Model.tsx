@@ -67,7 +67,7 @@ const Model: React.FC<Props> = (props) => {
             </Toolbar>
             <Formik enableReinitialize initialValues={root} onSubmit={handleSubmit}>
                 {(formik: FormikProps<Component>) => (<form onSubmit={formik.handleSubmit}>
-                    <RootComponent form={formik} xsd={xsd} />
+                    <RootComponent root={root} xsd={xsd} />
                     <Box textAlign="center" marginTop="3em" marginBottom="3px">
                         <SaveAsButton project={projectName} xsd={xsd} form={formik} />
                         <SpacedButton
