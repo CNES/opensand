@@ -1,6 +1,6 @@
 import React from 'react';
 
-import SpacedButton from '../common/SpacedButton';
+import Button from '@mui/material/Button';
 
 import {deployEntity} from '../../api';
 import {useDispatch, useSelector} from '../../redux';
@@ -71,13 +71,13 @@ const StatusEntitiesButton: React.FC<Props> = (props) => {
     }, [didRan, sshConfigured, handleClick]);
 
     return (
-        <SpacedButton
+        <Button
             color="secondary"
             variant="contained"
             onClick={handleClick}
         >
             Status of All Entities
-        </SpacedButton>
+        </Button>
     );
 };
 

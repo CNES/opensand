@@ -7,14 +7,10 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Popover from '@mui/material/Popover';
 
-import {styled} from '@mui/material/styles';
 import LogIcon from '@mui/icons-material/Announcement';
 
 import {useSelector, useDispatch} from '../../redux';
 import {removeError, clearErrors, clearNotifications} from '../../redux/error';
-
-
-const Pre = styled('pre')({ whiteSpace: "pre-wrap" });
 
 
 const Logger: React.FC<Props> = (props) => {
@@ -69,7 +65,14 @@ const Logger: React.FC<Props> = (props) => {
             >
                 <Box width="300px" p={2}>
                     {headers.concat(...messages.map((message: string, i: number) => [
-                        <Pre key={2*i+headers.length} onClick={() => handleRemove(i)}>{message}</Pre>,
+                        <Box
+                            key={2*i+headers.length}
+                            component="pre"
+                            sx={{whiteSpace: "pre-wrap"}}
+                            onClick={() => handleRemove(i)}
+                        >
+                            {message}
+                        </Box>,
                         <Divider key={2*i+headers.length+1}/>,
                     ]))}
                 </Box>

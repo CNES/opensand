@@ -1,13 +1,16 @@
 import React from 'react';
 
+import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardActions from '@mui/material/CardActions';
+import CardHeader from '@mui/material/CardHeader';
+import CardMedia from '@mui/material/CardMedia';
 import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
 
-import {styled} from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/NoteAdd';
 
-import CardAdd from '../common/CardAdd';
 import EntityCard from './EntityCard';
 import Parameter, {XsdParameter} from '../Model/Parameter';
 
@@ -15,14 +18,6 @@ import type {IXsdAction, IProjectAction} from '../../utils/actions';
 import {useProjectMutators} from '../../utils/hooks';
 import {isComponentElement, isParameterElement} from '../../xsd';
 import type {Component as ComponentType, List as ListType} from '../../xsd';
-
-
-const LargePaper = styled(Paper, {name: "LargePaper", slot: "Wrapper"})(({ theme }) => ({
-    width: "98%",
-    marginLeft: "1%",
-    marginRight: "1%",
-    marginTop: theme.spacing(1),
-}));
 
 
 const findProjectName = (root: ComponentType): React.ReactNode => {
@@ -74,7 +69,7 @@ const ProjectForm: React.FC<Props> = (props) => {
     const [addMachine, removeMachine] = useProjectMutators(machinesActions);
 
     return (
-        <LargePaper elevation={0}>
+        <Box p={2}>
             {findProjectName(root)}
             {findTopologyTemplate(root, templatesActions)}
             <Grid container spacing={1}>
@@ -95,19 +90,33 @@ const ProjectForm: React.FC<Props> = (props) => {
                     );
                 })}
                 <Grid item xs={12} sm={6} lg={4} xl={3}>
-                    <CardAdd title="machine" subtitle="Complement your platform with a new entity">
-                        <Button
-                            color="success"
-                            variant="outlined"
-                            startIcon={<AddIcon />}
-                            onClick={addMachine}
-                        >
-                            Add New
-                        </Button>
-                    </CardAdd>
+                    <Card variant="outlined">
+                        <CardHeader
+                            avatar={<Avatar><AddIcon /></Avatar>}
+                            title="Add a new machine"
+                            subheader="Complement your platform with a new entity"
+                        />
+                        <CardMedia
+                            component="img"
+                            image={process.env.PUBLIC_URL + '/assets/add.jpg'}
+                            alt="Add icon"
+                            height="180"
+                            sx={{objectFit: "contain"}}
+                        />
+                        <CardActions>
+                            <Button
+                                color="success"
+                                variant="outlined"
+                                startIcon={<AddIcon />}
+                                onClick={addMachine}
+                            >
+                                Add New
+                            </Button>
+                        </CardActions>
+                    </Card>
                 </Grid>
             </Grid>
-        </LargePaper>
+        </Box>
     );
 };
 

@@ -4,7 +4,7 @@ import {useFormikContext} from 'formik';
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
 import Typography from "@mui/material/Typography";
 
 import {styled} from '@mui/material/styles';
@@ -14,16 +14,8 @@ import List from './List';
 import Parameter from './Parameter';
 
 import {useSelector} from '../../redux';
-import {isParameterElement, isVisible} from '../../xsd';
+import {isVisible} from '../../xsd';
 import type {Element, Component as ComponentType} from '../../xsd';
-
-
-const LargePaper = styled(Paper, {name: "LargePaper", slot: "Wrapper"})(({ theme }) => ({
-    width: "98%",
-    marginLeft: "1%",
-    marginRight: "1%",
-    marginTop: theme.spacing(1),
-}));
 
 
 const Heading = styled(Typography, {name: "Heading", slot: "Wrapper"})(({ theme }) => ({
@@ -39,37 +31,26 @@ const SecondaryHeading = styled(Typography, {name: "SecondaryHeading", slot: "Wr
 }));
 
 
-const findParameterValue = (component: ComponentType, id: string) => {
-    const parameter = component.elements.find((e) => isParameterElement(e) && e.element.id === id);
-    if (isParameterElement(parameter)) {
-        return parameter.element.value;
-    }
-};
-
-
 const Component: React.FC<Props> = (props) => {
-    const {component, readOnly, prefix} = props;
-    const form = useFormikContext<ComponentType>();
+    const {component, readOnly, prefix, padding=2} = props;
+    const {values} = useFormikContext<ComponentType>();
 
     const visibility = useSelector((state) => state.form.visibility);
 
-    if (!isVisible(component, visibility, form.values)) {
+    if (!isVisible(component, visibility, values)) {
         return null;
     }
 
     const isReadOnly = readOnly || component.readOnly;
-    const entityName = findParameterValue(component, "entity_name");
-    const entityType = findParameterValue(component, "entity_type");
-    const entity = entityName != null && entityType != null ? {name: entityName, type: entityType} : undefined;
 
     const visibleComponents = component.elements.map(
         (e: Element, i: number): [number, Element] => [i, e]
     ).filter(
-        ([i, e]: [number, Element]): boolean => isVisible(e.element, visibility, form.values)
+        ([i, e]: [number, Element]): boolean => isVisible(e.element, visibility, values)
     );
 
     return (
-        <LargePaper elevation={0}>
+        <Box p={padding} pb={2}>
             {visibleComponents.map(([i, e]: [number, Element]) => {
                 const childPrefix = `${prefix}.elements.${i}.element`;
                 switch (e.type) {
@@ -80,7 +61,6 @@ const Component: React.FC<Props> = (props) => {
                                 parameter={e.element}
                                 readOnly={isReadOnly}
                                 prefix={childPrefix}
-                                entity={entity}
                             />
                         );
                     case "list":
@@ -124,10 +104,10 @@ const Component: React.FC<Props> = (props) => {
                             </Accordion>
                         );
                     default:
-                        return <div />;
+                        return null;
                 }
             })}
-        </LargePaper>
+        </Box>
     );
 };
 
@@ -136,6 +116,7 @@ interface Props {
     component: ComponentType;
     readOnly?: boolean;
     prefix: string;
+    padding?: number;
 }
 
 

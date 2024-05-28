@@ -8,10 +8,10 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 
-import {styled} from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/HighlightOff';
 import EditIcon from '@mui/icons-material/Edit';
 import HelpIcon from '@mui/icons-material/Help';
@@ -21,12 +21,6 @@ import {useSelector, useDispatch} from '../../redux';
 import type {IXsdAction} from '../../utils/actions';
 import {getXsdName} from '../../xsd';
 import type {Parameter as ParameterType} from '../../xsd';
-
-
-const FlexBox = styled('div')(({ theme }) => ({
-    display: "flex",
-    marginBottom: theme.spacing(1),
-}));
 
 
 const BooleanParam: React.FC<BaseProps> = (props) => {
@@ -55,10 +49,10 @@ const BooleanParam: React.FC<BaseProps> = (props) => {
     );
 
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <FormControlLabel control={checkbox} label={parameter.name} />
             {help}
-        </FlexBox>
+        </Stack>
     );
 };
 
@@ -68,7 +62,7 @@ const NumberParam: React.FC<NumberProps> = (props) => {
     const [{value, onChange, onBlur}] = useField<string>(name);
 
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 variant="outlined"
                 name={name}
@@ -91,7 +85,7 @@ const NumberParam: React.FC<NumberProps> = (props) => {
                     inputProps: {min, max, step},
                 }}
             />
-        </FlexBox>
+        </Stack>
     );
 };
 
@@ -102,7 +96,7 @@ const StringParam: React.FC<StringProps> = (props) => {
 
     const inputProps = lengthLimit ? {pattern: "?".repeat(lengthLimit)} : undefined;
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 variant="outlined"
                 name={name}
@@ -125,7 +119,7 @@ const StringParam: React.FC<StringProps> = (props) => {
                     </InputAdornment>,
                 }}
             />
-        </FlexBox>
+        </Stack>
     );
 };
 
@@ -153,7 +147,7 @@ const EnumParam: React.FC<EnumProps> = (props) => {
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 select
                 fullWidth
@@ -171,7 +165,7 @@ const EnumParam: React.FC<EnumProps> = (props) => {
                 {choices}
             </TextField>
             {help}
-        </FlexBox>
+        </Stack>
     );
 };
 
@@ -261,7 +255,7 @@ export const XsdParameter: React.FC<XsdProps> = (props) => {
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 select
                 fullWidth
@@ -299,13 +293,13 @@ export const XsdParameter: React.FC<XsdProps> = (props) => {
             >
                 {choices}
             </TextField>
-        </FlexBox>
+        </Stack>
     );
 };
 
 
 const Parameter: React.FC<Props> = (props) => {
-    const {parameter, readOnly, entity, prefix, ...rest} = props;
+    const {parameter, readOnly, prefix, ...rest} = props;
 
     const model = useSelector((state) => state.model.model);
 
@@ -479,7 +473,6 @@ interface BaseProps {
 
 
 interface Props extends Omit<BaseProps, "name"> {
-    entity?: {name: string; type: string;};
     prefix: string;
 }
 

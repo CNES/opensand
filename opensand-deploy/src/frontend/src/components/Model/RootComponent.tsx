@@ -1,12 +1,10 @@
 import React from 'react';
 import {useFormikContext} from 'formik';
 
-import AppBar from '@mui/material/AppBar';
+import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Tooltip from '@mui/material/Tooltip';
-
-import {styled} from '@mui/material/styles';
 
 import Component from './Component';
 import SingleListComponent from './SingleListComponent';
@@ -17,19 +15,13 @@ import {getComponents} from '../../xsd';
 import type {Component as ComponentType} from '../../xsd';
 
 
-const ColoredAppBar = styled(AppBar, {name: "ColoredAppBar", slot: "Wrapper"})(({ theme }) => ({
-    backgroundColor: "#FFFACD",
-    color: theme.palette.common.black,
-}));
-
-
 const TabPanel: React.FC<React.PropsWithChildren<{index: any; value: any;}>> = (props) => {
-    const {children, value, index, ...other} = props;
+    const {children, value, index} = props;
 
     return (
-        <div hidden={value !== index} {...other}>
+        <Box hidden={value !== index}>
             {value === index && children}
-        </div>
+        </Box>
     );
 };
 
@@ -52,7 +44,7 @@ const RootComponent: React.FC<Props> = (props) => {
 
     return (
         <React.Fragment>
-            <ColoredAppBar position="static" color="primary">
+            <Box sx={{backgroundColor: "#FFFACD", borderBottom: 1, borderColor: "divider"}}>
                 <Tabs
                     value={value}
                     onChange={handleChange}
@@ -68,7 +60,7 @@ const RootComponent: React.FC<Props> = (props) => {
                         </Tooltip>
                     ))}
                 </Tabs>
-            </ColoredAppBar>
+            </Box>
             {components.map(([idx, c]: [number, ComponentType], i: number) => {
                 return (
                     <TabPanel key={c.id} value={value} index={i}>

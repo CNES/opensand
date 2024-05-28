@@ -1,7 +1,6 @@
 import React from 'react';
 import {useFormikContext} from 'formik';
 
-import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
 import Table from '@mui/material/Table';
@@ -12,7 +11,6 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 
-import {styled} from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 import ArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -26,19 +24,6 @@ import {getParameters} from '../../xsd';
 import type {Component as ComponentType, List as ListType} from '../../xsd';
 
 
-const BorderlessTableRow = styled(TableRow, {name: "BorderlessTableRow", slot: "Wrapper"})({
-    '& > *': {
-        borderBottom: 'unset',
-    },
-});
-
-
-const ReducedTableCell = styled(TableCell, {name: "ReducedTableCell", slot: "Wrapper"})({
-    paddingTop: 0,
-    paddingBottom: 0,
-});
-
-
 const Row: React.FC<RowProps> = (props) => {
     const {component, readOnly, isEditable, headers, prefix, onDelete} = props;
     const form = useFormikContext<ComponentType>();
@@ -49,8 +34,8 @@ const Row: React.FC<RowProps> = (props) => {
 
     return (
         <React.Fragment>
-            <BorderlessTableRow>
-                <TableCell key="show" align="left">
+            <TableRow>
+                <TableCell key="show" align="left" sx={open ? {} : {borderBottom: "unset"}}>
                     <IconButton size="small" onClick={() => setOpen(!open)}>
                         {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
                     </IconButton>
@@ -59,31 +44,29 @@ const Row: React.FC<RowProps> = (props) => {
                     const param = parameters.find(p => p.id === id);
                     const value = param?.value;
                     return (
-                        <TableCell key={i} align="center">
+                        <TableCell key={i} align="center" sx={open ? {} : {borderBottom: "unset"}}>
                             {value}
                         </TableCell>
                     );
                 })}
-                <TableCell key="delete" align="right">
+                <TableCell key="delete" align="right" sx={open ? {} : {borderBottom: "unset"}}>
                     {isEditable && onDelete && (
                         <IconButton size="small" onClick={onDelete}>
                             <DeleteIcon />
                         </IconButton>
                     )}
                 </TableCell>
-            </BorderlessTableRow>
+            </TableRow>
             <TableRow>
-                <ReducedTableCell colSpan={headers.length + 2}>
+                <TableCell colSpan={headers.length + 2} sx={{padding: 0}}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Box margin={1}>
-                            <Component
-                                component={component}
-                                readOnly={readOnly}
-                                prefix={prefix}
-                            />
-                        </Box>
+                        <Component
+                            component={component}
+                            readOnly={readOnly}
+                            prefix={prefix}
+                        />
                     </Collapse>
-                </ReducedTableCell>
+                </TableCell>
             </TableRow>
         </React.Fragment>
     );

@@ -5,22 +5,11 @@ import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
 
-import {styled} from '@mui/material/styles';
 import BackIcon from '@mui/icons-material/ArrowBackIos';
 
 import Logger from './Logger';
-import GrowingTypography from './GrowingTypography';
-
-
-const FlexAppBar = styled(AppBar, {name: "FlexAppBar", slot: "Wrapper"})({
-    flex: "0 1 auto",
-});
-
-
-const FlexPaper = styled(Paper, {name: "FlexPaper", slot: "Wrapper"})({
-    flex: "1 1 auto",
-});
 
 
 const opensandVersion = process.env.REACT_APP_OPENSAND_VERSION || `(${process.env.NODE_ENV}  build)`;
@@ -41,20 +30,20 @@ const Template: React.FC<React.PropsWithChildren<Props>> = (props) => {
 
     return (
         <React.Fragment>
-            <FlexAppBar position="static">
+            <AppBar position="static" sx={{flex: "0 1 auto"}}>
                 <Toolbar>
                     <IconButton edge="start" color="inherit" onClick={navigateUp}>
                         <BackIcon />
                     </IconButton>
-                    <GrowingTypography variant="h6">
+                    <Typography variant="h6" sx={{flexGrow: 1}}>
                         OpenSAND Conf {opensandVersion}
-                    </GrowingTypography>
+                    </Typography>
                     <Logger />
                 </Toolbar>
-            </FlexAppBar>
-            <FlexPaper elevation={0}>
+            </AppBar>
+            <Paper elevation={0} sx={{flex: "1 1 auto"}}>
                 {props.children}
-            </FlexPaper>
+            </Paper>
         </React.Fragment>
     );
 };

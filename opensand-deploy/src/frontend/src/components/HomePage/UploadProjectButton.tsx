@@ -74,7 +74,9 @@ const UploadProjectButton = () => {
 
     return (
         <React.Fragment>
-            <Button color="primary" variant="outlined" sx={{mt: 2}} onClick={handleOpen}>Upload</Button>
+            <Button color="secondary" variant="contained" onClick={handleOpen}>
+                Upload
+            </Button>
             <Dialog open={open} onClose={handleClose}>
                 <form onSubmit={handleValidate}>
                     <DialogTitle>Upload Project</DialogTitle>

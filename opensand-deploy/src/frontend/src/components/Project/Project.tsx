@@ -3,13 +3,12 @@ import {useParams, useNavigate} from 'react-router-dom';
 import {Formik} from 'formik';
 import type {FormikHelpers} from 'formik';
 
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
-import AutoSave from '../common/AutoSave';
-import SpacedButton from '../common/SpacedButton';
+import AutoSave from './AutoSave';
 import DeployEntityDialog from './DeployEntityDialog';
 import NewEntityDialog from './NewEntityDialog';
 import PingDialog from './PingDialog';
@@ -313,16 +312,16 @@ const Project: React.FC<Props> = (props) => {
                 </Formik>
             )}
             {model != null && (<>
-                <Box textAlign="center" marginTop="3em" marginBottom="3px">
+                <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} mt={1} mb={3}>
                     <LaunchEntitiesButton project={model.root} />
                     <StopEntitiesButton project={model.root} />
-                    <SpacedButton
+                    <Button
                         color="secondary"
                         variant="contained"
                         onClick={() => dispatch(openSshDialog())}
                     >
                         Configure SSH Credentials
-                    </SpacedButton>
+                    </Button>
                     <Button
                         color="secondary"
                         variant="contained"
@@ -330,7 +329,7 @@ const Project: React.FC<Props> = (props) => {
                     >
                         Download Project Configuration
                     </Button>
-                </Box>
+                </Stack>
                 <DeployEntityDialog />
                 <PingDialog onValidate={handlePing} />
                 <PingResultDialog />
