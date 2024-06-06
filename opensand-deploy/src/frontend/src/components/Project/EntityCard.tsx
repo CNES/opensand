@@ -8,6 +8,7 @@ import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
+import Stack from '@mui/material/Stack';
 
 import Delete from '@mui/icons-material/DeleteForever';
 import DownloadIcon from '@mui/icons-material/GetApp';
@@ -83,23 +84,32 @@ const EntityCard: React.FC<Props> = (props) => {
                     />
                 </Collapse>
             </CardContent>
-            <CardActions>
-                <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<Delete />}
-                    onClick={() => removeMachine(index)}
+            <CardActions disableSpacing>
+                <Stack
+                    direction="row"
+                    spacing={1}
+                    justifyContent="flex-start"
+                    alignItems="center"
+                    useFlexGap
+                    flexWrap="wrap"
                 >
-                    Remove
-                </Button>
-                <Button
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => onDownload(entityTag.name)}
-                >
-                    Download
-                </Button>
-                <EntityAction project={project} entity={machine} />
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<Delete />}
+                        onClick={() => removeMachine(index)}
+                    >
+                        Remove
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        onClick={() => onDownload(entityTag.name)}
+                    >
+                        Download
+                    </Button>
+                    <EntityAction project={project} entity={machine} />
+                </Stack>
             </CardActions>
         </Card>
     );
