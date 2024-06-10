@@ -1,7 +1,7 @@
 Source: opensand-meta
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 7.0.50)
+Build-Depends: debhelper-compat (= 13)
 Standards-Version: 3.8.3
 Homepage: http://www.opensand.org
 Section:metapackages

@@ -1,7 +1,7 @@
 Source: opensand-output
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 10), autotools-dev, automake, libtool, pkg-config
+Build-Depends: debhelper-compat (= 13), autotools-dev, automake, libtool, pkg-config
 Standards-Version: 3.8.3
 Section: misc
 

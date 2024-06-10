@@ -1,7 +1,8 @@
 Source: opensand-rle-encap-plugin
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 10), autotools-dev, automake, libtool,
+Build-Depends: debhelper-compat (= 13),
+ autotools-dev, automake, libtool,
  librle-dev (>= 1.7.2),
  libopensand-conf-dev (>= 6.1.0),
  libopensand-output-dev (>= 6.1.0),

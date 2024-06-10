@@ -1,7 +1,7 @@
 Source: opensand-collector
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 10)
+Build-Depends: debhelper-compat (= 13)
 Section: misc
 
 Package: opensand-collector

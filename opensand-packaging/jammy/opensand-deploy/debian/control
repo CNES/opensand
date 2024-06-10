@@ -1,7 +1,7 @@
 Source: opensand-deploy
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 10), yarn (>= 1.22),
+Build-Depends: debhelper-compat (= 13), yarn (>= 1.22),
  autotools-dev, automake, libtool, pkg-config,
  nodejs (>= 14), opensand-core (>= 6.1.0),
  libopensand-gse-encap-plugin (>= 6.1.0),

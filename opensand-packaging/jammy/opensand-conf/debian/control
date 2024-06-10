@@ -1,7 +1,7 @@
 Source: opensand-conf
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 10), autotools-dev, automake,
+Build-Depends: debhelper-compat (= 13), autotools-dev, automake,
  libtool, pkg-config, libxml++2.6-dev,
  python3-dev, libboost-python1.74-dev
 Standards-Version: 3.8.3

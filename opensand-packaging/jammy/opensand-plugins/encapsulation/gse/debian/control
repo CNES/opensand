@@ -1,7 +1,7 @@
 Source: opensand-gse-encap-plugin
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 10), autotools-dev, automake, libtool,
+Build-Depends: debhelper-compat (= 13), autotools-dev, automake, libtool,
  libgse-dev (>= 1.0.1),
  libopensand-conf-dev (>= 6.1.0),
  libopensand-output-dev (>= 6.1.0),
