@@ -1,2 +1,2 @@
 usr/bin/*
-usr/lib/libopensand_dama.so.*
+usr/lib/${DEB_HOST_MULTIARCH}/libopensand_dama.so.*

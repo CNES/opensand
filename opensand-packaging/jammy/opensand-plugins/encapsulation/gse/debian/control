@@ -10,15 +10,6 @@ XS-Python-Version: >= 2.7
 Standards-Version: 3.8.3
 Section: libs
 
-Package: libopensand-gse-encap-plugin-dbg
-Section: debug
-Architecture: any
-Depends: libopensand-gse-encap-plugin (= ${binary:Version})
-Provides: libopensand-gse-plugin-dbg
-Conflicts: libopensand-gse-plugin-dbg
-Replaces: libopensand-gse-plugin-dbg
-Description: Debugging symbols for OpenSAND GSE plugin
-
 Package: libopensand-gse-encap-plugin
 Section: libs
 Architecture: any

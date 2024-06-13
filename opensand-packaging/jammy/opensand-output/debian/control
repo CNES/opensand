@@ -14,15 +14,6 @@ Conflicts: libopensand-env-plane-dev
 Replaces: libopensand-env-plane-dev
 Description: The output libraries and headers for OpenSAND
 
-Package: libopensand-output-dbg
-Section: debug
-Architecture: any
-Depends: libopensand-output (= ${binary:Version})
-Provides: libopensand-env-plane-dbg
-Conflicts: libopensand-env-plane-dbg
-Replaces: libopensand-env-plane-dbg
-Description: Debugging symbols for OpenSAND Output library
-
 Package: libopensand-output
 Section: libs
 Architecture: any
@@ -31,5 +22,3 @@ Provides: libopensand-env-plane
 Conflicts: libopensand-env-plane
 Replaces: libopensand-env-plane
 Description: The output libraries for OpenSAND
-
-

@@ -16,14 +16,6 @@ Provides: opensand-margouilla-dev
 Conflicts: opensand-margouilla-dev
 Description: The runtime library and headers for OpenSAND
 
-Package: libopensand-rt-dbg
-Section: debug
-Architecture: any
-Depends: libopensand-rt (= ${binary:Version})
-Provides: opensand-margouilla-dbg
-Conflicts: opensand-margouilla-dbg
-Description: Debugging symbols for OpenSAND runtime library
-
 Package: libopensand-rt
 Section: libs
 Architecture: any
