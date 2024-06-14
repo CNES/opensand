@@ -1,1 +1,1 @@
-usr/lib/${DEB_HOST_MULTIARCH}/opensand/plugins/lib*.so.*
+usr/lib/opensand/plugins/lib*.so.* usr/lib/${DEB_HOST_MULTIARCH}/opensand/plugins/
