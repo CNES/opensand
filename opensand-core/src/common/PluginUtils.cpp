@@ -49,6 +49,7 @@
 #include <opensand_output/Output.h>
 
 
+extern const std::string PLUGIN_LIBDIR;
 const std::string PLUGIN_DIRECTORY{"/opensand/plugins/"};
 const std::string PLUGIN_FILE_END = ".so.0";
 
@@ -69,8 +70,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 		// Split using ':' separator
 		tokenize(lib_path, path, ":");
 	}
-	path.push_back("/usr/lib/");
-	path.push_back("/lib");
+	path.push_back(PLUGIN_LIBDIR);
 
 	for(auto& directory : path)
 	{

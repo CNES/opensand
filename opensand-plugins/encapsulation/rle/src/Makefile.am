@@ -1,4 +1,4 @@
-################################################################################
+###############################################################################
 #   Name       : Makefile
 #   Author     : Aurélien DELRIEU <adelrieu@toulouse.viveris.com>
 #   Description: create the RLE encapsulation plugin for OpenSAND
@@ -20,7 +20,7 @@ libopensand_rle_encap_plugin_la_SOURCES = \
     $(libopensand_rle_encap_plugin_la_cpp) \
     $(libopensand_rle_encap_plugin_la_h)
 
-pluginsdir = $(prefix)/lib/opensand/plugins
+pluginsdir = $(libdir)/opensand/plugins
 
 EXTRA_DIST = \
 	rle.py

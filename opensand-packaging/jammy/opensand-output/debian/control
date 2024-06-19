@@ -8,6 +8,7 @@ Section: misc
 Package: libopensand-output-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: no
 Depends: libopensand-output (= ${binary:Version})
 Provides: libopensand-env-plane-dev
 Conflicts: libopensand-env-plane-dev
@@ -17,6 +18,7 @@ Description: The output libraries and headers for OpenSAND
 Package: libopensand-output
 Section: libs
 Architecture: any
+Multi-Arch: no
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Provides: libopensand-env-plane
 Conflicts: libopensand-env-plane

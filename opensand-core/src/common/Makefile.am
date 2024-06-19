@@ -6,6 +6,7 @@ noinst_LTLIBRARIES = libopensand_plugin_utils.la libopensand_utils.la
 lib_LTLIBRARIES = libopensand_plugin.la
 
 libopensand_plugin_utils_la_cpp = \
+	PluginLibdir.cpp \
 	PluginUtils.cpp \
 	Plugin.cpp
 
@@ -90,3 +91,9 @@ libopensand_plugin_includedir = ${includedir}/opensand_plugin
 libopensand_plugin_include_HEADERS = \
 	$(top_srcdir)/src/conf/OpenSandModelConf.h \
 	$(libopensand_plugin_la_h)
+
+CLEANFILES = PluginLibdir.cpp
+
+
+PluginLibdir.cpp:
+	echo '#include <string>' > $@; echo 'extern const std::string PLUGIN_LIBDIR{"'$(libdir)'"};' >> $@
