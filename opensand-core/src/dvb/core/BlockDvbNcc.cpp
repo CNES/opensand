@@ -462,58 +462,59 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const MessageEvent &event)
 			"encapsulate %zu %s packet(s)\n",
 			size, name.c_str());
 
+		// TODO TODELETE NO MORE
 		// encapsulate packet
-		for (auto &&context : this->ctx)
-		{
-			burst = context->encapsulate(std::move(burst), time_contexts);
-			if (!burst)
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-					"encapsulation failed in %s context\n",
-					context->getName().c_str());
-				return false;
-			}
-		}
+		// for (auto &&context : this->ctx)
+		// {
+		// 	burst = context->encapsulate(std::move(burst), time_contexts);
+		// 	if (!burst)
+		// 	{
+		// 		LOG(this->log_receive, LEVEL_ERROR,
+		// 			"encapsulation failed in %s context\n",
+		// 			context->getName().c_str());
+		// 		return false;
+		// 	}
+		// }
 
-		// set encapsulate timers if needed
-		for (auto &&[context_delay, context_timer_id] : time_contexts)
-		{
-			// check if there is already a timer armed for the context
-			bool found = false;
-			for (auto &&it : this->scpc_timers)
-			{
-				if (it.second == context_timer_id)
-				{
-					found = true;
-					break;
-				}
-			}
+		// // set encapsulate timers if needed
+		// for (auto &&[context_delay, context_timer_id] : time_contexts)
+		// {
+		// 	// check if there is already a timer armed for the context
+		// 	bool found = false;
+		// 	for (auto &&it : this->scpc_timers)
+		// 	{
+		// 		if (it.second == context_timer_id)
+		// 		{
+		// 			found = true;
+		// 			break;
+		// 		}
+		// 	}
 
-			// set a new timer if no timer was found and timer is not null
-			if (!found && context_delay != 0)
-			{
-				event_id_t timer;
-				std::ostringstream name;
+		// 	// set a new timer if no timer was found and timer is not null
+		// 	if (!found && context_delay != 0)
+		// 	{
+		// 		event_id_t timer;
+		// 		std::ostringstream name;
 
-				name << "context_" << context_timer_id;
-				timer = this->addTimerEvent(name.str(), context_delay, false);
+		// 		name << "context_" << context_timer_id;
+		// 		timer = this->addTimerEvent(name.str(), context_delay, false);
 
-				this->scpc_timers.emplace(timer, context_timer_id);
-				LOG(this->log_receive, LEVEL_INFO,
-					"timer for context ID %d armed with %ld ms\n",
-					context_timer_id, context_delay);
-			}
-			else
-			{
-				LOG(this->log_receive, LEVEL_INFO,
-					"timer already set for context ID %d\n",
-					context_timer_id);
-			}
-		}
+		// 		this->scpc_timers.emplace(timer, context_timer_id);
+		// 		LOG(this->log_receive, LEVEL_INFO,
+		// 			"timer for context ID %d armed with %ld ms\n",
+		// 			context_timer_id, context_delay);
+		// 	}
+		// 	else
+		// 	{
+		// 		LOG(this->log_receive, LEVEL_INFO,
+		// 			"timer already set for context ID %d\n",
+		// 			context_timer_id);
+		// 	}
+		// }
 
-		LOG(this->log_receive_channel, LEVEL_INFO,
-			"SF#%u: encapsulation burst received (%d packet(s))\n",
-			super_frame_counter, burst->length());
+		// LOG(this->log_receive_channel, LEVEL_INFO,
+		// 	"SF#%u: encapsulation burst received (%d packet(s))\n",
+		// 	super_frame_counter, burst->length());
 
 		// set each packet of the burst in MAC FIFO
 		for (auto &&pkt : *burst)
@@ -638,32 +639,32 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const TimerEvent &event)
 		this->scpc_timers.erase(it);
 
 		// flush the last encapsulation contexts
-		Ptr<NetBurst> burst = (this->ctx.back())->flush(id);
-		if (!burst)
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-				"flushing context %d failed\n", id);
-			return false;
-		}
+		// Ptr<NetBurst> burst = (this->ctx.back())->flush(id);
+		// if (!burst)
+		// {
+		// 	LOG(this->log_receive, LEVEL_ERROR,
+		// 		"flushing context %d failed\n", id);
+		// 	return false;
+		// }
 
-		auto burst_size = burst->size();
-		LOG(this->log_receive, LEVEL_INFO,
-			"%zu encapsulation packets flushed\n",
-			burst_size);
+		// auto burst_size = burst->size();
+		// LOG(this->log_receive, LEVEL_INFO,
+		// 	"%zu encapsulation packets flushed\n",
+		// 	burst_size);
 
-		if (burst_size > 0)
-		{
-			// send the message to the lower layer
-			if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-					"cannot send burst to lower layer failed\n");
-				return false;
-			}
+		// if (burst_size > 0)
+		// {
+		// 	// send the message to the lower layer
+		// 	if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
+		// 	{
+		// 		LOG(this->log_receive, LEVEL_ERROR,
+		// 			"cannot send burst to lower layer failed\n");
+		// 		return false;
+		// 	}
 
-			LOG(this->log_receive, LEVEL_INFO,
-				"encapsulation burst sent to the lower layer\n");
-		}
+		// 	LOG(this->log_receive, LEVEL_INFO,
+		// 		"encapsulation burst sent to the lower layer\n");
+		// }
 	}
 
 	return true;
@@ -924,9 +925,9 @@ Rt::UpwardChannel<BlockDvbNcc>::UpwardChannel(const std::string &name, dvb_speci
 
 bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 {
+
 	LOG(this->log_init, LEVEL_DEBUG,
 		"Create upward spot with ID %u\n", spot_id);
-
 	// TODO: check if disable_control_plane is needed here
 	try
 	{
@@ -936,6 +937,8 @@ bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 												  this->input_sts,
 												  this->output_sts);
 	}
+	
+
 	catch (const std::bad_alloc &)
 	{
 		this->spot = nullptr;
@@ -962,10 +965,9 @@ bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 			"message\n");
 		return false;
 	}
+
 	link_is_up->group_id = this->mac_id;
 	link_is_up->tal_id = this->mac_id;
-
-	this->setFilterTalId(BROADCAST_TAL_ID);
 	this->spot->setFilterTalId(BROADCAST_TAL_ID);
 
 	if (!this->enqueueMessage(std::move(link_is_up),

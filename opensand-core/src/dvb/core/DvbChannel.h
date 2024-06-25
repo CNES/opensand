@@ -44,10 +44,10 @@
 #include <sstream>
 
 #include <opensand_rt/Ptr.h>
-
+#include "StackPlugin.h"
 #include "StFmtSimu.h"
 #include "DvbFrame.h"
-#include "EncapPlugin.h"
+#include "SimpleEncapPlugin.h"
 #include "TerminalCategory.h"
 #include "OpenSandModelConf.h"
 
@@ -80,8 +80,7 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool initPktHdl(EncapSchemeList encap_schemes,
-					std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl,
-					encap_contexts_t &ctx);
+					std::shared_ptr<SimpleEncapPlugin> &pkt_hdl); 
 
 	/**
 	 * @brief Forward filter terminal ID to the encapsulation contexts
@@ -246,8 +245,7 @@ protected:
 	time_us_t ret_up_frame_duration;
 
 	/// The encapsulation packet handler
-	std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl;
-	encap_contexts_t ctx;
+	std::shared_ptr<SimpleEncapPlugin> pkt_hdl;
 	StackPlugin *upper_encap;
 
 	/// The statistics period
@@ -434,7 +432,7 @@ protected:
 	 *
 	 * @return The packet with extension on success, nullptr otherwise
 	 */
-	Rt::Ptr<NetPacket> setPacketExtension(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+	Rt::Ptr<NetPacket> setPacketExtension(std::shared_ptr<SimpleEncapPlugin> pkt_hdl,
 										  Rt::Ptr<NetPacket> packet,
 										  tal_id_t source,
 										  tal_id_t dest,

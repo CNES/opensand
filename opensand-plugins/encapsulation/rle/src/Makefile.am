@@ -10,13 +10,11 @@ plugins_LTLIBRARIES = libopensand_rle_encap_plugin.la
 
 libopensand_rle_encap_plugin_la_cpp = \
 	RleIdentifier.cpp \
-	Rle.cpp \ 
-	SimpleRle.cpp 
+	Rle.cpp 
 
 libopensand_rle_encap_plugin_la_h = \
 	RleIdentifier.h \
-	Rle.h \ 
-	SimpleRle.h
+	Rle.h
 
 libopensand_rle_encap_plugin_la_SOURCES = \
     $(libopensand_rle_encap_plugin_la_cpp) \

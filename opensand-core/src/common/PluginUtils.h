@@ -40,7 +40,7 @@
 
 
 #include "OpenSandPlugin.h"
-
+#include "SimpleEncapPlugin.h"
 #include <map>
 #include <vector>
 #include <string>
@@ -48,7 +48,7 @@
 #include <memory>
 
 
-class EncapPlugin;
+class SimpleEncapPlugin;
 class LanAdaptationPlugin;
 class AttenuationModelPlugin;
 class MinimalConditionPlugin;
@@ -122,7 +122,7 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool getEncapsulationPlugin(std::string name,
-	                            EncapPlugin **encapsulation);
+	                            SimpleEncapPlugin **encapsulation);
 
 	/**
 	 * @brief get a satellite ISL delay plugin

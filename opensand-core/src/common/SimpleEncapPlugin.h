@@ -39,7 +39,7 @@
 
 #include <map>
 #include <list>
-
+#include <iostream>
 #include <map>
 #include <vector>
 
@@ -59,29 +59,24 @@ enum class NET_PROTO : uint16_t;
  * @class SimpleSimpleEncapPlugin
  * @brief Generic encapsulation / deencapsulation plugin
  */
-class SimpleEncapPlugin : public virtual OpenSandPlugin
+class SimpleEncapPlugin : public OpenSandPlugin
 {
+
 public:
-	SimpleEncapPlugin(NET_PROTO ether_type, const std::string& name);
+	SimpleEncapPlugin(NET_PROTO ether_type, const std::string &name);
 	virtual ~SimpleEncapPlugin() = default;
 
-	virtual bool init() = 0;
-
+protected:
 	// l'id de la machine recept pour trier
 	uint8_t dst_tal_id;
 
-	// Output Logs
-	std::shared_ptr<OutputLog> log_simple;
+public:
 
 
-	/**
-	 * @brief Get the EtherType associated with the encapsulation protocol
-	 *
-	 * @return The EtherType
-	 */
-	NET_PROTO getEtherType() const;
+	void setFilterTalId(uint8_t tal_id);
 
-	virtual std::string getName() const;
+	virtual bool init();
+
 	/**
 	 * @brief Get the source terminal ID of a packet
 	 *
@@ -92,22 +87,13 @@ public:
 	virtual bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const = 0;
 
 	/**
-	 * @brief Get the destination terminal ID of a packet
-	 *
-	 * @param data    The packet content
-	 * @param tal_id  OUT: the data terminal ID of the packet
-	 * @return true on success, false otherwise
-	 */
-	virtual bool getDst(const Rt::Data &data, tal_id_t &tal_id) const = 0;
-
-	/**
 	 * @brief Get the QoS of a packet
 	 *
 	 * @param data   The packet content
 	 * @param qos    OUT: the QoS of the packet
 	 * @return true on success, false otherwise
 	 */
-	virtual bool getQos(const Rt::Data &data, qos_t &qos) const = 0;
+	virtual bool getQos(const Rt::Data &data, qos_t &qos) const = 0; // only for Rle
 
 	/**
 	 * @brief Encapsulate the packet and store unencapsulable part
@@ -122,7 +108,6 @@ public:
 	 *
 	 * @return  true if success, false otherwise
 	 */
-
 	bool virtual encapNextPacket(Rt::Ptr<NetPacket> packet,
 								 std::size_t remaining_length,
 								 bool new_burst,
@@ -131,7 +116,7 @@ public:
 
 	/**
 	 * @brief Decapsulate packets from NetContainer.
-	 * @details  Decapsulate @ref decap_packets_count from the @ref packet. 
+	 * @details  Decapsulate @ref decap_packets_count from the @ref packet.
 	 * Packet decapsulated are pushed to @ref decap_packets.
 	 * @warning @ref decap_packets can be empty if there are only fragments and/or padding packets.
 	 * @warning Rle ignore the @ref decap_packets_count
@@ -140,11 +125,9 @@ public:
 	 * @param[in] decap_packets_count  The packet count to decapsulate (0 if unknown)
 	 */
 	bool virtual decapAllPackets(Rt::Ptr<NetContainer> encap_packets,
-								std::vector<Rt::Ptr<NetPacket>> &decap_packets,
-								unsigned int decap_packet_count = 0) = 0;
+								 std::vector<Rt::Ptr<NetPacket>> &decap_packets,
+								 unsigned int decap_packet_count = 0) = 0;
 
-	void setFilterTalId(uint8_t tal_id);
-	
 	/**
 	 * @brief Create a NetPacket from data with the relevant attributes.
 	 *
@@ -156,15 +139,97 @@ public:
 	 *
 	 * @return The packet
 	 */
+
+	// only use by SlottedAloha ...
 	virtual Rt::Ptr<NetPacket> build(const Rt::Data &data,
 									 std::size_t data_length,
 									 uint8_t qos,
 									 uint8_t src_tal_id,
 									 uint8_t dst_tal_id) = 0;
 
+	virtual bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
+									 Rt::Ptr<NetPacket> &new_packet,
+									 tal_id_t tal_id_src,
+									 tal_id_t tal_id_dst,
+									 std::string callback_name,
+									 void *opaque) = 0;
+
+	virtual bool getHeaderExtensions(const Rt::Ptr<NetPacket> &packet,
+									 std::string callback_name,
+									 void *opaque) = 0;
+
+public:
+	inline std::shared_ptr<SimpleEncapPlugin> getSharedPlugin() const
+	{
+		return this->shared_plugin;
+	};
+
+	/**
+	 * @brief Get the EtherType associated with the encapsulation protocol
+	 *
+	 * @return The EtherType
+	 */
+	NET_PROTO getEtherType() const;
+
+	virtual std::string getName() const;
+
+	/**
+	 * @brief Create the Plugin, this function should be called instead of constructor
+	 *
+	 * @return The plugin
+	 */
+	template <class Plugin>
+	static OpenSandPlugin *create(const std::string &name)
+	{
+		std::shared_ptr<Plugin> plugin = std::make_shared<Plugin>();
+
+		// auto handler = std::make_shared<Handler>(*plugin);
+		plugin->shared_plugin = plugin;
+		// plugin->shared_plugin->plugin = plugin;
+		plugin->name = name;
+		if (!plugin->init())
+		{
+			goto error;
+		}
+		// if (!handler->init())
+		// {
+		// 	goto error;
+		// }
+		return plugin.get();
+
+	error:
+		plugin->shared_plugin.reset(); 
+		
+		return nullptr; // TODO refactoriser
+	};
+
 
 protected:
 	NET_PROTO ether_type;
+	std::shared_ptr<SimpleEncapPlugin> shared_plugin;
+	std::shared_ptr<OutputLog> log;
 };
 
-#endif
+#ifdef CREATE
+#undef CREATE
+#define CREATE(CLASS, pl_name)                                          \
+	extern "C" OpenSandPlugin *create_ptr(void)                                  \
+	{                                                                            \
+		return CLASS::create<CLASS>(pl_name);                           \
+	};                                                                           \
+	extern "C" void configure_ptr(const char *parent_path, const char *param_id) \
+	{                                                                            \
+		CLASS::configure<CLASS>(parent_path, param_id, pl_name);                 \
+	};                                                                           \
+	extern "C" OpenSandPluginFactory *init()                                     \
+	{                                                                            \
+		auto pl = new OpenSandPluginFactory{                                     \
+			create_ptr,                                                          \
+			configure_ptr,                                                       \
+			PluginType::Encapsulation,                                           \
+			pl_name};                                                            \
+		return pl;                                                               \
+	};
+#endif // CREATE
+
+#endif // SIMPLE_ENCAP_PLUGIN_H

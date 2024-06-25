@@ -127,9 +127,8 @@ protected:
 	uint8_t src_tal_id;
 	/// The packet destination TalID
 	uint8_t dst_tal_id;
-
 	// the packet extension header if required
-	// used by GSE protocol (Rust)
+	// used by GSE protocol
 	std::map<uint16_t, Rt::Data> header_extensions;
 
 public:

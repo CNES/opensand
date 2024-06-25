@@ -202,8 +202,8 @@ class SpotUpward: public DvbChannel, public DvbFmt
 	std::unique_ptr<DvbScpcStd> reception_std_scpc;
 
 	/// The up/return packet handler for SCPC
-	std::shared_ptr<EncapPlugin::EncapPacketHandler> scpc_pkt_hdl;
-	encap_contexts_t scpc_ctx;
+	std::shared_ptr<SimpleEncapPlugin> scpc_pkt_hdl;
+	//encap_contexts_t scpc_ctx;
 
 	/// FMT groups for up/return
 	fmt_groups_t ret_fmt_groups;

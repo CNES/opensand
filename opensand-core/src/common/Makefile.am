@@ -25,7 +25,6 @@ libopensand_plugin_la_cpp = \
 	SarpTable.cpp \
 	StackPlugin.cpp \
 	SimpleEncapPlugin.cpp \
-	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
 	PhysicalLayerPlugin.cpp \
 	IslPlugin.cpp \
@@ -45,7 +44,6 @@ libopensand_plugin_la_h = \
 	MacAddress.h \
 	TrafficCategory.h \
 	SarpTable.h \
-	EncapPlugin.h \
 	SimpleEncapPlugin.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h \

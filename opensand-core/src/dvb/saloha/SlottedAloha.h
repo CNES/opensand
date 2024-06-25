@@ -36,10 +36,10 @@
 #ifndef SALOHA_H
 #define SALOHA_H
 
-#include "EncapPlugin.h"
+#include "SimpleEncapPlugin.h"
 #include "DvbFrame.h"
 #include "SlottedAlohaPacket.h"
-
+#include "SimpleEncapPlugin.h"
 #include <opensand_output/Output.h>
 
 
@@ -60,7 +60,7 @@ protected:
 	bool is_parent_init;
 
 	/// The encap packet handler
-	std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl;
+	std::shared_ptr<SimpleEncapPlugin> pkt_hdl;
 
 public:
 	/**
@@ -82,7 +82,7 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool initParent(time_us_t frame_duration,
-	                std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
+	                std::shared_ptr<SimpleEncapPlugin>  pkt_hdl);
 
 	/**
 	 * Handle a received Slotted Aloha frame

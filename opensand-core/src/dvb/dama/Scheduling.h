@@ -37,7 +37,7 @@
 #ifndef _SCHEDULING_H_
 #define _SCHEDULING_H_
 
-#include "EncapPlugin.h"
+#include "SimpleEncapPlugin.h"
 #include "DvbFifoTypes.h"
 #include "DvbFrame.h"
 
@@ -58,7 +58,8 @@ class OutputLog;
 class Scheduling
 {
 public:
-	Scheduling(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+//SimpleEncapPlugin *
+	Scheduling(std::shared_ptr<SimpleEncapPlugin> packet_handler,
 	           std::shared_ptr<fifos_t> fifos,
 	           std::shared_ptr<const StFmtSimuList> simu_sts);
 
@@ -91,7 +92,7 @@ public:
 
 protected:
 	/** The packet representation */
-	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
+	std::shared_ptr<SimpleEncapPlugin>  packet_handler;
 	/** The MAC FIFOs */
 	std::shared_ptr<fifos_t> dvb_fifos;
 	/** The FMT simulated data */

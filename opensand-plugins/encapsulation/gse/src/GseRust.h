@@ -32,8 +32,8 @@
  * @author Axel Pinel <axel.pinel@viveris.fr>
  */
 
-#ifndef SimpleGseRust_CONTEXT_H
-#define SimpleGseRust_CONTEXT_H
+#ifndef GseRust_CONTEXT_H
+#define GseRust_CONTEXT_H
 
 #include <map>
 #include <string>
@@ -52,8 +52,15 @@ class NetBurst;
  * @class GseRust
  * @brief GseRust encapsulation plugin implementation
  */
-class SimpleGseRust : public SimpleEncapPlugin
+class GseRust : public SimpleEncapPlugin
 {
+public:
+
+	/**
+	 * @warning This method does nothing but must exist. //TODO ??
+	 */
+	bool init() override;
+
 private:
 	/**
 	 * @brief Decapsulate the packet using Gse (Rust) librairy
@@ -104,11 +111,6 @@ private:
 
 public:
 	/**
-	 * @class Context
-	 * @brief GseRust encapsulation / desencapsulation context
-	 */
-
-	/**
 	 * @brief Decapsulate all the packet using @ref decapNextPacket and push the packet to the std::vector
 	 * @param encap_packets  IN: the packets to decapsulate
 	 * @param decap_packet_count IN: the number of packet to decapsulate in the NetContainer
@@ -119,13 +121,6 @@ public:
 						 std::vector<Rt::Ptr<NetPacket>> &decap_packets,
 						 unsigned int decap_packet_count = 0) override;
 
-	bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
-											Rt::Ptr<NetPacket> &new_packet,
-											tal_id_t tal_id_src,
-											tal_id_t tal_id_dst,
-											std::string callback_name,
-											void *opaque);
-
 	/**
 	 * @warning This method should never be called. If called, it will abort.
 	 */
@@ -135,10 +130,6 @@ public:
 							 uint8_t src_tal_id,
 							 uint8_t dst_tal_id) override;
 
-	bool getHeaderExtensions(const Rt::Ptr<NetPacket> &packet,
-							 std::string callback_name,
-							 void *opaque);
-
 	/**
 	 * @warning This method should never be called. If called, it will abort.
 	 */
@@ -147,27 +138,28 @@ public:
 	/**
 	 * @warning This method should never be called. If called, it will abort.
 	 */
-	bool getDst(const Rt::Data &data, tal_id_t &tal_id) const override;
-
-	/**
-	 * @warning This method should never be called. If called, it will abort.
-	 */
 	bool getQos(const Rt::Data &data, qos_t &qos) const override;
-
-	/**
-	 * @warning This method does nothing but must exist.
-	 */
-	bool init();
 
 	bool encapNextPacket(Rt::Ptr<NetPacket> packet,
 						 std::size_t remaining_length,
 						 bool new_burst,
 						 Rt::Ptr<NetPacket> &encap_packet,
 						 Rt::Ptr<NetPacket> &remaining_data) override;
-	/// Constructor
-	SimpleGseRust();
-	~SimpleGseRust();
 
+	bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
+							 Rt::Ptr<NetPacket> &new_packet,
+							 tal_id_t tal_id_src,
+							 tal_id_t tal_id_dst,
+							 std::string callback_name,
+							 void *opaque) override;
+
+	bool getHeaderExtensions(const Rt::Ptr<NetPacket> &packet,
+							 std::string callback_name,
+							 void *opaque) override;
+
+public:
+	GseRust();
+	~GseRust();
 	/**
 	 * @brief Generate the configuration for the plugin
 	 */
@@ -229,6 +221,6 @@ public:
 	static uint8_t getQosFromFragId(const uint8_t frag_id);
 };
 
-// CREATE(GseRust, GseRust::Handler, "GSERust");
+CREATE(GseRust, "GSERust");
 
 #endif

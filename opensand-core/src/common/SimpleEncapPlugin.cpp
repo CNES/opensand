@@ -39,35 +39,10 @@
 #include "NetContainer.h"
 #include "NetPacket.h"
 
-SimpleEncapPlugin::SimpleEncapPlugin(NET_PROTO ether_type, const std::string& name) : OpenSandPlugin(), ether_type{ether_type}
+SimpleEncapPlugin::SimpleEncapPlugin(NET_PROTO ether_type, const std::string& name) : OpenSandPlugin(), dst_tal_id(BROADCAST_TAL_ID), ether_type{ether_type}
 {
-	this->log_simple = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + name);
 }
 
-
-// bool SimpleEncapPlugin::init()
-// {
-// 	// this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
-// 	return true;
-// }
-
-// peut etre utile pour plus tard
-// SimpleEncapPlugin::EncapContext::EncapContext(SimpleEncapPlugin &pl) : StackContext(pl)
-// {
-// 	this->dst_tal_id = BROADCAST_TAL_ID;
-// }
-
-void SimpleEncapPlugin::setFilterTalId(uint8_t tal_id)
-{
-	this->dst_tal_id = tal_id;
-}
-
-// bool SimpleEncapPlugin::init()
-// {
-// 	// TODO gerer les logs
-// 	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
-// 	return true;
-// }
 
 std::string SimpleEncapPlugin::getName() const
 {
@@ -75,8 +50,22 @@ std::string SimpleEncapPlugin::getName() const
 }
 
 
+bool SimpleEncapPlugin::init()
+{
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
+	return true;
+}
+
+
+
 
 NET_PROTO SimpleEncapPlugin::getEtherType() const
 {
 	return this->ether_type;
+}
+
+void SimpleEncapPlugin::setFilterTalId(uint8_t tal_id)
+{
+	// TODO LOG(this->log,LEVEL_INFO,"Setting filter tal id to %u",tal_id);
+	this->dst_tal_id = tal_id;
 }

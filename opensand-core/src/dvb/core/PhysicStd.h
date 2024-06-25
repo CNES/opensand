@@ -40,7 +40,7 @@
 
 #include <opensand_rt/Ptr.h>
 
-#include "EncapPlugin.h"
+#include "SimpleEncapPlugin.h"
 #include "DvbFrame.h"
 
 
@@ -59,7 +59,7 @@ private:
 
 protected:
 	/** The packet representation */
-	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
+	std::shared_ptr<SimpleEncapPlugin> packet_handler;
 
 public:
 	/**
@@ -69,7 +69,7 @@ public:
 	 * @param pkt_hdl  the packet handler
 	 */
 	PhysicStd(std::string type,
-	          std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl);
+	          std::shared_ptr<SimpleEncapPlugin> pkt_hdl);
 
 	/**
 	 * Destroy the Physical Transmission Standard

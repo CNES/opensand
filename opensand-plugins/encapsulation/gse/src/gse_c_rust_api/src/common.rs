@@ -18,7 +18,6 @@ pub fn cslice_from_rsslice(rs_slice: &mut [u8]) -> RustMutSlice {
 }
 
 impl RustMutSlice {
-    #[allow(clippy::mut_from_ref)]
     pub fn to_slice(&self) -> &mut [u8] {
         let slice = unsafe { from_raw_parts_mut(self.bytes, self.size) };
         slice
