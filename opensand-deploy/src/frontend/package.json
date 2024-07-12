@@ -2,7 +2,7 @@
   "name": "opensand_deploy",
   "version": "7.1.0",
   "private": true,
-  "proxy": "http://172.20.34.103/",
+  "proxy": "http://localhost:9000/",
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
