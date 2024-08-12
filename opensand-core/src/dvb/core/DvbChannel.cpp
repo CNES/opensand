@@ -91,29 +91,25 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 }
 
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
-							std::shared_ptr<SimpleEncapPlugin> &pkt_hdl) // TODO TODELETE,
-																				  // encap_contexts_t &ctx)
+							SimpleEncapPlugin *&pkt_hdl)
 {
 	auto encap_conf = OpenSandModelConf::Get()->getProfileData()->getComponent("encap");
-	// ctx.clear();
-	std::vector<std::string> encap_names;
+	std::string encap_plugin;
 	switch (encap_schemes)
 	{
 	case EncapSchemeList::FORWARD_DOWN:
-		encap_names.emplace_back("GSERust");
+		encap_plugin = "GSE";
 		break;
 
 	case EncapSchemeList::RETURN_SCPC:
-		encap_names.emplace_back("GSERust");
+	encap_plugin = "GSE";
 		break;
 
 	case EncapSchemeList::RETURN_UP:
-
-		encap_names.emplace_back("RLE");
+		encap_plugin = "RLE";
 		break;
 
 	case EncapSchemeList::TRANSPARENT_NO_SCHEME:
-
 		LOG(this->log_init_channel, LEVEL_INFO,
 			"Skipping packet handler initialization for "
 			"transparent satellite");
@@ -126,26 +122,29 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 		return false;
 	}
 
-	// StackPlugin *upper_encap = this->upper_encap;
-	for (auto &&encap_name : encap_names)
+	if (encap_plugin.empty())
 	{
-		SimpleEncapPlugin *plugin;
-		if (!Plugin::getEncapsulationPlugin(encap_name, &plugin))
-		{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"cannot get plugin for encapsulation\n");
+		return false;
+	}
 
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"cannot get plugin for %s encapsulation\n",
-				encap_name);
-			return false;
-		}
+	SimpleEncapPlugin *plugin;
+	if (!Plugin::getEncapsulationPlugin(encap_plugin, &plugin))
+	{
 
-		pkt_hdl = plugin->getSharedPlugin();
-		if (!pkt_hdl)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"cannot get %s packet handler\n", encap_name.c_str());
-			return false;
-		}
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"cannot get plugin for %s encapsulation\n",
+			encap_plugin);
+		return false;
+	}
+
+	pkt_hdl = plugin->getSharedPlugin();
+	if (!pkt_hdl)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"cannot get %s packet handler\n", encap_plugin.c_str());
+		return false;
 	}
 
 	return true;
@@ -153,7 +152,7 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 
 void DvbChannel::setFilterTalId(tal_id_t filter)
 {
-	uint8_t filter_u8 =  (uint8_t)(filter & 0xFF);
+	uint8_t filter_u8 = (uint8_t)(filter & 0xFF);
 	this->pkt_hdl->setFilterTalId(filter_u8);
 }
 
@@ -175,7 +174,7 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 		"frame duration set to %uμs\n",
 		this->ret_up_frame_duration.count());
 
-	if (!this->initPktHdl(encap_schemes, this->pkt_hdl)) // TODO TODELETE, this->ctx))
+	if (!this->initPktHdl(encap_schemes, this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 			"failed to initialize packet handler\n");
@@ -383,7 +382,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 	return this->output_sts->getCniHasChanged(tal_id);
 }
 
-Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(std::shared_ptr<SimpleEncapPlugin> pkt_hdl,
+Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(SimpleEncapPlugin *pkt_hdl,
 											  Rt::Ptr<NetPacket> packet,
 											  tal_id_t source,
 											  tal_id_t dest,
@@ -407,34 +406,6 @@ Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(std::shared_ptr<SimpleEncapPlugin>
 	}
 
 	opaque = hcnton(cni);
-
-	if (packet)
-	{
-/* TODO: delete if not required
-		bool success = pkt_hdl->checkPacketForHeaderExtensions(packet);
-
-		if (!success)
-		{
-			LOG(this->log_fmt, LEVEL_DEBUG,
-				"SF#%d: Cannot get packet to add header extension\n",
-				super_frame_counter);
-		}
-		else if (packet != nullptr)
-		{
-			LOG(this->log_fmt, LEVEL_DEBUG,
-				"SF#%d: found no-fragmented packet without extensions\n",
-				super_frame_counter);
-		}
-		else
-		{
-			LOG(this->log_fmt, LEVEL_DEBUG,
-				"SF#%d: no non-fragmented or without extension packet found, "
-				"create empty packet\n",
-				super_frame_counter);
-		}
-*/
-	}
-
 	Rt::Ptr<NetPacket> extension_pkt = Rt::make_ptr<NetPacket>(nullptr);
 
 	if (!pkt_hdl->setHeaderExtensions(std::move(packet),

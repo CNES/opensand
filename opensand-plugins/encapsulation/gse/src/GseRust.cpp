@@ -90,15 +90,6 @@ static int deencodeHeaderCniExtensions(unsigned char *ext,
 }
 */
 
-bool GseRust::init()
-{
-	if(!SimpleEncapPlugin::init())
-	{
-		return false;
-	}
-	return true;
-}
-
 Rt::Ptr<NetPacket> GseRust::decapNextPacket(const Rt::Data &data, size_t &length_decap)
 {
 	length_decap = 0;
@@ -140,8 +131,6 @@ Rt::Ptr<NetPacket> GseRust::decapNextPacket(const Rt::Data &data, size_t &length
 		LOG(this->log, LEVEL_INFO,
 		    "Checking for extension header header");
 
-		// RustGetExtensionsHeader ext_header = rust_getExtensionHeaders(gse_pkt, this->rust_decapsulator);
-
 		CHeaderExtensionSlice extensions = status.value.completed_pkt.metadata.extensions;
 
 		if (extensions.size == 0)
@@ -168,7 +157,7 @@ Rt::Ptr<NetPacket> GseRust::decapNextPacket(const Rt::Data &data, size_t &length
 			LOG(this->log, LEVEL_DEBUG,
 			    "H-LEN is %u", ext_data_len);
 
-			switch (ext_data_len) // TODO function
+			switch (ext_data_len)
 			{
 			case 2:
 			{
@@ -228,14 +217,9 @@ Rt::Ptr<NetPacket> GseRust::decapNextPacket(const Rt::Data &data, size_t &length
 	}
 
 	case RustDecapStatusType::DecapFragmentedPkt:
-	{ // TODO gerer les cas ou le premier fragment a des extensions d'headers.
+	{ // fragment and Metadata are stored in memory.
 		LOG(this->log, LEVEL_INFO,
 		    "Packet is a first / intermediate fragment. Fragment stored in memory.");
-
-		LOG(this->log, LEVEL_INFO,
-		    "NOOOOO Checking for ext header");
-		// TODO RustGetExtensionsHeader ext_header = rust_getExtensionHeaders(gse_pkt, this->rust_decapsulator);
-
 		return Rt::make_ptr<NetPacket>(nullptr);
 	}
 
@@ -558,7 +542,8 @@ bool GseRust::encapNextPacket(Rt::Ptr<NetPacket> packet,
 
 }
 
-GseRust::GseRust(): SimpleEncapPlugin(NET_PROTO::GSE, "GSE") {
+GseRust::GseRust(const std::string &name): SimpleEncapPlugin(name, NET_PROTO::GSE)
+{
 	// initialize using default value
 	uint8_t max_frag_id = 5;		   // 5 FIFO so 5 id should be ok, but Gse protocol allows 256 different id
 	uint16_t decap_buffer_len = 12000; // GSE protocol allows entire packet of 65 536 bytes
@@ -600,8 +585,6 @@ void GseRust::generateConfiguration(const std::string &, const std::string &, co
 	gse->addParameter("max_frag_id", "Maximum frag id possible (= number of deencapsulation buffer)", types->getType("ubyte"));
 	gse->addParameter("decap_buffer_len", "Maximal Packet length", types->getType("ushort"));
 	gse->addParameter("compatibility_mode", "Force compatibility with lib DVB-GSE written in language C", types->getType("bool"));
-
-	//Conf->setProfileReference(gse, lib_type, "Rust");
 }
 
 // Static methods
@@ -657,6 +640,7 @@ uint8_t GseRust::getQosFromFragId(const uint8_t frag_id)
 	return frag_id & 0x07;
 }
 
+// this method is only called in SCPC mode
 bool GseRust::getSrc(const Rt::Data &data, tal_id_t &tal_id) const
 {
 	LOG(this->log, LEVEL_DEBUG,

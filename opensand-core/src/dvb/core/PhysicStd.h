@@ -59,7 +59,7 @@ private:
 
 protected:
 	/** The packet representation */
-	std::shared_ptr<SimpleEncapPlugin> packet_handler;
+	SimpleEncapPlugin* packet_handler;
 
 public:
 	/**
@@ -69,7 +69,7 @@ public:
 	 * @param pkt_hdl  the packet handler
 	 */
 	PhysicStd(std::string type,
-	          std::shared_ptr<SimpleEncapPlugin> pkt_hdl);
+	          SimpleEncapPlugin* pkt_hdl);
 
 	/**
 	 * Destroy the Physical Transmission Standard

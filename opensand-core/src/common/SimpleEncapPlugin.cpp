@@ -39,8 +39,10 @@
 #include "NetContainer.h"
 #include "NetPacket.h"
 
-SimpleEncapPlugin::SimpleEncapPlugin(NET_PROTO ether_type, const std::string& name) : OpenSandPlugin(), dst_tal_id(BROADCAST_TAL_ID), ether_type{ether_type}
+SimpleEncapPlugin::SimpleEncapPlugin(const std::string &name, NET_PROTO ether_type) : OpenSandPlugin(), dst_tal_id(BROADCAST_TAL_ID), ether_type{ether_type}
 {
+	this->name = name;
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 }
 
 
@@ -49,16 +51,6 @@ std::string SimpleEncapPlugin::getName() const
 	return this->name;
 }
 
-
-bool SimpleEncapPlugin::init()
-{
-	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
-	return true;
-}
-
-
-
-
 NET_PROTO SimpleEncapPlugin::getEtherType() const
 {
 	return this->ether_type;
@@ -66,6 +58,5 @@ NET_PROTO SimpleEncapPlugin::getEtherType() const
 
 void SimpleEncapPlugin::setFilterTalId(uint8_t tal_id)
 {
-	// TODO LOG(this->log,LEVEL_INFO,"Setting filter tal id to %u",tal_id);
 	this->dst_tal_id = tal_id;
 }

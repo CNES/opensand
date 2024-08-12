@@ -53,7 +53,7 @@ public:
 	 *
 	 * @param packet_handler The packet handler
 	 */
-	DvbRcsStd(std::shared_ptr<SimpleEncapPlugin> pkt_hdl = nullptr);
+	DvbRcsStd(SimpleEncapPlugin* pkt_hdl = nullptr);
 
 	/**
 	 * Destroy the DVB-RCS Transmission Standard
@@ -73,7 +73,7 @@ protected:
 	 * @param packet_handler    The packet handler
 	 */
 	DvbRcsStd(std::string ype, bool has_fixed_length,
-	          std::shared_ptr<SimpleEncapPlugin> pkt_hdl = nullptr);
+	          SimpleEncapPlugin* pkt_hdl = nullptr);
 
 	// Output log and debug
 	std::shared_ptr<OutputLog>  log_rcv_from_down;
@@ -85,7 +85,7 @@ protected:
 class DvbRcs2Std: public DvbRcsStd
 {
 public:
-	DvbRcs2Std(std::shared_ptr<SimpleEncapPlugin> pkt_hdl = nullptr);
+	DvbRcs2Std(SimpleEncapPlugin* pkt_hdl = nullptr);
 };
 
 #endif

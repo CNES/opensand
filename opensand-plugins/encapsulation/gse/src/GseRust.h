@@ -54,13 +54,6 @@ class NetBurst;
  */
 class GseRust : public SimpleEncapPlugin
 {
-public:
-
-	/**
-	 * @warning This method does nothing but must exist. //TODO ??
-	 */
-	bool init() override;
-
 private:
 	/**
 	 * @brief Decapsulate the packet using Gse (Rust) librairy
@@ -158,7 +151,7 @@ public:
 							 void *opaque) override;
 
 public:
-	GseRust();
+	GseRust(const std::string &name);
 	~GseRust();
 	/**
 	 * @brief Generate the configuration for the plugin
@@ -221,6 +214,6 @@ public:
 	static uint8_t getQosFromFragId(const uint8_t frag_id);
 };
 
-CREATE(GseRust, "GSERust");
+CREATE(GseRust, "GSE");
 
 #endif

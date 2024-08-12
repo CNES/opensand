@@ -59,7 +59,7 @@ class Scheduling
 {
 public:
 //SimpleEncapPlugin *
-	Scheduling(std::shared_ptr<SimpleEncapPlugin> packet_handler,
+	Scheduling(SimpleEncapPlugin* packet_handler,
 	           std::shared_ptr<fifos_t> fifos,
 	           std::shared_ptr<const StFmtSimuList> simu_sts);
 
@@ -92,7 +92,7 @@ public:
 
 protected:
 	/** The packet representation */
-	std::shared_ptr<SimpleEncapPlugin>  packet_handler;
+	SimpleEncapPlugin*  packet_handler;
 	/** The MAC FIFOs */
 	std::shared_ptr<fifos_t> dvb_fifos;
 	/** The FMT simulated data */

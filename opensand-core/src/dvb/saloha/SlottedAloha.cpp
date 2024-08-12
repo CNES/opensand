@@ -56,7 +56,7 @@ SlottedAloha::SlottedAloha():
 
 
 bool SlottedAloha::initParent(time_us_t frame_duration,
-                              std::shared_ptr<SimpleEncapPlugin> pkt_hdl)
+                              SimpleEncapPlugin* pkt_hdl)
 {
 	srand(time(nullptr));
 	this->frame_duration = frame_duration;

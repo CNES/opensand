@@ -61,21 +61,18 @@ enum class NET_PROTO : uint16_t;
  */
 class SimpleEncapPlugin : public OpenSandPlugin
 {
-
-public:
-	SimpleEncapPlugin(NET_PROTO ether_type, const std::string &name);
-	virtual ~SimpleEncapPlugin() = default;
-
 protected:
-	// l'id de la machine recept pour trier
-	uint8_t dst_tal_id;
+	
+	uint8_t dst_tal_id; // used to filter packets
 
 public:
+	SimpleEncapPlugin(const std::string &name, NET_PROTO ether_type);
+
+
+	virtual ~SimpleEncapPlugin() = default;
 
 
 	void setFilterTalId(uint8_t tal_id);
-
-	virtual bool init();
 
 	/**
 	 * @brief Get the source terminal ID of a packet
@@ -159,9 +156,9 @@ public:
 									 void *opaque) = 0;
 
 public:
-	inline std::shared_ptr<SimpleEncapPlugin> getSharedPlugin() const
+	inline SimpleEncapPlugin* getSharedPlugin()
 	{
-		return this->shared_plugin;
+		return this;
 	};
 
 	/**
@@ -181,32 +178,18 @@ public:
 	template <class Plugin>
 	static OpenSandPlugin *create(const std::string &name)
 	{
-		std::shared_ptr<Plugin> plugin = std::make_shared<Plugin>();
-
-		// auto handler = std::make_shared<Handler>(*plugin);
-		plugin->shared_plugin = plugin;
-		// plugin->shared_plugin->plugin = plugin;
-		plugin->name = name;
-		if (!plugin->init())
-		{
-			goto error;
+		Plugin* plugin = new Plugin(name);
+		if (!plugin){
+			delete plugin;	
+			return nullptr;
 		}
-		// if (!handler->init())
-		// {
-		// 	goto error;
-		// }
-		return plugin.get();
 
-	error:
-		plugin->shared_plugin.reset(); 
-		
-		return nullptr; // TODO refactoriser
+		return plugin;
 	};
 
 
 protected:
 	NET_PROTO ether_type;
-	std::shared_ptr<SimpleEncapPlugin> shared_plugin;
 	std::shared_ptr<OutputLog> log;
 };
 

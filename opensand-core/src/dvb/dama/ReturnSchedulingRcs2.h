@@ -50,7 +50,7 @@
 class ReturnSchedulingRcs2: public Scheduling
 {
 public:
-	ReturnSchedulingRcs2(std::shared_ptr<SimpleEncapPlugin>  packet_handler,
+	ReturnSchedulingRcs2(SimpleEncapPlugin*  packet_handler,
 	                     std::shared_ptr<fifos_t> fifos);
 
 	virtual ~ReturnSchedulingRcs2() = default;

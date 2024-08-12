@@ -80,7 +80,7 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool initPktHdl(EncapSchemeList encap_schemes,
-					std::shared_ptr<SimpleEncapPlugin> &pkt_hdl); 
+					SimpleEncapPlugin* &pkt_hdl); 
 
 	/**
 	 * @brief Forward filter terminal ID to the encapsulation contexts
@@ -245,7 +245,7 @@ protected:
 	time_us_t ret_up_frame_duration;
 
 	/// The encapsulation packet handler
-	std::shared_ptr<SimpleEncapPlugin> pkt_hdl;
+	SimpleEncapPlugin* pkt_hdl;
 	StackPlugin *upper_encap;
 
 	/// The statistics period
@@ -432,7 +432,7 @@ protected:
 	 *
 	 * @return The packet with extension on success, nullptr otherwise
 	 */
-	Rt::Ptr<NetPacket> setPacketExtension(std::shared_ptr<SimpleEncapPlugin> pkt_hdl,
+	Rt::Ptr<NetPacket> setPacketExtension(SimpleEncapPlugin* pkt_hdl,
 										  Rt::Ptr<NetPacket> packet,
 										  tal_id_t source,
 										  tal_id_t dest,

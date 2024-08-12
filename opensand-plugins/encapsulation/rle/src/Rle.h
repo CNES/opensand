@@ -62,14 +62,9 @@ typedef enum
 class Rle : public SimpleEncapPlugin
 {
 public:
-	Rle();
+	Rle(const std::string &name);
 	~Rle();
-
-private:
 	
-	// protected:
-	// bool decapNextPacket(Rt::Ptr<NetPacket> packet, NetBurst &burst) override;
-public:
 	/// rle configuration
 	struct rle_config rle_conf;
 	void loadRleConf(const struct rle_config &conf);
@@ -119,7 +114,6 @@ public:
 									  const std::string &param_id,
 									  const std::string &plugin_name);
 
-	bool init() override;
 };
 
 CREATE(Rle, "RLE");

@@ -94,7 +94,7 @@ public:
 	                vol_kb_t max_vbdc_kb,
 	                time_sf_t msl_sf,
 	                time_sf_t sync_period_sf,
-	                std::shared_ptr<SimpleEncapPlugin> pkt_hdl,
+	                SimpleEncapPlugin* pkt_hdl,
 	                std::shared_ptr<fifos_t> dvb_fifos,
 	                spot_id_t spot_id);
 
@@ -184,7 +184,7 @@ protected:
 	bool is_parent_init;
 
 	/** The packet representation */
-	std::shared_ptr<SimpleEncapPlugin> packet_handler;
+	SimpleEncapPlugin* packet_handler;
 
 	/** The MAC FIFOs */
 	std::shared_ptr<fifos_t> dvb_fifos;

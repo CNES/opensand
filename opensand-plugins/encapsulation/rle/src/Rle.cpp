@@ -122,45 +122,12 @@ void initRleConf(struct rle_config &conf)
 
 
 
-Rle::Rle() : SimpleEncapPlugin(NET_PROTO::RLE, "RLE")
+Rle::Rle(const std::string &name) : SimpleEncapPlugin(name, NET_PROTO::RLE)
 {
 	rle_set_trace_callback(&(rle_log));
-}
 
-Rle::~Rle()
-{
-		std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator trans_it;
 
-	// Reset and clean encapsulation
-	for (auto &&trans_it : this->transmitters)
-	{
-		delete trans_it.first;
-		rle_transmitter_destroy(&(trans_it.second.first));
-		trans_it.second.second.clear();
-	}
-	this->transmitters.clear();
-}
-
-void Rle::generateConfiguration(const std::string &, const std::string &, const std::string &)
-{
-	auto Conf = OpenSandModelConf::Get();
-	auto types = Conf->getModelTypesDefinition();
-	types->addEnumType("alpdu_protection_kind", "ALPDU Protection", {ALPDU_PROTECTION_CRC, ALPDU_PROTECTION_SEQ_NUM});
-
-	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
-	auto rle = conf->addComponent("rle", "RLE", "The RLE Plugin Configuration");
-	rle->setAdvanced(true);
-	rle->addParameter("alpdu_protection", "ALPDU Protection", types->getType("alpdu_protection_kind"));
-}
-
-bool Rle::init()
-{
-	if (!SimpleEncapPlugin::init())
-	{
-		return false;
-	}
-
-	bool status = true;
+		bool status = true;
 	struct rle_config conf;
 
 	initRleConf(conf);
@@ -213,7 +180,33 @@ bool Rle::init()
 
 unload:
 	this->loadRleConf(conf);
-	return status;
+	
+}
+
+Rle::~Rle()
+{
+		std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator trans_it;
+
+	// Reset and clean encapsulation
+	for (auto &&trans_it : this->transmitters)
+	{
+		delete trans_it.first;
+		rle_transmitter_destroy(&(trans_it.second.first));
+		trans_it.second.second.clear();
+	}
+	this->transmitters.clear();
+}
+
+void Rle::generateConfiguration(const std::string &, const std::string &, const std::string &)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	types->addEnumType("alpdu_protection_kind", "ALPDU Protection", {ALPDU_PROTECTION_CRC, ALPDU_PROTECTION_SEQ_NUM});
+
+	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
+	auto rle = conf->addComponent("rle", "RLE", "The RLE Plugin Configuration");
+	rle->setAdvanced(true);
+	rle->addParameter("alpdu_protection", "ALPDU Protection", types->getType("alpdu_protection_kind"));
 }
 
 void Rle::loadRleConf(const struct rle_config &conf)

@@ -69,7 +69,7 @@ bool DamaAgent::initParent(time_us_t frame_duration,
                            vol_kb_t max_vbdc_kb,
                            time_sf_t msl_sf,
                            time_sf_t sync_period_sf,
-                           std::shared_ptr<SimpleEncapPlugin>  pkt_hdl,
+                           SimpleEncapPlugin*  pkt_hdl,
                            std::shared_ptr<fifos_t> dvb_fifos,
                            spot_id_t spot_id)
 {

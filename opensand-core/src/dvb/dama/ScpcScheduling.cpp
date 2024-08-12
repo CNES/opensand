@@ -88,7 +88,7 @@ static size_t getPayloadSize(std::string coding_rate)
 
 // TODO try to factorize with S2Scheduling
 ScpcScheduling::ScpcScheduling(time_us_t scpc_timer,
-                               std::shared_ptr<SimpleEncapPlugin> packet_handler,
+                               SimpleEncapPlugin* packet_handler,
                                std::shared_ptr<fifos_t> fifos,
                                std::shared_ptr<const StFmtSimuList> simu_sts,
                                const FmtDefinitionTable &scpc_modcod_def,

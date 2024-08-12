@@ -86,7 +86,7 @@ static size_t getPayloadSize(std::string coding_rate)
 
 
 ForwardSchedulingS2::ForwardSchedulingS2(time_us_t fwd_timer,
-                                         std::shared_ptr<SimpleEncapPlugin> packet_handler,
+                                         SimpleEncapPlugin* packet_handler,
                                          std::shared_ptr<fifos_t> fifos,
                                          std::shared_ptr<const StFmtSimuList> fwd_sts,
                                          const FmtDefinitionTable &fwd_modcod_def,
