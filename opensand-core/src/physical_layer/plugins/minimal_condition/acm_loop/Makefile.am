@@ -19,7 +19,7 @@ libopensand_acm_loop_minimal_plugin_la_SOURCES = \
 	$(libopensand_acm_loop_minimal_plugin_la_h)
 
 libopensand_acm_loop_minimal_plugin_la_LIBADD= \
-	$(top_builddir)/src/conf/libopensand_conf_core.la \
+	$(top_builddir)/src/common/libopensand_plugin.la \
 	$(top_builddir)/src/dvb/fmt/libopensand_dvb_fmt.la
 
 libopensand_acm_loop_minimal_plugin_la_CPPFLAGS = \

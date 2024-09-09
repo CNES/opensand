@@ -15,8 +15,7 @@ libopensand_satcarrier_la_SOURCES = \
 	$(libopensand_satcarrier_la_h)
 libopensand_satcarrier_la_LIBADD = \
 	$(top_builddir)/src/common/libopensand_utils.la \
-	$(top_builddir)/src/common/libopensand_plugin.la \
-	$(top_builddir)/src/conf/libopensand_conf_core.la
+	$(top_builddir)/src/common/libopensand_plugin.la
 
 libopensand_satcarrier_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

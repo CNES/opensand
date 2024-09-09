@@ -74,8 +74,10 @@ libopensand_plugin_la_SOURCES = \
 	$(libopensand_plugin_la_cpp) \
 	$(libopensand_plugin_la_h)
 
+libopensand_plugin_la_LIBADD = \
+	$(top_builddir)/src/conf/libopensand_conf_core.la
+
 libopensand_plugin_utils_la_LIBADD = \
-	$(top_builddir)/src/conf/libopensand_conf_core.la \
 	-ldl
 
 libopensand_plugin_utils_la_SOURCES = \
