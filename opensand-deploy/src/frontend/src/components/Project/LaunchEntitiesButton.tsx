@@ -1,6 +1,6 @@
 import React from 'react';
 
-import SpacedButton from '../common/SpacedButton';
+import Button from '@mui/material/Button';
 
 import {deployEntity} from '../../api';
 import {useDispatch} from '../../redux';
@@ -79,13 +79,13 @@ const LaunchEntitiesButton: React.FC<Props> = (props) => {
     }, [dispatch, projectName, entities]);
 
     return (
-        <SpacedButton
+        <Button
             color="success"
             variant="contained"
             onClick={handleClick}
         >
             Launch All Entities
-        </SpacedButton>
+        </Button>
     );
 };
 

@@ -1,19 +1,16 @@
 import React from 'react';
-import {Formik} from 'formik';
+import {Formik, Form} from 'formik';
 import type {FormikProps, FormikHelpers} from 'formik';
 
-import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
-import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
-import {styled} from '@mui/material/styles';
-
-import GrowingTypography from '../common/GrowingTypography';
 import RootComponent from '../Model/RootComponent';
-import SaveAsButton, {SpacedButton} from './SaveAsButton';
+import SaveAsButton from './SaveAsButton';
 
 import {updateXML} from '../../api';
 import {useDispatch, useSelector} from '../../redux';
@@ -21,18 +18,6 @@ import {changeVisibility} from '../../redux/form';
 import {useFormSubmit} from '../../utils/hooks';
 import {Visibilities} from '../../xsd';
 import type {Model as ModelType, Component, Visibility} from '../../xsd';
-
-
-const CapitalizedTypography = styled(Typography, {name: "CapitalizedTypography", slot: "Wrapper"})(({ theme }) => ({
-    marginRight: theme.spacing(2),
-    textTransform: "capitalize",
-    fontVariant: "small-caps",
-}));
-
-
-const FullPage = styled(Paper, {name: "FullPage", slot: "Wrapper"})({
-    height: "100%",
-});
 
 
 const Model: React.FC<Props> = (props) => {
@@ -53,35 +38,37 @@ const Model: React.FC<Props> = (props) => {
     }, [dispatch, projectName, xsd, urlFragment, onSubmitted]);
 
     return (
-        <FullPage elevation={0}>
+        <React.Fragment>
             <Toolbar>
-                <CapitalizedTypography variant="h6">
+                <Typography variant="h6" sx={{mr: 2, textTransform: "capitalize", fontVariant: "small-caps"}}>
                     {root.description}
-                </CapitalizedTypography>
-                <GrowingTypography variant="h6">
+                </Typography>
+                <Typography variant="h6" sx={{flexGrow: 1}}>
                     (v{version})
-                </GrowingTypography>
+                </Typography>
                 <TextField select label="Visibility" value={visibility} onChange={handleVisibilityChange}>
                     {Visibilities.map((v: Visibility, i: number) => <MenuItem value={v} key={i}>{v}</MenuItem>)}
                 </TextField>
             </Toolbar>
             <Formik enableReinitialize initialValues={root} onSubmit={handleSubmit}>
-                {(formik: FormikProps<Component>) => (<form onSubmit={formik.handleSubmit}>
-                    <RootComponent form={formik} xsd={xsd} />
-                    <Box textAlign="center" marginTop="3em" marginBottom="3px">
-                        <SaveAsButton project={projectName} xsd={xsd} form={formik} />
-                        <SpacedButton
-                            disabled={!formik.dirty || formik.isSubmitting}
-                            color="secondary"
-                            variant="contained"
-                            type="submit"
-                        >
-                            Save Configuration for {urlFragment.replace("/", " of ")}
-                        </SpacedButton>
-                    </Box>
-                </form>)}
+                {(formik: FormikProps<Component>) => (
+                    <Form>
+                        <RootComponent root={root} xsd={xsd} />
+                        <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} mt={1} mb={3}>
+                            <SaveAsButton project={projectName} xsd={xsd} />
+                            <Button
+                                disabled={!formik.dirty || formik.isSubmitting}
+                                color="secondary"
+                                variant="contained"
+                                type="submit"
+                            >
+                                Save Configuration for {urlFragment.replace("/", " of ")}
+                            </Button>
+                        </Stack>
+                    </Form>
+                )}
             </Formik>
-        </FullPage>
+        </React.Fragment>
     );
 };
 

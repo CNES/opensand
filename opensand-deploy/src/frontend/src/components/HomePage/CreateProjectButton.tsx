@@ -34,7 +34,9 @@ const CreateProjectButton: React.FC<Props> = (props) => {
 
     return (
         <React.Fragment>
-            <Button color="primary" onClick={handleOpen}>Create</Button>
+            <Button color="success" variant="contained" onClick={handleOpen}>
+                Create
+            </Button>
             <SingleFieldDialog
                 open={open}
                 title="New Project"

@@ -1,11 +1,11 @@
 import React from 'react';
 import {useNavigate} from 'react-router-dom';
-import type {FormikProps} from 'formik';
+import {useFormikContext} from 'formik';
 
 import {useSelector} from '../redux';
 import type {ThunkConfig} from '../redux';
 import {clearProjects} from '../redux/projects';
-import type {IAction} from '../utils/actions';
+import type {IProjectAction} from '../utils/actions';
 import {newItem} from '../xsd';
 import type {List, Component} from '../xsd';
 
@@ -52,7 +52,8 @@ export const useTimer = (timeout: number) => {
     const [timer, setTimer] = React.useState<NodeJS.Timeout | null>(null);
 
     const changeTimer = React.useCallback((callback: Callback, t: number = timeout) => {
-        setTimer(setTimeout(callback, t));
+        const id = setTimeout(callback, t);
+        setTimer(id);
     }, [timeout]);
 
     React.useEffect(() => {
@@ -80,23 +81,19 @@ export const useProject = (dispatch: Dispatch) => {
 };
 
 
-export const useListMutators = (list: List, actions: IAction, form: FormikProps<Component>, prefix: string) => {
+export const useProjectMutators = (actions: IProjectAction) => {
     const {onCreate, onDelete} = actions;
-    const {values, setFieldValue, submitForm} = form;
+    const {setFieldValue, submitForm} = useFormikContext<Component>();
 
     const addListItem = React.useCallback(() => {
-        const doAdd = (l: List, path: string, creator?: (lst: List) => Component | undefined) => {
-            const item = creator ? creator(l) : newItem(l.pattern, l.elements.length);
+        const doAdd = (l: List, path: string, creator: (lst: List) => Component | undefined) => {
+            const item = creator(l);
             if (item) {
                 setFieldValue(path + ".elements", [...l.elements, item]);
             }
         };
-        if (onCreate != null) {
-            onCreate(values, doAdd, submitForm);
-        } else {
-            doAdd(list, prefix);
-        }
-    }, [list, onCreate, setFieldValue, submitForm, values, prefix]);
+        onCreate(doAdd, submitForm);
+    }, [onCreate, setFieldValue, submitForm]);
 
     const removeListItem = React.useCallback((index: number) => {
         const doDelete = (l: List, path: string) => {
@@ -109,13 +106,34 @@ export const useListMutators = (list: List, actions: IAction, form: FormikProps<
             });
             setFieldValue(path + ".elements", newValues);
         };
-        if (onDelete != null) {
-            onDelete(values, doDelete);
-            submitForm();
-        } else {
-            doDelete(list, prefix);
+        onDelete(doDelete);
+        submitForm();
+    }, [onDelete, setFieldValue, submitForm]);
+
+    return [addListItem, removeListItem] as const;
+};
+
+
+export const useListMutators = (list: List, prefix: string) => {
+    const {setFieldValue} = useFormikContext<Component>();
+
+    const addListItem = React.useCallback(() => {
+        const item = newItem(list.pattern, list.elements.length);
+        if (item) {
+            setFieldValue(prefix + ".elements", [...list.elements, item]);
         }
-    }, [list, onDelete, setFieldValue, submitForm, values, prefix]);
+    }, [list, setFieldValue, prefix]);
+
+    const removeListItem = React.useCallback((index: number) => {
+        const fieldValues = list.elements.slice(index, -1);
+        const newValues = [...list.elements];
+        newValues.splice(index, 1);
+        fieldValues.forEach((c: Component, i: number) => {
+            const oldComponent = newValues[index + i];
+            newValues[index + i] = {...oldComponent, refPath: c.refPath, name: c.name};
+        });
+        setFieldValue(prefix + ".elements", newValues);
+    }, [list, setFieldValue, prefix]);
 
     return [addListItem, removeListItem] as const;
 };

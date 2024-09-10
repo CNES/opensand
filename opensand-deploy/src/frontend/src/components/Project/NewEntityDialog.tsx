@@ -1,5 +1,5 @@
 import React from 'react';
-import {Formik} from 'formik';
+import {Formik, Form} from 'formik';
 import type {FormikProps, FormikHelpers} from 'formik';
 
 import Button from '@mui/material/Button';
@@ -11,7 +11,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 
 import Parameter from '../Model/Parameter';
 
-import {noActions} from '../../utils/actions';
 import type {Parameter as ParameterType} from '../../xsd';
 
 
@@ -56,20 +55,20 @@ const NewEntityDialog = (props: Props) => {
         <Dialog open={true} onClose={handleClose}>
             <Formik initialValues={initialValues} onSubmit={handleSubmit}>
                 {(formik: FormikProps<Values>) => (
-                    <form onSubmit={formik.handleSubmit}>
+                    <Form>
                         <DialogTitle>Add a new Entity in your Platform</DialogTitle>
                         <DialogContent>
                             <DialogContentText>
                                 Please give a name and select the role of your machine.
                             </DialogContentText>
-                            <Parameter parameter={formik.values.name} prefix="name" form={formik} actions={noActions} autosave={false} />
-                            <Parameter parameter={formik.values.type} prefix="type" form={formik} actions={noActions} autosave={false} />
+                            <Parameter parameter={formik.values.name} prefix="name" />
+                            <Parameter parameter={formik.values.type} prefix="type" />
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={handleClose} color="primary">Cancel</Button>
                             <Button type="submit" color="primary">Add Entity</Button>
                         </DialogActions>
-                    </form>
+                    </Form>
                 )}
             </Formik>
         </Dialog>

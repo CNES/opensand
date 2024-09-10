@@ -821,7 +821,7 @@ def upload_entity(name, entity):
     method = request.json.get('copy_method')
     ssh_config = request.json.get('ssh', {})
 
-    if method == 'NFS' and run in ('', 'LAUNCH'):
+    if method in ('NFS', 'File System') and run in ('', 'LAUNCH'):
         destination = destination.expanduser().resolve()
         destination.mkdir(parents=True, exist_ok=True)
 
@@ -834,6 +834,7 @@ def upload_entity(name, entity):
             'password': None,
             'passphrase': None,
     }
+    # .get could return None but make sure to not let '' through as well
     if ssh_config.get('is_passphrase', False):
         passwords['passphrase'] = ssh_config.get('password') or None
     else:
@@ -843,7 +844,7 @@ def upload_entity(name, entity):
     with Connection(host, connect_kwargs=passwords) as client:
         client.client.set_missing_host_key_policy(MissingHostKeyPolicy())
 
-        if run in ('', 'LAUNCH'):
+        if not run or run == 'LAUNCH':
             if method == 'SCP':
                 client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
                 for file in files:
