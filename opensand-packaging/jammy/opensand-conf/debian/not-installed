@@ -1,0 +1,3 @@
+usr/lib/python3/dist-packages/py_opensand_conf.la
+usr/lib/${DEB_HOST_MULTIARCH}/libopensand_conf.la
+usr/share/doc/opensand-conf/*

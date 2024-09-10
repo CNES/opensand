@@ -19,7 +19,7 @@ libopensand_ideal_attenuation_plugin_la_SOURCES = \
 	$(libopensand_ideal_attenuation_plugin_la_h)
 
 libopensand_ideal_attenuation_plugin_la_LIBADD = \
-	$(top_builddir)/src/conf/libopensand_conf_core.la
+	$(top_builddir)/src/common/libopensand_plugin.la
 
 pluginsdir = $(libdir)/opensand/plugins
 

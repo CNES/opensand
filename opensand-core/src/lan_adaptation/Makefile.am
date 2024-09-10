@@ -19,7 +19,7 @@ libopensand_lan_adaptation_la_SOURCES = \
 	$(libopensand_lan_adaptation_la_h)
 
 libopensand_lan_adaptation_la_LIBADD = \
-	$(top_builddir)/src/conf/libopensand_conf_core.la
+	$(top_builddir)/src/common/libopensand_plugin.la
 
 libopensand_lan_adaptation_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
