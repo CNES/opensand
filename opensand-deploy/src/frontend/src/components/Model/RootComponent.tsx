@@ -27,7 +27,7 @@ const TabPanel: React.FC<React.PropsWithChildren<{index: any; value: any;}>> = (
 
 
 const RootComponent: React.FC<Props> = (props) => {
-    const {xsd, root} = props;
+    const {xsd} = props;
     const {values} = useFormikContext<ComponentType>();
 
     const selectedTabs = useSelector((state) => state.tab);
@@ -38,7 +38,7 @@ const RootComponent: React.FC<Props> = (props) => {
         dispatch(changeTab({xsd, tab: index}));
     }, [dispatch, xsd]);
 
-    const components = getComponents(root, values, visibility);
+    const components = getComponents(values, values, visibility);
     const savedTab = selectedTabs[xsd];
     const value = !(savedTab && savedTab < components.length) ? 0 : savedTab;
 
@@ -86,7 +86,6 @@ const RootComponent: React.FC<Props> = (props) => {
 
 interface Props {
     xsd: string;
-    root: ComponentType;
 }
 
 

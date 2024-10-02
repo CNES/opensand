@@ -53,7 +53,7 @@ const Model: React.FC<Props> = (props) => {
             <Formik enableReinitialize initialValues={root} onSubmit={handleSubmit}>
                 {(formik: FormikProps<Component>) => (
                     <Form>
-                        <RootComponent root={root} xsd={xsd} />
+                        <RootComponent xsd={xsd} />
                         <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} mt={1} mb={3}>
                             <SaveAsButton project={projectName} xsd={xsd} />
                             <Button
