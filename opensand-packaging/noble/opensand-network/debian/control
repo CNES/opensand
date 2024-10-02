@@ -9,5 +9,5 @@ Section: misc
 Package: opensand-network
 Architecture: any
 Section: misc
-Depends: ${misc:Depends}, python3, python3-netifaces, bridge-utils
+Depends: ${misc:Depends}, python3, python3-netifaces, bridge-utils, iproute2
 Description: Script to configure OpenSAND entity network (sat, gw, st, gw_net_acc or gw_phy)
