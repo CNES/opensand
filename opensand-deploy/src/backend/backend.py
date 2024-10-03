@@ -804,7 +804,7 @@ def download_entity(name, entity):
 
     in_memory.seek(0)
     dl_name = '{}.tar.gz'.format(entity)
-    return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+    return send_file(in_memory, download_name=dl_name, as_attachment=True)
 
 
 @app.route('/api/project/<string:name>/entity/<string:entity>', methods=['PUT'])
@@ -960,9 +960,7 @@ def update_project_content(name):
 
 @app.route('/api/project/<string:name>', methods=['POST'])
 def validate_project(name):
-    try:
-        new_project_name = request.json['name']
-    except (KeyError, TypeError):
+    if not request.is_json or 'name' not in request.json:
         if request.files and 'project' in request.files:
             # Do upload
             destination = WWW_FOLDER / name
@@ -1036,13 +1034,14 @@ def validate_project(name):
 
             in_memory.seek(0)
             dl_name = '{}.tar.gz'.format(name)
-            return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+            return send_file(in_memory, download_name=dl_name, as_attachment=True)
     else:
         # Do copy
         source = WWW_FOLDER / name
         if not source.exists() or not source.is_dir():
             return error('Project {} not found'.format(name), 404)
 
+        new_project_name = request.json['name']
         destination = WWW_FOLDER / new_project_name
         if destination.exists():
             return error('Project {} already exists'.format(new_project_name), 409)

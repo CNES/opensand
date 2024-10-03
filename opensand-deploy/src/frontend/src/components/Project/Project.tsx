@@ -191,7 +191,7 @@ const Project: React.FC<Props> = (props) => {
     const handleDownload = React.useCallback((entity?: string) => {
         const form = document.createElement("form") as HTMLFormElement;
         form.method = "post";
-        form.action = "/api/project/" + name + (entity == null ? "" : "/" + entity);
+        form.action = "/api/project/" + name + (entity == null ? "" : "/entity/" + entity);
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);

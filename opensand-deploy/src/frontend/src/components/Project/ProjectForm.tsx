@@ -98,7 +98,7 @@ const ProjectForm: React.FC<Props> = (props) => {
                         />
                         <CardMedia
                             component="img"
-                            image={process.env.PUBLIC_URL + '/assets/add.jpg'}
+                            image={'/assets/add.jpg'}
                             alt="Add icon"
                             height="180"
                             sx={{objectFit: "contain"}}
