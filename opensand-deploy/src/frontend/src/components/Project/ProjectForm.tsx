@@ -7,9 +7,15 @@ import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardHeader from '@mui/material/CardHeader';
 import CardMedia from '@mui/material/CardMedia';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
 
 import AddIcon from '@mui/icons-material/NoteAdd';
+import AddImage from './add.jpg';
 
 import EntityCard from './EntityCard';
 import Parameter, {XsdParameter} from '../Model/Parameter';
@@ -66,7 +72,30 @@ const findTopologyTemplate = (root: ComponentType, action: IXsdAction): React.Re
 const ProjectForm: React.FC<Props> = (props) => {
     const {projectName, root, machines, entities, onDownload, machinesActions, templatesActions} = props;
 
+    const [selectedIndex, setIndex] = React.useState<number>();
+
     const [addMachine, removeMachine] = useProjectMutators(machinesActions);
+
+    const onClose = React.useCallback(() => {
+        setIndex(undefined);
+    }, []);
+
+    const onRemove = React.useCallback(() => {
+        if (selectedIndex != null) {
+            removeMachine(selectedIndex);
+        }
+        onClose();
+    }, [selectedIndex, removeMachine, onClose]);
+
+    const selectedName = React.useMemo(() => {
+        if (selectedIndex != null) {
+            const machine = machines.elements[selectedIndex];
+            const name = machine.elements.find((e) => e.element.id === "entity_name");
+            if (isParameterElement(name)) {
+                return name.element.value;
+            }
+        }
+    }, [selectedIndex, machines.elements]);
 
     return (
         <Box p={2}>
@@ -83,7 +112,7 @@ const ProjectForm: React.FC<Props> = (props) => {
                                 machine={machine}
                                 entity={entity}
                                 onDownload={onDownload}
-                                removeMachine={removeMachine}
+                                removeMachine={setIndex}
                                 templatesActions={templatesActions}
                             />
                         </Grid>
@@ -98,7 +127,7 @@ const ProjectForm: React.FC<Props> = (props) => {
                         />
                         <CardMedia
                             component="img"
-                            image={'/assets/add.jpg'}
+                            image={AddImage}
                             alt="Add icon"
                             height="180"
                             sx={{objectFit: "contain"}}
@@ -116,6 +145,17 @@ const ProjectForm: React.FC<Props> = (props) => {
                     </Card>
                 </Grid>
             </Grid>
+            <Dialog open={selectedIndex != null} onClose={onClose}>
+                <DialogTitle>Remove a machine</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>You're about to delete the configuration for the machine {selectedName}!</DialogContentText>
+                    <DialogContentText>This action can't be reverted, are you sure?</DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={onClose} color="primary">No, Keep it</Button>
+                    <Button onClick={onRemove} color="primary">Yes, Delete {selectedName}</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

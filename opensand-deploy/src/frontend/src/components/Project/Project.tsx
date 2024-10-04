@@ -15,7 +15,6 @@ import PingDialog from './PingDialog';
 import PingResultDialog from './PingResultDialog';
 import ProjectForm from './ProjectForm';
 import LaunchEntitiesButton from './LaunchEntitiesButton';
-// import StatusEntitiesButton from './StatusEntitiesButton';
 import StopEntitiesButton from './StopEntitiesButton';
 
 import {

@@ -11,7 +11,6 @@ import {deleteProject} from '../../api';
 import {useDispatch} from '../../redux';
 
 
-
 const DeleteProjectButton: React.FC<Props> = (props) => {
     const {project, onClose, onClick} = props;
     const dispatch = useDispatch();
