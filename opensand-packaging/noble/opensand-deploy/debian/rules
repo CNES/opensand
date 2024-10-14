@@ -35,8 +35,8 @@ override_dh_install:
 
 	opensand -g $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/
 
-	echo -n "REACT_APP_OPENSAND_VERSION=" > src/frontend/.env
-	head -1 debian/changelog | sed -r -e 's/^(.*)\((.*)\)(.*)$$/\2/' >> src/frontend/.env
+	echo "REACT_APP_OPENSAND_VERSION="`dpkg-parsechangelog --show-field Version` > src/frontend/.env
+	cat src/frontend/.env
 	yes | yarn install --cwd src/frontend/
 	cd src/frontend/; yarn build
 	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/static/
