@@ -18,12 +18,10 @@ export DH_OPTIONS
 
 override_dh_clean:
 	dh_clean
-
 	rm -rf src/frontend/build/
 
 override_dh_install:
 	dh_install
-
 	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/
 	install -m 0644 src/backend/backend.py $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/backend.py
 	install -d $(CURDIR)/debian/opensand-deploy/etc/systemd/system/
@@ -32,11 +30,8 @@ override_dh_install:
 	install -d $(CURDIR)/debian/opensand-deploy/etc/nginx/sites-available/
 	install -m 0644 src/backend/opensand.conf $(CURDIR)/debian/opensand-deploy/etc/nginx/sites-available/opensand
 	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/www/
-
 	opensand -g $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/
-
 	echo "REACT_APP_OPENSAND_VERSION="`dpkg-parsechangelog --show-field Version` > src/frontend/.env
-	cat src/frontend/.env
 	yes | yarn install --cwd src/frontend/
 	cd src/frontend/; yarn build
 	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/static/
