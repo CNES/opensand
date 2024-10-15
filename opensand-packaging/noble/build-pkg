@@ -114,7 +114,6 @@ build()
         ./autogen.sh 1>configure.log 2>&1 || error configure.log
     fi
     dpkg-buildpackage -rsudo -uc -us -tc 1>build.log 2>&1 && success || error build.log
-	cat build.log
     cd $THIS_DIR
 }
 
