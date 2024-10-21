@@ -471,8 +471,12 @@ Rt::Ptr<NetBurst> Ethernet::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::m
 			MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
 			tal_id_t src = 255 ;
 			tal_id_t dst = 255;
-			uint16_t q_tci = Ethernet::getQTci(packet->getData());
-			uint16_t ad_tci = Ethernet::getAdTci(packet->getData());
+			uint16_t q_tci = 0;
+			uint16_t ad_tci = 0;
+			if (frame_type != NET_PROTO::ETH) {
+				q_tci = Ethernet::getQTci(packet->getData());
+				ad_tci = Ethernet::getAdTci(packet->getData());
+			}
 			qos_t pcp = (q_tci & 0xe000) >> 13;
 			qos_t qos = 0;
 			Evc *evc;
@@ -648,10 +652,14 @@ Rt::Ptr<NetBurst> Ethernet::Context::deencapsulate(Rt::Ptr<NetBurst> burst)
 		size_t data_length = packet->getTotalLength();
 		MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
 		MacAddress src_mac = Ethernet::getSrcMac(packet->getData());
-		uint16_t q_tci = Ethernet::getQTci(packet->getData());
-		uint16_t ad_tci = Ethernet::getAdTci(packet->getData());
 		NET_PROTO ether_type = Ethernet::getPayloadEtherType(packet->getData());
 		NET_PROTO frame_type = Ethernet::getFrameType(packet->getData());
+		uint16_t q_tci = 0;
+		uint16_t ad_tci = 0;
+		if (frame_type != NET_PROTO::ETH) {
+			q_tci = Ethernet::getQTci(packet->getData());
+			ad_tci = Ethernet::getAdTci(packet->getData());
+		}
 		Evc *evc;
 		size_t header_length;
 		uint8_t evc_id = 0;
@@ -1091,7 +1099,7 @@ NET_PROTO Ethernet::getFrameType(const Rt::Data &data)
 	{
 		ether_type = NET_PROTO::ETH;
 	}
-	// TODO: we need the following part because we use two 802.1Q tags for kernel support
+	// we need the following part because we use two 802.1Q tags for kernel support
 	else if(ether_type == NET_PROTO::IEEE_802_1Q && ether_type2 == NET_PROTO::IEEE_802_1Q)
 	{
 		ether_type = NET_PROTO::IEEE_802_1AD;
@@ -1121,8 +1129,7 @@ NET_PROTO Ethernet::getPayloadEtherType(const Rt::Data &data)
 			}
 			ether_type = to_enum<NET_PROTO>(static_cast<uint16_t>((data.at(16) << 8) | data.at(17)));
 
-			// TODO: we need the following part because we use two 802.1Q
-			//       tags for kernel support
+			// we need the following part because we use two 802.1Q tags for kernel support
 			if(ether_type != NET_PROTO::IEEE_802_1Q)
 			{
 				break;
@@ -1138,9 +1145,8 @@ NET_PROTO Ethernet::getPayloadEtherType(const Rt::Data &data)
 			ether_type = to_enum<NET_PROTO>(static_cast<uint16_t>((data.at(20) << 8) | data.at(21)));
 			break;
 		default:
-			DFLTLOG(LEVEL_ERROR,
-			        "unsupported packet type for Ethernet header\n");
-			return NET_PROTO::ERROR;
+			// No VLAN information found, ether_type is already found
+			break;
 	}
 
 	return ether_type;
@@ -1161,8 +1167,7 @@ uint16_t Ethernet::getQTci(const Rt::Data &data)
 	{
 		case NET_PROTO::IEEE_802_1Q:
 			tci = ((data.at(14) & 0xff) << 8) | data.at(15);
-			// TODO: we need the following part because we use two 802.1Q
-			//       tags for kernel support
+			// we need the following part because we use two 802.1Q tags for kernel support
 			ether_type = to_enum<NET_PROTO>(static_cast<uint16_t>((data.at(16) << 8) | data.at(17)));
 			if(ether_type != NET_PROTO::IEEE_802_1Q)
 			{
@@ -1193,7 +1198,7 @@ uint16_t Ethernet::getAdTci(const Rt::Data &data)
 	}
 	ether_type = to_enum<NET_PROTO>(static_cast<uint16_t>((data.at(12) << 8) | data.at(13)));
 	ether_type2 = to_enum<NET_PROTO>(static_cast<uint16_t>((data.at(16) << 8) | data.at(17)));
-	// TODO: we need the following part because we use two 802.1Q tags for kernel support
+	// we need the following part because we use two 802.1Q tags for kernel support
 	if(ether_type == NET_PROTO::IEEE_802_1Q && ether_type2 == NET_PROTO::IEEE_802_1Q)
 	{
 		ether_type = NET_PROTO::IEEE_802_1AD;
