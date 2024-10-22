@@ -117,7 +117,7 @@ bool GatewayPacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t, bool &
 	{
 		return false;
 	}
-	forward = true;
+	forward = ((dst_id == BROADCAST_TAL_ID) || (dst_id != this->tal_id));
 	return ((dst_id == BROADCAST_TAL_ID) || (dst_id == this->tal_id));
 }
 
