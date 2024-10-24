@@ -84,9 +84,9 @@ public:
 	bool isOutputOk();
 
 	enum ReceiveStatus {
-		ERROR;
-		SUCCESS;
-		STACKED;
+		ERROR,
+		SUCCESS,
+		STACKED,
 	};
 
 	/**
