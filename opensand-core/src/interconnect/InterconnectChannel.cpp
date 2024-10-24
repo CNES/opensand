@@ -43,7 +43,6 @@
 #include "BlockInterconnect.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
-#include "UdpChannel.h"
 #include "FifoElement.h"
 #include "Except.h"
 
@@ -297,9 +296,11 @@ void InterconnectChannelReceiver::initUdpChannels(unsigned int data_port, unsign
 	                                                 wmem);
 }
 
-int InterconnectChannelReceiver::receiveToBuffer(const Rt::NetSocketEvent& event, Rt::Ptr<Rt::Data> &buf)
+UdpChannel::ReceiveStatus InterconnectChannelReceiver::receiveToBuffer(
+		const Rt::NetSocketEvent& event,
+		Rt::Ptr<Rt::Data> &buf)
 {
-	int ret = -1;
+	UdpChannel::ReceiveStatus ret = UdpChannel::ERROR;
 
 	LOG(this->log_interconnect, LEVEL_DEBUG,
 	    "try to receive a packet from interconnect channel "
@@ -326,7 +327,7 @@ int InterconnectChannelReceiver::receiveToBuffer(const Rt::NetSocketEvent& event
 	    "Receive packet: size %zu\n", length);
 
 	// Check that the total_length is correct, and fix data length
-	if(ret >= 0 && length > 0)
+	if(ret != UdpChannel::ERROR && length > 0)
 	{
 		interconnect_msg_buffer_t *buffer = reinterpret_cast<interconnect_msg_buffer_t *>(buf->data());
 		if(buffer->data_len != length)
@@ -334,12 +335,12 @@ int InterconnectChannelReceiver::receiveToBuffer(const Rt::NetSocketEvent& event
 			LOG(this->log_interconnect, LEVEL_ERROR,
 			    "Data length received (%zu) mismatches with message length (%zu)\n",
 			    length, buffer->data_len);
-			return -1;
+			return UdpChannel::ERROR;
 		}
 		buffer->data_len -= (sizeof(buffer->data_len) + sizeof(buffer->msg_type));
 	}
 	// If empty packet, return null pointer
-	else if(ret >= 0 && length == 0)
+	else if(ret != UdpChannel::ERROR && length == 0)
 	{
 		buf = Rt::make_ptr<Rt::Data>(nullptr);
 	}

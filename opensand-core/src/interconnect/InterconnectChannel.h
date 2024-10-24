@@ -43,13 +43,13 @@
 
 #include "DvbFrame.h"
 #include "DelayFifo.h"
+#include "UdpChannel.h"
 
 
 class OutputLog;
 class InterconnectConfig;
 class NetBurst;
 class NetPacket;
-class UdpChannel;
 namespace Rt {
 	class Message;
 	class NetSocketEvent;
@@ -188,7 +188,7 @@ protected:
 	 * @brief Receive a message from the socket
 	 * @return -1 on error, 1 if more packets can be read, 0 if last packet.
 	 */
-	int receiveToBuffer(const Rt::NetSocketEvent &event, Rt::Ptr<Rt::Data> &buf);
+	UdpChannel::ReceiveStatus receiveToBuffer(const Rt::NetSocketEvent &event, Rt::Ptr<Rt::Data> &buf);
 
 	/**
 	 * @brief Receive RtMessages
