@@ -41,9 +41,7 @@
 
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
-
-
-class UdpChannel;
+#include "UdpChannel.h"
 
 
 /**

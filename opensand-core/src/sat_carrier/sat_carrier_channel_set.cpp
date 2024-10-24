@@ -38,7 +38,6 @@
 #include "sat_carrier_channel_set.h"
 
 #include "OpenSandModelConf.h"
-#include "UdpChannel.h"
 
 
 /**
