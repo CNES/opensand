@@ -38,6 +38,7 @@
 #include "sat_carrier_channel_set.h"
 
 #include "OpenSandModelConf.h"
+#include "UdpChannel.h"
 
 
 /**
@@ -241,12 +242,13 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
 }
 
 
-int sat_carrier_channel_set::receive(const Rt::NetSocketEvent& event,
-                                     unsigned int &op_carrier,
-                                     spot_id_t &op_spot,
-                                     Rt::Ptr<Rt::Data> &op_buf)
+UdpChannel::ReceiveStatus sat_carrier_channel_set::receive(
+		const Rt::NetSocketEvent& event,
+		unsigned int &op_carrier,
+		spot_id_t &op_spot,
+		Rt::Ptr<Rt::Data> &op_buf)
 {
-	int ret = -1;
+	UdpChannel::ReceiveStatus ret = UdpChannel::ERROR;
 	op_carrier = 0;
 
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,
@@ -263,7 +265,7 @@ int sat_carrier_channel_set::receive(const Rt::NetSocketEvent& event,
 			ret = channel->receive(event, op_buf);
 
 			// Stop the task on data or error
-			if((op_buf && op_buf->length() != 0) || ret < 0)
+			if((op_buf && op_buf->length() != 0) || ret == UdpChannel::ERROR)
 			{
 				LOG(this->log_sat_carrier, LEVEL_DEBUG,
 				    "data/error received, set op_carrier to %d\n",

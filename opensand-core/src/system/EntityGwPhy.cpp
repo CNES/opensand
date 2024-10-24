@@ -61,7 +61,6 @@
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
 #include "BlockInterconnect.h"
-#include "UdpChannel.h"
 
 
 EntityGwPhy::EntityGwPhy(tal_id_t instance_id, bool check_mode):

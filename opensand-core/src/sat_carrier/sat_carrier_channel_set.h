@@ -39,9 +39,11 @@
 #include <vector>
 #include <net/if.h>
 
-#include "UdpChannel.h"
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
+
+
+class UdpChannel;
 
 
 /**
@@ -101,7 +103,7 @@ public:
 	* @return  0 on success, 1 if the function should be
 	 *         called another time, -1 on error
 	*/
-	int receive(const Rt::NetSocketEvent& event,
+	UdpChannel::ReceiveStatus receive(const Rt::NetSocketEvent& event,
 	            unsigned int &op_carrier,
 	            spot_id_t &op_spot,
 				Rt::Ptr<Rt::Data>& op_buf);

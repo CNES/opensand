@@ -40,7 +40,6 @@
 
 #include "BlockInterconnect.h"
 #include "OpenSandModelConf.h"
-#include "UdpChannel.h"
 
 
 Rt::UpwardChannel<BlockInterconnectDownward>::UpwardChannel(const std::string &name, const InterconnectConfig &config):

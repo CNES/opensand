@@ -68,7 +68,6 @@
 #include "SpotUpward.h"
 #include "SpotDownward.h"
 #include "PacketSwitch.h"
-#include "UdpChannel.h"
 #include "Ethernet.h"
 
 

@@ -114,8 +114,7 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
 
 	// for UDP we need to retrieve potentially desynchronized
 	// datagrams => loop on receive function
-	int ret;
-	bool status = true;
+	UdpChannel::ReceiveStatus ret;
 	do
 	{
 		// Data to read in Sat_Carrier socket buffer
@@ -123,13 +122,13 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
 		unsigned int carrier_id;
 		Ptr<Data> buf = make_ptr<Data>(nullptr);
 		ret = this->in_channel_set.receive(event, carrier_id, spot_id, buf);
-		if(ret < 0)
+		if(ret == UdpChannel::ERROR)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "failed to receive data on any "
 			    "input channel (code = %d)\n",
 			    ret);
-			status = false;
+			return false;
 		}
 		else if (buf)
 		{
@@ -142,9 +141,9 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
 				this->onReceivePktFromCarrier(carrier_id, spot_id, std::move(buf));
 			}
 		}
-	} while(ret > 0);
+	} while(ret == UdpChannel::STACKED);
 
-	return status;
+	return true;
 }
 
 

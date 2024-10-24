@@ -198,8 +198,7 @@ bool Rt::UpwardChannel<TestSatCarriers>::onEvent(const FileEvent& event)
 
 bool Rt::UpwardChannel<TestSatCarriers>::onEvent(const NetSocketEvent& event)
 {
-	bool status = true;
-	int ret;
+	UdpChannel::ReceiveStatus ret;
 
 	// event on UDP channel
 	// Data to read in Sat_Carrier socket buffer
@@ -214,11 +213,11 @@ bool Rt::UpwardChannel<TestSatCarriers>::onEvent(const NetSocketEvent& event)
 		ret = this->in_channel_set.receive(event, carrier_id, spot_id, buf);
 
 		std::size_t length = buf->length();
-		if(ret < 0)
+		if(ret == UdpChannel::ERROR)
 		{
 			fprintf(stderr, "failed to receive data on any "
 			        "input channel (code = %zu)\n", length);
-			status = false;
+			return false;
 		}
 		else
 		{
@@ -233,9 +232,9 @@ bool Rt::UpwardChannel<TestSatCarriers>::onEvent(const NetSocketEvent& event)
 				}
 			}
 		}
-	} while(ret > 0);
+	} while(ret == UdpChannel::STACKED);
 
-	return status;
+	return true;
 }
 
 

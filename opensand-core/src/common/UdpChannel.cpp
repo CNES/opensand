@@ -322,16 +322,13 @@ spot_id_t UdpChannel::getSpotId()
  * @param event    The NetSocketEvent on fd
  * @param buf      pointer to a char buffer
  * @param data_len length of the received data
- * @return         0 on success, 1 if the function should be
- *                 called another time, -1 on error
+ * @return         STACKED if the function should be called
+ *				   another time or SUCCESS or ERROR.
  */
-int UdpChannel::receive(const Rt::NetSocketEvent& event,
-                        Rt::Ptr<Rt::Data> &buf)
+UdpChannel::ReceiveStatus UdpChannel::receive(
+		const Rt::NetSocketEvent& event,
+		Rt::Ptr<Rt::Data> &buf)
 {
-	static const int ERROR = -1;
-	static const int SUCCESS = 0;
-	static const int STACKED = 1;
-
 	if(!this->stacked_ip.empty())
 	{
 		LOG(this->log_sat_carrier, LEVEL_INFO,

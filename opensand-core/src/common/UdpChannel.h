@@ -83,6 +83,12 @@ public:
 
 	bool isOutputOk();
 
+	enum ReceiveStatus {
+		ERROR;
+		SUCCESS;
+		STACKED;
+	};
+
 	/**
 	 * @brief Send data on the satellite carrier
 	 *
@@ -91,7 +97,7 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool send(const unsigned char *data, std::size_t length);
-	int receive(const Rt::NetSocketEvent& event, Rt::Ptr<Rt::Data> &buf);
+	ReceiveStatus receive(const Rt::NetSocketEvent& event, Rt::Ptr<Rt::Data> &buf);
 
 	int getChannelFd();
 	

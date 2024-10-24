@@ -351,7 +351,7 @@ bool InterconnectChannelReceiver::receive(const Rt::NetSocketEvent& event,
                                           std::list<Rt::Message> &messages)
 {
 	bool status = true;
-	int ret;
+	UdpChannel::ReceiveStatus ret;
 
 	// Check if the event corresponds to any of the sockets
 	if(!(event == this->sig_channel->getChannelFd() ||
@@ -367,7 +367,7 @@ bool InterconnectChannelReceiver::receive(const Rt::NetSocketEvent& event,
 	{
 		Rt::Ptr<Rt::Data> buffer = Rt::make_ptr<Rt::Data>(nullptr);
 		ret = this->receiveToBuffer(event, buffer);
-		if(ret < 0)
+		if(ret == UdpChannel::ERROR)
 		{
 			// Problem on reception
 			LOG(this->log_interconnect, LEVEL_ERROR,
@@ -423,7 +423,7 @@ bool InterconnectChannelReceiver::receive(const Rt::NetSocketEvent& event,
 			// Insert the message in the list
 			messages.push_back(std::move(message));
 		}
-	} while (ret > 0);
+	} while (ret == UdpChannel::STACKED);
 	return status;
 }
 
