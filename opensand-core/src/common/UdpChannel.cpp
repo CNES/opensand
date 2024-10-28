@@ -602,8 +602,9 @@ void UdpStack::add(uint8_t udp_counter, Rt::Ptr<Rt::Data> data)
 
 void UdpStack::remove(uint8_t udp_counter, Rt::Ptr<Rt::Data> &data)
 {
-	data = std::move(this->at(udp_counter));
-	this->at(udp_counter).reset();
+	auto& stored = this->at(udp_counter);
+	data = std::move(stored);
+	stored.reset();
 	if(data != nullptr)
 	{
 		this->counter--;
