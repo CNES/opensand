@@ -338,12 +338,7 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 		{
 			return ERROR;
 		}
-		if(!this->stacked_ip.empty())
-		{
-			// we still have packets to send
-			return STACKED;
-		}
-		return SUCCESS;
+		return this->stacked_ip.empty() ? SUCCESS : STACKED;
 	}
 
 	LOG(this->log_sat_carrier, LEVEL_INFO,
@@ -374,12 +369,10 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 	std::string ip_address = inet_ntoa(remote_addr.sin_addr);
 
 	// check the sequencing of the datagramm
-	uint8_t current_sequencing;
 	uint8_t nb_sequencing = data[0];
-	auto ip_count_it = this->udp_counters.find(ip_address);
-	if(ip_count_it == this->udp_counters.end())
+	if(this->stacks.find(ip_address) == this->stacks.end())
 	{
-		this->udp_counters[ip_address] = nb_sequencing;
+		this->stacks[ip_address] = UdpStack(nb_sequencing);
 		if(nb_sequencing != 0)
 		{
 			LOG(this->log_sat_carrier, LEVEL_NOTICE,
@@ -389,14 +382,12 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 			    this->getChannelID(), ip_address.c_str(),
 			    nb_sequencing);
 		}
-		current_sequencing = nb_sequencing;
 	}
 	else
 	{
-		current_sequencing = (ip_count_it->second + 1) % 256;
 		LOG(this->log_sat_carrier, LEVEL_DEBUG,
-		    "Current UDP sequencing for address %s: %u\n",
-		    ip_address.c_str(), current_sequencing);
+		    "Current UDP sequencing for address %s\n",
+		    ip_address.c_str());
 	}
 
 	auto &udp_stack = this->stacks[ip_address];
@@ -405,42 +396,39 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 	udp_stack.add(nb_sequencing, Rt::make_ptr<Rt::Data>(std::move(data)));
 	this->stacked_ip = ip_address;
 	// send the current packet
-	if(udp_stack.hasNext(current_sequencing))
+	if(udp_stack.hasNext())
 	{
 		LOG(this->log_sat_carrier, LEVEL_DEBUG, "Next UDP packet is in stack\n");
-		this->handleStack(buf, current_sequencing, udp_stack);
+		this->handleStack(buf, udp_stack);
 		if(!this->stacked_ip.empty())
 		{
 			// we still have packets to send
 			return STACKED;
 		}
-		ip_count_it->second = current_sequencing;
 	}
 	else
 	{
 		this->stacked_ip = "";
 		LOG(this->log_sat_carrier, LEVEL_INFO,
-		    "No UDP packet for current sequencing (%u) at IP %s "
+		    "No UDP packet for current sequencing at IP %s "
 		    "wait for next packets (last received %u)\n",
-		    current_sequencing, ip_address.c_str(), nb_sequencing);
+		    ip_address.c_str(), nb_sequencing);
 	}
-	// check that we do not have to much packets in stack
+	// check that we do not have too much packets in stack
 	if(udp_stack.getCounter() > this->max_stack)
 	{
 		// suppose we lost the packet
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
 		    "we may have lost UDP packets, check "
 		    "and adjust UDP buffers\n");
+		auto empty_packets = Rt::make_ptr<Rt::Data>(nullptr);
 		// send the next packets from stack
-		current_sequencing = (current_sequencing + 1) % 256;
-		while(!udp_stack.hasNext(current_sequencing))
+		while(!udp_stack.hasNext())
 		{
-			LOG(this->log_sat_carrier, LEVEL_INFO,
-			    "packet missing: %u\n", current_sequencing);
-			current_sequencing = (current_sequencing + 1) % 256;
+			LOG(this->log_sat_carrier, LEVEL_INFO, "packet missing\n");
+			udp_stack.remove(empty_packets);
 		}
 		// we should be able to return a packet here
-		ip_count_it->second = current_sequencing;
 		this->stacked_ip = ip_address;
 		return STACKED;
 	}
@@ -451,15 +439,6 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 
 bool UdpChannel::handleStack(Rt::Ptr<Rt::Data> &buf)
 {
-	auto count_it = this->udp_counters.find(this->stacked_ip);
-	if(count_it == this->udp_counters.end())
-	{
-		LOG(this->log_sat_carrier, LEVEL_ERROR,
-		    "cannot find UDP counter for IP %s\n",
-		    this->stacked_ip.c_str());
-		return false;
-	}
-
 	auto stack_it = this->stacks.find(this->stacked_ip);
 	if(stack_it == this->stacks.end())
 	{
@@ -469,27 +448,19 @@ bool UdpChannel::handleStack(Rt::Ptr<Rt::Data> &buf)
 		return false;
 	}
 
-	uint8_t counter = count_it->second;
-	this->handleStack(buf, counter, stack_it->second);
-	if(!this->stacked_ip.empty())
-	{
-		// update counter for next stacked packet
-		count_it->second = (counter + 1) % 256;
-	}
+	this->handleStack(buf, stack_it->second);
 	return true;
 }
 
 
-void UdpChannel::handleStack(Rt::Ptr<Rt::Data> &buf,
-                             uint8_t counter, UdpStack &stack)
+void UdpChannel::handleStack(Rt::Ptr<Rt::Data> &buf, UdpStack &stack)
 {
 	LOG(this->log_sat_carrier, LEVEL_INFO,
 	    "transmit UDP packet for source IP %s at counter %d\n",
 	    this->stacked_ip.c_str(), counter);
-	stack.remove(counter, buf);
-	counter = (counter + 1) % 256;
+	stack.remove(buf);
 	// if we don't have following packets in FIFO reset stacked_ip
-	if(!stack.hasNext(counter))
+	if(!stack.hasNext())
 	{
 		this->stacked_ip = "";
 	}
@@ -570,29 +541,29 @@ private:
 
 
 UdpStack::UdpStack():
-	std::vector<Rt::Ptr<Rt::Data>>(NullPtrIterator(), NullPtrIterator(256))
+	std::vector<Rt::Ptr<Rt::Data>>(NullPtrIterator(), NullPtrIterator(256)),
+	counter{0},
+	index{0},
 {
 	// Output log
 	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "Sat_Carrier.Channel");
-	this->counter = 0;
 }
 
 
 UdpStack::~UdpStack()
 {
-	// this->reset();
 	this->clear();
 }
 
 
-void UdpStack::add(uint8_t udp_counter, Rt::Ptr<Rt::Data> data)
+void UdpStack::add(uint8_t index, Rt::Ptr<Rt::Data> data)
 {
-	auto& current = this->at(udp_counter);
+	auto& current = this->at(index);
 	if(current != nullptr)
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR, 
 		    "new data for UDP stack at position %u, erase "
-		    "previous data\n", udp_counter);
+		    "previous data\n", this->index);
 		this->counter--;
 	}
 	current = std::move(data);
@@ -600,21 +571,22 @@ void UdpStack::add(uint8_t udp_counter, Rt::Ptr<Rt::Data> data)
 }
 
 
-void UdpStack::remove(uint8_t udp_counter, Rt::Ptr<Rt::Data> &data)
+void UdpStack::remove(Rt::Ptr<Rt::Data> &data)
 {
-	auto& stored = this->at(udp_counter);
+	auto& stored = this->at(this->index);
 	data = std::move(stored);
 	stored.reset();
 	if(data != nullptr)
 	{
-		this->counter--;
+		--this->counter;
 	}
+	this->index = (this->index + 1) % 256;
 }
 
 
-bool UdpStack::hasNext(uint8_t udp_counter)
+bool UdpStack::hasNext()
 {
-	return this->at(udp_counter) != nullptr;
+	return this->at(this->index) != nullptr;
 }
 
 

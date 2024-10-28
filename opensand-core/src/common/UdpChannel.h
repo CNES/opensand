@@ -116,12 +116,9 @@ public:
 	 * @brief Get the next stacked packet
 	 *
 	 * @param buf      OUT: the stacked packet
-	 * @param counter  The position in the stack at
-	 *                 which the packet is located
 	 * @param stack    The stack in which to get packet
 	 */
-	void handleStack(Rt::Ptr<Rt::Data> &buf,
-	                 uint8_t counter, UdpStack &stack);
+	void handleStack(Rt::Ptr<Rt::Data> &buf, UdpStack &stack);
 
 protected:
 	/// the spot id
@@ -153,12 +150,6 @@ protected:
 
 	/// boolean which indicates if the channel is multicast
 	bool m_multicast;
-
-	/// A map whose key is an IP address and value is a counter
-	/// (counter ranges from 0 to 255)
-	/// (IP address, counter) map used to check that UDP packets are received in
-	/// sequence on every UDP communication channel
-	std::map<std::string , uint8_t> udp_counters;
 
 	/// Counter for sending packets
 	uint8_t counter;
@@ -195,34 +186,29 @@ public:
 	 * @brief Create the stack
 	 *
 	 */
-	UdpStack();
+	UdpStack(uint8_t current_sequencing);
 
 	~UdpStack();
 
 	/**
 	 * @brief Add a packet in the stack
-	 *
-	 * @param udp_counter  The position of the packet in the stack
+	 * @param index        The position of the packet in the stack
 	 * @param data         The packet to store
 	 */
-	void add(uint8_t udp_counter, Rt::Ptr<Rt::Data> data);
+	void add(uint8_t index, Rt::Ptr<Rt::Data> data);
 
 	/**
 	 * @brief Remove a packet from the stack
-	 *
-	 * @param udp_counter  The position of the packet in the stack
 	 * @param data         OUT: the packet stored in the stack or NULL if there
-	 *                          is no packet with this counter
+	 *                          is no packet at the current index
 	 */
-	void remove(uint8_t udp_counter, Rt::Ptr<Rt::Data>& data);
+	void remove(Rt::Ptr<Rt::Data>& data);
 
 	/**
-	 * @brief Check if we have a packet at a specified counter
-	 *
-	 * @param udp_counter  The counter for which we need a packet
+	 * @brief Check if we have a packet at the current index
 	 * @return true if we have a packet, false otherwise
 	 */
-	bool hasNext(uint8_t udp_counter);
+	bool hasNext();
 
 	/**
 	 * @brief Get the packet counter
@@ -239,6 +225,9 @@ private:
 	/// A counter that increase each time we receive a packet and decrease each time
 	//  we handle a packet
 	uint8_t counter;
+
+	/// The index at which data should be read
+	uint8_t index;
 
 	// Output log
 	std::shared_ptr<OutputLog> log_sat_carrier;
