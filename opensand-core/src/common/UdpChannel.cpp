@@ -540,10 +540,10 @@ private:
 };
 
 
-UdpStack::UdpStack():
+UdpStack::UdpStack(uint8_t current_sequencing):
 	std::vector<Rt::Ptr<Rt::Data>>(NullPtrIterator(), NullPtrIterator(256)),
 	counter{0},
-	index{0},
+	index{current_sequencing},
 {
 	// Output log
 	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "Sat_Carrier.Channel");
