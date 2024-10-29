@@ -257,7 +257,6 @@ error:
 UdpChannel::~UdpChannel()
 {
 	close(this->sock_channel);
-	this->udp_counters.clear();
 	this->stacks.clear();
 }
 
@@ -370,9 +369,10 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 
 	// check the sequencing of the datagramm
 	uint8_t nb_sequencing = data[0];
-	if(this->stacks.find(ip_address) == this->stacks.end())
+	auto stack_it = this->stacks.find(ip_address);
+	if(stack_it == this->stacks.end())
 	{
-		this->stacks[ip_address] = UdpStack(nb_sequencing);
+		auto result = this->stacks.emplace(ip_address, nb_sequencing);
 		if(nb_sequencing != 0)
 		{
 			LOG(this->log_sat_carrier, LEVEL_NOTICE,
@@ -382,6 +382,7 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 			    this->getChannelID(), ip_address.c_str(),
 			    nb_sequencing);
 		}
+		stack_it = result.first;
 	}
 	else
 	{
@@ -390,7 +391,7 @@ UdpChannel::ReceiveStatus UdpChannel::receive(
 		    ip_address.c_str());
 	}
 
-	auto &udp_stack = this->stacks[ip_address];
+	auto &udp_stack = stack_it->second;
 	// add the new packet in stack
 	data.erase(data.begin());
 	udp_stack.add(nb_sequencing, Rt::make_ptr<Rt::Data>(std::move(data)));
@@ -543,7 +544,7 @@ private:
 UdpStack::UdpStack(uint8_t current_sequencing):
 	std::vector<Rt::Ptr<Rt::Data>>(NullPtrIterator(), NullPtrIterator(256)),
 	counter{0},
-	index{current_sequencing},
+	index{current_sequencing}
 {
 	// Output log
 	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "Sat_Carrier.Channel");
