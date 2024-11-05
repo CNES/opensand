@@ -410,7 +410,6 @@ sched_status ForwardSchedulingS2::schedulePacket(const time_sf_t current_superfr
 			    "#%u\n", current_superframe_sf,
 			    sent_packets + 1);
 		}
-	
 		bool partial_encap = this->remaining_data != nullptr;
 		if(data)
 		{
@@ -428,7 +427,7 @@ sched_status ForwardSchedulingS2::schedulePacket(const time_sf_t current_superfr
 				    current_bbframe->getFreeSpace());
 				return sched_status::error;
 			}
-	
+
 			if(partial_encap)
 			{
 				LOG(this->log_scheduling, LEVEL_INFO,
@@ -448,7 +447,7 @@ sched_status ForwardSchedulingS2::schedulePacket(const time_sf_t current_superfr
 			    this->packet_handler->getName().c_str(),
 			    encap_packet_total_length);
 		}
-	
+
 		// the BBFrame has been completed or the next packet is too long
 		// add the BBFrame in the list of complete BBFrames and decrease
 		// duration credit

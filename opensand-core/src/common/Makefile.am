@@ -1,4 +1,4 @@
-SUBDIRS = tests
+#SUBDIRS = tests
 
 # Be very careful, as Plugin define a static instance of
 # PluginUtils, you MUST NOT link with libopensand_plugin_utils.la !!
@@ -13,8 +13,6 @@ libopensand_plugin_utils_la_cpp = \
 libopensand_plugin_utils_la_h = \
 	PluginUtils.h \
 	Plugin.h
-	
-# TODO move NetPacket ?
 
 libopensand_plugin_la_cpp = \
 	OpenSandCore.cpp \
@@ -28,6 +26,7 @@ libopensand_plugin_la_cpp = \
 	TrafficCategory.cpp \
 	SarpTable.cpp \
 	StackPlugin.cpp \
+	SimpleEncapPlugin.cpp \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
 	PhysicalLayerPlugin.cpp \
@@ -48,6 +47,7 @@ libopensand_plugin_la_h = \
 	TrafficCategory.h \
 	SarpTable.h \
 	EncapPlugin.h \
+	SimpleEncapPlugin.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h \
 	SpotComponentPair.h \

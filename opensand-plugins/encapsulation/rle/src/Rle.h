@@ -32,52 +32,54 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef RLE_CONTEXT_H
-#define RLE_CONTEXT_H
-
+#ifndef RLE_H
+#define RLE_H
 
 #include <map>
 #include <string>
 #include <vector>
 
+#include "SimpleRle.h"
 #include <EncapPlugin.h>
 #include "RleIdentifier.h"
 
-
 extern "C"
 {
-	#include <rle.h>
+#include <rle.h>
 }
 
-
 class NetPacket;
-
-
-typedef enum {
-	rle_alpdu_crc,
-	rle_alpdu_sequence_number
-} rle_alpdu_protection_t;
-
 
 /**
  * @class Rle
  * @brief RLE encapsulation plugin implementation
  */
-class Rle: public EncapPlugin
+class Rle : public EncapPlugin, public SimpleRle
 {
-  public:
+public:
 	/**
 	 * @class Context
 	 * @brief RLE encapsulation / desencapsulation context
 	 */
-	class Context: public EncapContext
+
+	template <class Plugin, class Context, class Handler>
+	static OpenSandPlugin *create(const std::string &name)
 	{
-	  public:
+		return StackPlugin::create<Plugin, Context, Handler>(name);
+	};
+
+	class Context : public EncapContext
+	{
+	private:
+		Rle *plugin;
+		std::string name;
+		
+	public:
 		/// constructor
-		Context(EncapPlugin &plugin);
+		Context(Rle &plugin);
 
 		/**
-		 * Destroy the GSE encapsulation / deencapsulation context
+		 * Destroy the RLE encapsulation / deencapsulation context
 		 */
 		~Context();
 
@@ -88,91 +90,79 @@ class Rle: public EncapPlugin
 		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst);
 		Rt::Ptr<NetBurst> flush(int context_id);
 		Rt::Ptr<NetBurst> flushAll();
-
-	  private:
-		/// RLE configuration
-		struct rle_config rle_conf;
-
-		/// Receivers identified by an unique identifier
-		std::map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
-
-		bool decapNextPacket(Rt::Ptr<NetPacket> packet, NetBurst &burst);
 	};
 
 	/**
 	 * @class Packet
 	 * @brief RLE packet
 	 */
-	class PacketHandler: public EncapPacketHandler
+	class PacketHandler : public EncapPacketHandler
 	{
-	  private:
-		/// RLE configuration
-		struct rle_config rle_conf;
 
-		// Transmitters and partial sent packets list
-		typedef std::pair<struct rle_transmitter *, std::vector<NetPacket *> > rle_trans_ctxt_t;
-		std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier> transmitters;
-
-	  public:
-		PacketHandler(EncapPlugin &plugin);
+	private:
+		Rle *plugin;
+	public:
+		PacketHandler(EncapPlugin &plugin); // Aie
 		~PacketHandler();
-
 		void loadRleConf(const struct rle_config &conf);
-		bool init();
+		bool init() override;
 
 		Rt::Ptr<NetPacket> build(const Rt::Data &data,
-		                         size_t data_length,
-		                         uint8_t qos,
-		                         uint8_t src_tal_id,
-		                         uint8_t dst_tal_id) const override;
-		size_t getFixedLength() const {return 0;};
-		size_t getMinLength() const {return 3;};
+								 size_t data_length,
+								 uint8_t qos,
+								 uint8_t src_tal_id,
+								 uint8_t dst_tal_id) override;
+		size_t getFixedLength() const { return 0; };
+		size_t getMinLength() const { return 3; };
 		size_t getLength(const unsigned char *data) const;
 		bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const;
 		bool getDst(const Rt::Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Rt::Data &data, qos_t &qos) const;
 
 		bool encapNextPacket(Rt::Ptr<NetPacket> packet,
-		                     std::size_t remaining_length,
-		                     bool new_burst,
-		                     Rt::Ptr<NetPacket> &encap_packet,
-		                     Rt::Ptr<NetPacket> &remaining_data) override;
+							 std::size_t remaining_length,
+							 bool new_burst,
+							 Rt::Ptr<NetPacket> &encap_packet,
+							 Rt::Ptr<NetPacket> &remaining_data) override;
 
 		bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
-		                            bool &partial_decap,
-		                            std::vector<Rt::Ptr<NetPacket>> &decap_packets,
-		                            unsigned int decap_packet_count = 0) override;
+									bool &partial_decap,
+									std::vector<Rt::Ptr<NetPacket>> &decap_packets,
+									unsigned int decap_packet_count = 0) override;
 
 		bool checkPacketForHeaderExtensions(Rt::Ptr<NetPacket> &packet) override;
 
 		bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
-		                         Rt::Ptr<NetPacket>& new_packet,
-		                         tal_id_t tal_id_src,
-		                         tal_id_t tal_id_dst,
-		                         std::string callback_name,
-		                         void *opaque) override;
+								 Rt::Ptr<NetPacket> &new_packet,
+								 tal_id_t tal_id_src,
+								 tal_id_t tal_id_dst,
+								 std::string callback_name,
+								 void *opaque) override;
 
-		bool getHeaderExtensions(const Rt::Ptr<NetPacket>& packet,
-		                         std::string callback_name,
-		                         void *opaque) override;
+		bool getHeaderExtensions(const Rt::Ptr<NetPacket> &packet,
+								 std::string callback_name,
+								 void *opaque) override;
 
-	 protected:
+	protected:
 		bool getChunk(Rt::Ptr<NetPacket> packet,
-		              std::size_t remaining_length,
-		              Rt::Ptr<NetPacket> &data,
-		              Rt::Ptr<NetPacket> &remaining_data) const override;
+					  std::size_t remaining_length,
+					  Rt::Ptr<NetPacket> &data,
+					  Rt::Ptr<NetPacket> &remaining_data) override;
 	};
 
 	/// Constructor
 	Rle();
 	~Rle();
-
+	std::string getName() const
+	{
+		return StackPlugin::getName();
+	}
 	/**
 	 * @brief Generate the configuration for the plugin
 	 */
 	static void generateConfiguration(const std::string &parent_path,
-	                                  const std::string &param_id,
-	                                  const std::string &plugin_name);
+									  const std::string &param_id,
+									  const std::string &plugin_name);
 
 	bool init();
 
@@ -180,8 +170,6 @@ class Rle: public EncapPlugin
 	static bool getLabel(const Rt::Data &data, uint8_t label[]);
 };
 
-
 CREATE(Rle, Rle::Context, Rle::PacketHandler, "RLE");
-
 
 #endif

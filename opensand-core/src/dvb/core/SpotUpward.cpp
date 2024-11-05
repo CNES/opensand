@@ -501,6 +501,7 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 					    "error when trying to read header extensions\n");
 					return false;
 				}
+
 				if(opaque != 0)
 				{
 					// This is the C/N0 value evaluated by the Terminal

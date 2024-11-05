@@ -254,7 +254,7 @@ public:
 		                         std::size_t data_length,
 		                         uint8_t qos,
 		                         uint8_t src_tal_id,
-		                         uint8_t dst_tal_id) const override;
+		                         uint8_t dst_tal_id) override;
 
 	};
 

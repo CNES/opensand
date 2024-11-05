@@ -63,4 +63,13 @@ void BlockDvb::generateConfiguration()
 	                                     PluginType::Encapsulation,
 	                                     "encapsulation_scheme",
 	                                     "Encapsulation Scheme");
+
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	types->addEnumType("GSE_library_type", "GSE protocol libraries types", {"Rust", "C"});
+
+	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
+	conf->setAdvanced(true);
+	conf->addParameter("GSE_library", "the GSE protocol library used", types->getType("GSE_library_type"));
 }
+

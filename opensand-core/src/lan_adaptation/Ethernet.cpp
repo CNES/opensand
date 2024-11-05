@@ -92,7 +92,8 @@ void Ethernet::generateConfiguration()
 
 Ethernet *Ethernet::constructPlugin()
 {
-	static Ethernet *plugin = static_cast<Ethernet *>(Ethernet::create<Ethernet, Ethernet::Context, Ethernet::PacketHandler>("Ethernet"));
+	//to manage virtual inheritance (used to avoid DDoD)
+	static Ethernet	*plugin = dynamic_cast<Ethernet *>(Ethernet::create<Ethernet, Ethernet::Context, Ethernet::PacketHandler>("Ethernet"));
 	return plugin;
 }
 
@@ -1000,7 +1001,7 @@ Rt::Ptr<NetPacket> Ethernet::PacketHandler::build(const Rt::Data &data,
                                                   std::size_t data_length,
                                                   uint8_t qos,
                                                   uint8_t src_tal_id,
-                                                  uint8_t dst_tal_id) const
+                                                  uint8_t dst_tal_id)
 {
 	size_t head_length = 0;
 	NET_PROTO frame_type = Ethernet::getFrameType(data);
@@ -1086,7 +1087,7 @@ NET_PROTO Ethernet::getFrameType(const Rt::Data &data)
 {
 	NET_PROTO ether_type = NET_PROTO::ERROR;
 	NET_PROTO ether_type2 = NET_PROTO::ERROR;
-	if(data.length() < 13)
+	if(data.length() < 18)
 	{
 		DFLTLOG(LEVEL_ERROR,
 		        "cannot retrieve EtherType in Ethernet header\n");
@@ -1121,7 +1122,7 @@ NET_PROTO Ethernet::getPayloadEtherType(const Rt::Data &data)
 	switch(ether_type)
 	{
 		case NET_PROTO::IEEE_802_1Q:
-			if(data.length() < 17)
+			if(data.length() < 18)
 			{
 				DFLTLOG(LEVEL_ERROR,
 				        "cannot retrieve EtherType in Ethernet header\n");
@@ -1136,7 +1137,7 @@ NET_PROTO Ethernet::getPayloadEtherType(const Rt::Data &data)
 			}
 			// fall through
 		case NET_PROTO::IEEE_802_1AD:
-			if(data.length() < 21)
+			if(data.length() < 22)
 			{
 				DFLTLOG(LEVEL_ERROR,
 				        "cannot retrieve EtherType in Ethernet header\n");
@@ -1190,10 +1191,12 @@ uint16_t Ethernet::getAdTci(const Rt::Data &data)
 {
 	NET_PROTO ether_type;
 	NET_PROTO ether_type2;
-	if(data.length() < 17)
+	if(data.length() < 18)
 	{
+
 		DFLTLOG(LEVEL_ERROR,
 		        "cannot retrieve vlan id in Ethernet header\n");
+	
 		return 0;
 	}
 	ether_type = to_enum<NET_PROTO>(static_cast<uint16_t>((data.at(12) << 8) | data.at(13)));

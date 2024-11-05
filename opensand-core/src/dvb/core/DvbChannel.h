@@ -51,11 +51,9 @@
 #include "TerminalCategory.h"
 #include "OpenSandModelConf.h"
 
-
 class FifoElement;
 class OutputLog;
 class DvbFifo;
-
 
 /**
  * @brief A high level channel that implements some functions
@@ -64,8 +62,7 @@ class DvbFifo;
 class DvbChannel
 {
 public:
-	DvbChannel(StackPlugin *upper_encap, const std::string& name);
-
+	DvbChannel(StackPlugin *upper_encap, const std::string &name);
 protected:
 	/**
 	 * @brief Read MODCOD Definition types
@@ -83,12 +80,12 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool initPktHdl(EncapSchemeList encap_schemes,
-	                std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl,
-	                encap_contexts_t &ctx);
+					std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl,
+					encap_contexts_t &ctx);
 
 	/**
 	 * @brief Forward filter terminal ID to the encapsulation contexts
-	 * 
+	 *
 	 * @param filter	The terminal ID used to filter packets on
 	 */
 	virtual void setFilterTalId(tal_id_t filter);
@@ -110,7 +107,6 @@ protected:
 	 */
 	void initStatsTimer(time_us_t frame_duration);
 
-
 	/**
 	 * @brief init the band according to configuration
 	 *
@@ -128,16 +124,16 @@ protected:
 	 * @param   fmt_groups           OUT: The groups of FMT ids
 	 * @return true on success, false otherwise
 	 */
-	template<class T>
+	template <class T>
 	bool initBand(const OpenSandModelConf::spot &spot,
-	              std::string section,
-	              AccessType access_type,
-	              time_us_t duration,
-	              const FmtDefinitionTable &fmt_def,
-	              TerminalCategories<T> &categories,
-	              TerminalMapping<T> &terminal_affectation,
-	              std::shared_ptr<T> &default_category,
-	              fmt_groups_t &fmt_groups);
+				  std::string section,
+				  AccessType access_type,
+				  time_us_t duration,
+				  const FmtDefinitionTable &fmt_def,
+				  TerminalCategories<T> &categories,
+				  TerminalMapping<T> &terminal_affectation,
+				  std::shared_ptr<T> &default_category,
+				  fmt_groups_t &fmt_groups);
 
 	/**
 	 * @brief  Compute the bandplan.
@@ -153,11 +149,11 @@ protected:
 	 *
 	 * @return  true on success, false otherwise.
 	 */
-	template<class T>
+	template <class T>
 	bool computeBandplan(freq_khz_t available_bandplan_khz,
-	                     double roll_off,
-	                     time_us_t duration,
-	                     TerminalCategories<T> &categories);
+						 double roll_off,
+						 time_us_t duration,
+						 TerminalCategories<T> &categories);
 
 	/**
 	 * Receive Push data in FIFO
@@ -169,8 +165,8 @@ protected:
 	 * @return              true on success, false otherwise
 	 */
 	bool pushInFifo(DvbFifo &fifo,
-	                Rt::Ptr<NetContainer> data,
-	                time_ms_t fifo_delay);
+					Rt::Ptr<NetContainer> data,
+					time_ms_t fifo_delay);
 
 	/**
 	 * @brief Whether it is time to send statistics or not
@@ -178,7 +174,6 @@ protected:
 	 * @return true if statistics shoud be sent, false otherwise
 	 */
 	bool doSendStats();
-
 
 	/**
 	 * @brief   allocate more band to the demanding category
@@ -190,11 +185,11 @@ protected:
 	 * @param   categories           OUT: The terminal categories
 	 * @return  true on success, false otherwise
 	 */
-	template<class T>
+	template <class T>
 	bool allocateBand(time_us_t duration,
-	                  std::string cat_label,
-	                  rate_kbps_t new_rate_kbps,
-	                  TerminalCategories<T> &categories);
+					  std::string cat_label,
+					  rate_kbps_t new_rate_kbps,
+					  TerminalCategories<T> &categories);
 
 	/**
 	 * @brief   release band of the demanding category
@@ -206,11 +201,11 @@ protected:
 	 * @param   categories           OUT: The terminal categories
 	 * @return  true on success, false otherwise
 	 */
-	template<class T>
+	template <class T>
 	bool releaseBand(time_us_t duration,
-	                 std::string cat_label,
-	                 rate_kbps_t new_rate_kbps,
-	                 TerminalCategories<T> &categories);
+					 std::string cat_label,
+					 rate_kbps_t new_rate_kbps,
+					 TerminalCategories<T> &categories);
 
 	/**
 	 * @brief   Calculation of the carriers needed to be transfer from cat1 to cat2
@@ -221,9 +216,9 @@ protected:
 	 * @param   carriers      OUT: The informations about the carriers to be transfer
 	 * @return  true on success, false otherwise
 	 */
-	template<class T>
+	template <class T>
 	bool carriersTransferCalculation(std::shared_ptr<T> cat, rate_symps_t &rate_symps,
-	                                 std::map<rate_symps_t, unsigned int> &carriers);
+									 std::map<rate_symps_t, unsigned int> &carriers);
 
 	/**
 	 * @brief   Transfer of the carrier
@@ -235,10 +230,10 @@ protected:
 	 * @param   carriers      The informations about the carriers to be transfer
 	 * @return  true on success, false otherwise
 	 */
-	template<class T>
+	template <class T>
 	bool carriersTransfer(time_us_t duration,
-	                      std::shared_ptr<T> cat1, std::shared_ptr<T> cat2,
-	                      std::map<rate_symps_t , unsigned int> carriers);
+						  std::shared_ptr<T> cat1, std::shared_ptr<T> cat2,
+						  std::map<rate_symps_t, unsigned int> carriers);
 
 	/// the RCS2 required burst length in symbol
 	vol_b_t req_burst_length;
@@ -266,11 +261,10 @@ protected:
 
 	static std::shared_ptr<OutputLog> dvb_fifo_log;
 
- private:
+private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
 };
-
 
 /**
  * @brief Some FMT functions for Dvb spots ou channels
@@ -358,7 +352,7 @@ protected:
 	 * @return  true on success, false otherwise
 	 */
 	bool initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable &modcod_def,
-	                       vol_sym_t req_burst_length = 0);
+						   vol_sym_t req_burst_length = 0);
 
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the output list
@@ -441,12 +435,12 @@ protected:
 	 * @return The packet with extension on success, nullptr otherwise
 	 */
 	Rt::Ptr<NetPacket> setPacketExtension(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
-	                                      Rt::Ptr<NetPacket> packet,
-	                                      tal_id_t source,
-	                                      tal_id_t dest,
-	                                      std::string extension_name,
-	                                      time_sf_t super_frame_counter,
-	                                      bool is_gw);
+										  Rt::Ptr<NetPacket> packet,
+										  tal_id_t source,
+										  tal_id_t dest,
+										  std::string extension_name,
+										  time_sf_t super_frame_counter,
+										  bool is_gw);
 
 	/** The internal map that stores all the STs and modcod id for input */
 	std::shared_ptr<StFmtSimuList> input_sts;
@@ -480,6 +474,5 @@ private:
 	 */
 	bool delTerminal(tal_id_t id, StFmtSimuList &sts);
 };
-
 
 #endif

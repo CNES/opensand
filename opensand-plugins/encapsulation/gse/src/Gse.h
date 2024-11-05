@@ -146,7 +146,7 @@ class Gse: public EncapPlugin
 		                         std::size_t data_length,
 		                         uint8_t qos,
 		                         uint8_t src_tal_id,
-		                         uint8_t dst_tal_id) const override;
+		                         uint8_t dst_tal_id) override;
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
@@ -170,7 +170,7 @@ class Gse: public EncapPlugin
 		bool getChunk(Rt::Ptr<NetPacket> packet,
 		              std::size_t remaining_length,
 		              Rt::Ptr<NetPacket>& data,
-		              Rt::Ptr<NetPacket>& remaining_data) const override;
+		              Rt::Ptr<NetPacket>& remaining_data) override;
 	};
 
 	/// Constructor

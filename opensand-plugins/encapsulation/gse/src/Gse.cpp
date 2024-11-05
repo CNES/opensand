@@ -118,7 +118,7 @@ static int gse_ext_check_cb(unsigned char *ext,
 
 
 Gse::Gse():
-	EncapPlugin(NET_PROTO::GSE)
+	 OpenSandPlugin(), EncapPlugin(NET_PROTO::GSE)
 {
 	this->upper.push_back("ROHC");
 	this->upper.push_back("Ethernet");
@@ -143,23 +143,38 @@ void Gse::generateConfiguration(const std::string &, const std::string &, const 
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
-
 	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
-	auto gse = conf->addComponent("gse", "GSE", "The GSE Plugin Configuration");
-	gse->setAdvanced(true);
+	auto gse = conf->addComponent("gse_C", "GSE", "The GSE Plugin Configuration");
+	conf->setAdvanced(true);
+	auto gse_enum = std::dynamic_pointer_cast<OpenSANDConf::MetaEnumType>(types->getType("GSE_library_type"));
+	if (gse_enum)
+	{
+		gse_enum->getMutableValues().push_back("C");
+	}
+	else
+	{
+		types->addEnumType("GSE_library_type", "GSE protocol libraries types", {"C"});
+		conf->addParameter("GSE_library", "the GSE protocol library used", types->getType("GSE_library_type"));
+	}
+
+	auto lib_type = conf->getParameter("GSE_library");
+
 	gse->addParameter("packing_threshold", "Packing Threshold", types->getType("int"));
+
+	Conf->setProfileReference(gse, lib_type, "C");
 }
 
 
 bool Gse::Context::init(void)
 {
+
 	if(!EncapPlugin::EncapContext::init())
 	{
 		return false;
 	}
 	gse_status_t status;
 
-	auto gse = OpenSandModelConf::Get()->getProfileData()->getComponent("encap")->getComponent("gse");
+	auto gse = OpenSandModelConf::Get()->getProfileData()->getComponent("encap")->getComponent("gse_C");
 
 	// Retrieving the packing threshold
 	int threshold;
@@ -1202,7 +1217,7 @@ Rt::Ptr<NetPacket> Gse::PacketHandler::build(const Rt::Data &data,
                                              size_t data_length,
                                              uint8_t qos,
                                              uint8_t src_tal_id,
-                                             uint8_t dst_tal_id) const
+                                             uint8_t dst_tal_id)
 {
 	gse_status_t status;
 	uint8_t s;
@@ -1296,7 +1311,7 @@ size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 bool Gse::PacketHandler::getChunk(Rt::Ptr<NetPacket> packet,
                                   std::size_t remaining_length,
                                   Rt::Ptr<NetPacket>& data,
-                                  Rt::Ptr<NetPacket>& remaining_data) const
+                                  Rt::Ptr<NetPacket>& remaining_data)
 {
 	gse_vfrag_t *first_frag;
 	gse_vfrag_t *second_frag;
@@ -1892,7 +1907,7 @@ uint8_t Gse::getSrcTalIdFromFragId(const uint8_t frag_id)
 
 uint8_t Gse::getDstTalIdFromFragId(const uint8_t UNUSED(frag_id))
 {
-	// Not encoded in frag_id
+	// Not encoded in frag_id TODO
 	return 0x1F;
 }
 

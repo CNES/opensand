@@ -35,8 +35,8 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef STACK_CONTEXT_H
-#define STACK_CONTEXT_H
+#ifndef STACK_H
+#define STACK_H
 
 #include <map>
 #include <vector>
@@ -59,7 +59,7 @@ enum class NET_PROTO : uint16_t;
  * @class StackPlugin
  * @brief Generic stack plugin
  */
-class StackPlugin: public OpenSandPlugin
+class StackPlugin: public virtual OpenSandPlugin
 {
 public:
 	/**
@@ -102,7 +102,7 @@ public:
 		                                 std::size_t data_length,
 		                                 uint8_t qos,
 		                                 uint8_t src_tal_id,
-		                                 uint8_t dst_tal_id) const = 0;
+		                                 uint8_t dst_tal_id)  = 0;
 
 		/**
 		 * @brief Get a packet length

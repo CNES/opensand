@@ -36,9 +36,8 @@
 #define NET_PACKET_H
 
 #include <linux/if_ether.h>
-
+#include <map>
 #include "NetContainer.h"
-
 
 // These values are greater than 1535 to avoid error
 // with GSE in which a protocol type < 1536 indicates
@@ -46,7 +45,6 @@
 // If protocol does not have an EtherType value, use
 // values in interval [0x0601, 0x0659] which are
 // unused EtherTypes values
-
 
 enum class NET_PROTO : uint16_t
 {
@@ -68,7 +66,7 @@ enum class NET_PROTO : uint16_t
 	/// Network protocol ID for ROHC
 	ROHC = 0x0605,
 	/// Network protocol ID for DVB frame
-	//DVB_FRAME = 0x0606,
+	// DVB_FRAME = 0x0606,
 	/// Network protocol ID for GSE
 	GSE = 0x0607,
 	/// Network protocol ID for both IP v4 or v6
@@ -91,32 +89,34 @@ enum class NET_PROTO : uint16_t
 	IEEE_802_1AD = 0x9100,
 };
 
-
 // TODO we may add an option to enable jumbo frames
 
 // Size of a IEEE 802.3 Ethernet frame
 // dmac(6) + smac(6) + etype(2) + max_payload(1500) = 1514 bytes
-#define ETHERNET_2_SIZE			ETH_FRAME_LEN
-#define ETHERNET_2_HEADSIZE		ETH_HLEN
+#define ETHERNET_2_SIZE ETH_FRAME_LEN
+#define ETHERNET_2_HEADSIZE ETH_HLEN
 // Size of a IEEE 802.1q Ethernet frame
-// dmac(6) + smac(6) + 8100(2) + vlan/Qos(2) + 
+// dmac(6) + smac(6) + 8100(2) + vlan/Qos(2) +
 // etype(2) + max_payload(1500) = 1518 bytes
-#define ETHERNET_802_1Q_SIZE 1518
+// #define ETHERNET_802_1Q_SIZE 1518
+#define ETHERNET_802_1Q_SIZE 5018
 #define ETHERNET_802_1Q_HEADSIZE 18
 // Size of a IEEE 802.1ad Ethernet frame
 // dmac(6) + smac(6) + 9100(2) + outer vlan/Qos(2) + 8100(2) +
 // inner vlan/Qos(2) + etype(2) + max_payload(1500) = 1522 bytes
-#define ETHERNET_802_1AD_SIZE 1522
+
+// #define ETHERNET_802_1AD_SIZE 1522
+//  changer pour tester la désencap
+#define ETHERNET_802_1AD_SIZE 5022
 #define ETHERNET_802_1AD_HEADSIZE 22
 
 #define MAX_ETHERNET_SIZE ETHERNET_802_1AD_SIZE
-
 
 /**
  * @class NetPacket
  * @brief Network-layer packet
  */
-class NetPacket: public NetContainer
+class NetPacket : public NetContainer
 {
 protected:
 	/// The type of network protocol
@@ -127,6 +127,10 @@ protected:
 	uint8_t src_tal_id;
 	/// The packet destination TalID
 	uint8_t dst_tal_id;
+
+	// the packet extension header if required
+	// used by GSE protocol (Rust)
+	std::map<uint16_t, Rt::Data> header_extensions;
 
 public:
 	/**
@@ -173,13 +177,34 @@ public:
 	 * @param header_length     the header length of the packet
 	 */
 	NetPacket(const Rt::Data &data,
-	          std::size_t length,
-	          std::string name,
-	          NET_PROTO type,
-	          uint8_t qos,
-	          uint8_t src_tal_id,
-	          uint8_t dst_tal_id,
-	          std::size_t header_length);
+			  std::size_t length,
+			  std::string name,
+			  NET_PROTO type,
+			  uint8_t qos,
+			  uint8_t src_tal_id,
+			  uint8_t dst_tal_id,
+			  std::size_t header_length);
+
+	/**
+	 * Build a network-layer packet initialized
+	 *
+	 * @param data              raw data from which a network-layer packet can be created
+	 * @param length            length of raw data
+	 * @param name              the name of the network protocol
+	 * @param type              the type of the network protocol
+	 * @param qos               the QoS value to associate with the packet
+	 * @param src_tal_id        the source terminal ID to associate with the packet
+	 * @param dst_tal_id        the destination terminal ID to associate with the packet
+	 * @param header_length     the header length of the packet
+	 */
+	NetPacket(const uint8_t *data,
+			  std::size_t length,
+			  std::string name,
+			  NET_PROTO type,
+			  uint8_t qos,
+			  uint8_t src_tal_id,
+			  uint8_t dst_tal_id,
+			  std::size_t header_length);
 
 	/**
 	 * Destroy the network-layer packet
@@ -234,7 +259,33 @@ public:
 	 * @return the type of network protocol
 	 */
 	NET_PROTO getType() const;
-};
 
+	/**
+	 * Adds an extension header to the packet with the specified ID and data.
+	 *
+	 * @param ext_id The identifier for the extension header.
+	 * @param ext_data The data associated with the extension header.
+	 * @return True if the extension header was successfully added, false if an extension with the same ID already exists.
+	 */
+	bool addExtensionHeader(uint16_t ext_id, Rt::Data &ext_data);
+
+
+	/**
+	 * Retrieves all extension header IDs stored in the packet.
+	 *
+	 * @return A vector containing all the extension header IDs.
+	 */
+	std::vector<uint16_t> getAllExtensionHeadersId() const;
+
+
+	/**
+	 * Retrieves the data associated with a specific extension header ID.
+	 *
+	 * @param ext_id The identifier for the extension header.
+	 * @return The data associated with the specified extension header ID.
+	 *         Throws an exception if the extension header ID does not exist.
+	 */
+	Rt::Data getExtensionHeaderValueById(uint16_t ext_id);
+};
 
 #endif

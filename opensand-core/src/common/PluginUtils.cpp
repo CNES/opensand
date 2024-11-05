@@ -75,6 +75,8 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 	for(auto& directory : path)
 	{
 		std::string dir = directory + PLUGIN_DIRECTORY;
+		
+
 		DIR *plugin_dir = opendir(dir.c_str());
 		if(!plugin_dir)
 		{
@@ -114,6 +116,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 				void *sym = dlsym(handle, "init");
 				if(!sym)
 				{
+
 					LOG(this->log_init, LEVEL_ERROR,
 					    "cannot find 'init' method in plugin %s "
 					    "(%s)\n", filename.c_str(), dlerror());
@@ -261,7 +264,9 @@ bool getPlugin(const std::string &plugin_name,
 	PluginConfigurationElement &configuration = plugin_configuration->second;
 	if (configuration.plugin != nullptr)
 	{
-		*plugin = static_cast<PluginType *>(configuration.plugin);
+		//to manage virtual inheritance (used to avoid DDoD)
+		assert(dynamic_cast<PluginType *>(configuration.plugin) != nullptr);
+		*plugin = dynamic_cast<PluginType *>(configuration.plugin);
 		return true;
 	}
 

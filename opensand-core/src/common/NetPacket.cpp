@@ -34,124 +34,147 @@
 
 #include "NetPacket.h"
 
-
-NetPacket::NetPacket(const unsigned char *data, std::size_t length):
-		NetContainer{data, length},
-		type{NET_PROTO::ERROR},
-		qos{},
-		src_tal_id{},
-		dst_tal_id{}
+NetPacket::NetPacket(const unsigned char *data, std::size_t length) : NetContainer{data, length},
+																	  type{NET_PROTO::ERROR},
+																	  qos{},
+																	  src_tal_id{},
+																	  dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
 
-
-NetPacket::NetPacket(const Rt::Data &data):
-		NetContainer{data},
-		type{NET_PROTO::ERROR},
-		qos{},
-		src_tal_id{},
-		dst_tal_id{}
+NetPacket::NetPacket(const Rt::Data &data) : NetContainer{data},
+											 type{NET_PROTO::ERROR},
+											 qos{},
+											 src_tal_id{},
+											 dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
 
-
-NetPacket::NetPacket(const Rt::Data &data, std::size_t length):
-		NetContainer{data, length},
-		type{NET_PROTO::ERROR},
-		qos{},
-		src_tal_id{},
-		dst_tal_id{}
+NetPacket::NetPacket(const Rt::Data &data, std::size_t length) : NetContainer{data, length},
+																 type{NET_PROTO::ERROR},
+																 qos{},
+																 src_tal_id{},
+																 dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
 
-
-NetPacket::NetPacket(const NetPacket &pkt):
-		NetContainer{pkt.getData(), pkt.getTotalLength()},
-		type{pkt.getType()},
-		qos{pkt.getQos()},
-		src_tal_id{pkt.getSrcTalId()},
-		dst_tal_id{pkt.getDstTalId()}
+NetPacket::NetPacket(const NetPacket &pkt) : NetContainer{pkt.getData(), pkt.getTotalLength()},
+											 type{pkt.getType()},
+											 qos{pkt.getQos()},
+											 src_tal_id{pkt.getSrcTalId()},
+											 dst_tal_id{pkt.getDstTalId()}
 {
 	this->name = pkt.getName();
 	this->spot = pkt.getSpot();
 }
 
-
-NetPacket::NetPacket():
-		NetContainer{},
-		type{NET_PROTO::ERROR},
-		qos{},
-		src_tal_id{},
-		dst_tal_id{}
+NetPacket::NetPacket() : NetContainer{},
+						 type{NET_PROTO::ERROR},
+						 qos{},
+						 src_tal_id{},
+						 dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
 
-
 NetPacket::NetPacket(const Rt::Data &data,
-                     std::size_t length,
-                     std::string name,
-                     NET_PROTO type,
-                     uint8_t qos,
-                     uint8_t src_tal_id,
-                     uint8_t dst_tal_id,
-                     std::size_t header_length):
-	NetContainer{data, length},
-	type{type},
-	qos{qos},
-	src_tal_id{src_tal_id},
-	dst_tal_id{dst_tal_id}
+					 std::size_t length,
+					 std::string name,
+					 NET_PROTO type,
+					 uint8_t qos,
+					 uint8_t src_tal_id,
+					 uint8_t dst_tal_id,
+					 std::size_t header_length) : NetContainer{data, length},
+												  type{type},
+												  qos{qos},
+												  src_tal_id{src_tal_id},
+												  dst_tal_id{dst_tal_id}
 {
 	this->name = name;
 	this->header_length = header_length;
 }
 
+NetPacket::NetPacket(const unsigned char *data,
+					 std::size_t length,
+					 std::string name,
+					 NET_PROTO type,
+					 uint8_t qos,
+					 uint8_t src_tal_id,
+					 uint8_t dst_tal_id,
+					 std::size_t header_length) : NetContainer{data, length},
+												  type{type},
+												  qos{qos},
+												  src_tal_id{src_tal_id},
+												  dst_tal_id{dst_tal_id}
+{
+	this->name = name;
+	this->header_length = header_length;
+}
 
 NetPacket::~NetPacket()
 {
 }
-
 
 NET_PROTO NetPacket::getType() const
 {
 	return this->type;
 }
 
-
 void NetPacket::setQos(uint8_t qos)
 {
 	this->qos = qos;
 }
-
 
 uint8_t NetPacket::getQos() const
 {
 	return this->qos;
 }
 
-
 void NetPacket::setSrcTalId(uint8_t tal_id)
 {
 	this->src_tal_id = tal_id;
 }
-
 
 uint8_t NetPacket::getSrcTalId() const
 {
 	return this->src_tal_id;
 }
 
-
 void NetPacket::setDstTalId(uint8_t tal_id)
 {
 	this->dst_tal_id = tal_id;
 }
 
-
 uint8_t NetPacket::getDstTalId() const
 {
 	return this->dst_tal_id;
+}
+
+bool NetPacket::addExtensionHeader(uint16_t ext_id, Rt::Data &ext_data) {
+    // Check if the ext_id already exists
+    if (header_extensions.find(ext_id) != header_extensions.end()) {
+        // TODO update the existing entry or throw an exception ?
+        return false;
+    }
+    header_extensions.emplace(ext_id, std::move(ext_data));
+    return true;
+}
+
+std::vector<uint16_t> NetPacket::getAllExtensionHeadersId() const {
+    std::vector<uint16_t> ids;
+    for (const auto& entry : header_extensions) {
+        ids.push_back(entry.first);
+    }
+    return ids;
+}
+
+Rt::Data NetPacket::getExtensionHeaderValueById(uint16_t ext_id) {
+	auto header_ext_it = this->header_extensions.find(ext_id);
+	if (header_ext_it != this->header_extensions.end()){
+		return header_ext_it->second;
+	}
+	return nullptr;
 }

@@ -62,6 +62,11 @@ const std::vector<std::string> &OpenSANDConf::BaseEnum::getValues() const
 	return this->values;
 }
 
+std::vector<std::string> &OpenSANDConf::BaseEnum::getMutableValues()
+{
+	return this->values;
+}
+
 
 bool OpenSANDConf::BaseEnum::equal(const BaseEnum &other) const
 {

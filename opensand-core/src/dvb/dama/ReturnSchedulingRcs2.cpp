@@ -146,6 +146,7 @@ bool ReturnSchedulingRcs2::schedulePacket(const time_sf_t current_superframe_sf,
 
 		// Check the frame allows data
 		bool missing_alloc = this->remaining_data != nullptr;
+	
 		if (data)
 		{
 			// Add data to the frame

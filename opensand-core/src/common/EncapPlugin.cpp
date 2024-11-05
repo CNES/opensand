@@ -32,7 +32,6 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-
 #include <opensand_output/Output.h>
 
 #include "EncapPlugin.h"
@@ -40,9 +39,7 @@
 #include "NetContainer.h"
 #include "NetPacket.h"
 
-
-EncapPlugin::EncapPlugin(NET_PROTO ether_type):
-		StackPlugin(ether_type)
+EncapPlugin::EncapPlugin(NET_PROTO ether_type) : StackPlugin(ether_type)
 {
 }
 
@@ -52,9 +49,7 @@ bool EncapPlugin::init()
 	return true;
 }
 
-
-EncapPlugin::EncapContext::EncapContext(EncapPlugin &pl):
-		StackContext(pl)
+EncapPlugin::EncapContext::EncapContext(EncapPlugin &pl) : StackContext(pl)
 {
 	this->dst_tal_id = BROADCAST_TAL_ID;
 }
@@ -70,9 +65,7 @@ bool EncapPlugin::EncapContext::init()
 	return true;
 }
 
-
-EncapPlugin::EncapPacketHandler::EncapPacketHandler(EncapPlugin &pl):
-		StackPacketHandler(pl)
+EncapPlugin::EncapPacketHandler::EncapPacketHandler(EncapPlugin &pl) : StackPacketHandler(pl)
 {
 }
 
@@ -86,29 +79,26 @@ bool EncapPlugin::EncapPacketHandler::init()
 	return true;
 }
 
-
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
-                                                      std::size_t remaining_length,
-                                                      bool,
-                                                      Rt::Ptr<NetPacket> &encap_packet,
-                                                      Rt::Ptr<NetPacket> &remaining_data)
+													  std::size_t remaining_length,
+													  bool,
+													  Rt::Ptr<NetPacket> &encap_packet,
+													  Rt::Ptr<NetPacket> &remaining_data)
 {
 	// Set default returned values
 	remaining_data.reset();
-
 	// get the part of the packet to send
 	bool success = this->getChunk(std::move(packet),
-	                              remaining_length,
-	                              encap_packet, remaining_data);
+								  remaining_length,
+								  encap_packet, remaining_data);
 
 	return success && (encap_packet != nullptr || remaining_data != nullptr);
 }
 
-
 bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
-                                                             bool &partial_decap,
-                                                             std::vector<Rt::Ptr<NetPacket>> &decap_packets,
-                                                             unsigned int decap_packets_count)
+															 bool &partial_decap,
+															 std::vector<Rt::Ptr<NetPacket>> &decap_packets,
+															 unsigned int decap_packets_count)
 {
 	std::vector<Rt::Ptr<NetPacket>> packets{};
 	std::size_t previous_length = 0;
@@ -117,7 +107,7 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContaine
 	partial_decap = false;
 
 	// Sanity check
-	if(decap_packets_count <= 0)
+	if (decap_packets_count <= 0)
 	{
 		decap_packets = std::move(packets);
 		LOG(this->log, LEVEL_INFO,
@@ -129,11 +119,11 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContaine
 		"%u packet(s) to decapsulate\n",
 		decap_packets_count);
 	// auto dst_tal_id = packet->getDstTalId();
-	for(unsigned int i = 0; i < decap_packets_count; ++i)
+	for (unsigned int i = 0; i < decap_packets_count; ++i)
 	{
 		// Get the current packet length
 		std::size_t current_length = this->getLength(packet->getPayload(previous_length).c_str());
-		if(current_length <= 0)
+		if (current_length <= 0)
 		{
 			LOG(this->log, LEVEL_ERROR,
 				"cannot create one %s packet (no data)\n",
@@ -152,13 +142,13 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContaine
 			this->getDst(packet_data, dst);
 			this->getQos(packet_data, qos);
 			current = this->build(packet->getPayload(previous_length),
-			                      current_length, qos, src, dst);
+								  current_length, qos, src, dst);
 		}
-		catch (const std::bad_alloc&)
+		catch (const std::bad_alloc &)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "cannot create one %s packet (length = %zu bytes)\n",
-			    this->getName().c_str(), current_length);
+				"cannot create one %s packet (length = %zu bytes)\n",
+				this->getName().c_str(), current_length);
 			return false;
 		}
 

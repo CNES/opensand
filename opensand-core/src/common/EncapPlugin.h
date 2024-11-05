@@ -34,8 +34,8 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef ENCAP_CONTEXT_H
-#define ENCAP_CONTEXT_H
+#ifndef ENCAP_PLUGIN_H
+#define ENCAP_PLUGIN_H
 
 
 #include <map>
@@ -121,7 +121,7 @@ public:
 		                     std::size_t remaining_length,
 		                     bool new_burst,
 		                     Rt::Ptr<NetPacket> &encap_packet,
-		                     Rt::Ptr<NetPacket> &remaining_data) override;
+		                     Rt::Ptr<NetPacket> &remaining_data);
 
 		/**
 		 * @brief Get encapsulated packet from payload
@@ -176,7 +176,7 @@ public:
 		virtual bool getChunk(Rt::Ptr<NetPacket> packet,
 		                      std::size_t remaining_length,
 		                      Rt::Ptr<NetPacket>& data,
-		                      Rt::Ptr<NetPacket>& remaining_data) const = 0;
+		                      Rt::Ptr<NetPacket>& remaining_data) = 0;
 
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
@@ -221,7 +221,7 @@ public:
 		 *
 		 * @param tal_id  The destination TAL Id.
 		 */
-		void setFilterTalId(uint8_t tal_id);
+		virtual void setFilterTalId(uint8_t tal_id);
 
 		virtual bool init();
 

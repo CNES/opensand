@@ -86,11 +86,11 @@ opensand_doc_dir=${opensand_root_dir}/doc
 AC_SUBST(opensand_root_dir)
 AC_SUBST(opensand_doc_dir)
 
+# TODO add /src/common/test/Makefile
 AC_CONFIG_FILES([ \
 	Makefile \
 	src/Makefile \
 	src/common/Makefile \
-	src/common/tests/Makefile \
 	src/conf/Makefile \
 	src/dvb/Makefile \
 	src/dvb/utils/Makefile \

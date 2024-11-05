@@ -117,7 +117,7 @@ void StFmtSimu::updateCni(double cni,
 		cni -= acm_loop_margin_db;
 	}
 	fmt_id_t modcod_id = this->modcod_def.getRequiredModcod(cni);
-	LOG(this->log_fmt, LEVEL_INFO,
+	LOG(this->log_fmt, LEVEL_INFO, 
 	    "Terminal %u: CNI = %.2f dB, corresponding to MODCOD ID %u\n",
 	    id, cni, modcod_id);
 	this->updateModcodId(modcod_id);
