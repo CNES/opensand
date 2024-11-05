@@ -1077,7 +1077,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				tal_id_t st_id = logon_req->getMac();
 
 				// check for column in FMT simulation list
-				if(!this->addInputTerminal(st_id, this->rcs_modcod_def ))
+				if(!this->addInputTerminal(st_id, this->rcs_modcod_def))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "

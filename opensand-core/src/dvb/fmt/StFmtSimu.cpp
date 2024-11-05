@@ -185,10 +185,10 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
 	    "add ST%u in FMT simu list\n", st_id);
 
 	// Create the st
-	StFmtSimu new_st{this->name, st_id, init_modcod, modcod_def};
-
-	// insert it
-	this->sts.insert(std::make_pair(st_id, new_st));
+ 	StFmtSimu new_st{this->name, st_id, init_modcod, modcod_def};
+ 
+ 	// insert it
+ 	this->sts.insert(std::make_pair(st_id, new_st));
 	this->insert(st_id);
 
 	return true;

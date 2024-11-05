@@ -1068,6 +1068,13 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 		return false;
 	}
 
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the return MODCOD definition file for SCPC\n");
+		return false;
+	}
+
 	TerminalCategories<TerminalCategoryDama> scpc_categories{};
 	TerminalMapping<TerminalCategoryDama> terminal_affectation{};
 	std::shared_ptr<TerminalCategoryDama> default_category{nullptr};
@@ -1142,13 +1149,6 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler\n");
-		return false;
-	}
-
-	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the return MODCOD definition file for SCPC\n");
 		return false;
 	}
 
