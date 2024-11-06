@@ -1,8 +1,8 @@
-Source: opensand-rle-encap-plugin
+Source: opensand-gse-rust-encap-plugin
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
- librle-dev (>= 1.7.2),
+ cargo, rustc,
  libopensand-conf-dev (>= 7.0.0),
  libopensand-output-dev (>= 7.0.0),
  libopensand-plugin-dev (>= 7.0.0)
@@ -10,15 +10,15 @@ XS-Python-Version: >= 2.7
 Standards-Version: 3.8.3
 Section: libs
 
-Package: libopensand-rle-encap-plugin-dbg
-Section: debug
-Architecture: any
-Depends: libopensand-rle-encap-plugin (= ${binary:Version})
-Description: Debugging symbols for OpenSAND RLE plugin
-
-Package: libopensand-rle-encap-plugin
+Package: libopensand-gse-rust-encap-plugin-dbg
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, librle (>= 1.7.2),
+Depends: libopensand-gse-rust-encap-plugin (= ${binary:Version})
+Description: Debugging symbols for OpenSAND GSE plugin (Rust build)
+
+Package: libopensand-gse-rust-encap-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
  opensand-core (= ${binary:Version})
-Description: The RLE plugin for OpenSAND
+Description: The GSE plugin for OpenSAND (Rust build)

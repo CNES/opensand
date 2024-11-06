@@ -3,7 +3,7 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper-compat (= 13),
  autotools-dev, automake, libtool, pkg-config,
- libopensand-output-dev (>= 6.1.0),
+ libopensand-output-dev (>= 7.0.0),
  libgoogle-perftools-dev
 Standards-Version: 3.8.3
 Section: libs

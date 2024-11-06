@@ -33,14 +33,19 @@
  */
 
 #include "SimpleGseRust.h"
-#include <NetPacket.h>
-#include <NetBurst.h>
-#include <OpenSandModelConf.h>
-#include <opensand_output/Output.h>
+
+#include <array>
 #include <memory>
 #include <iostream>
 #include <iomanip>
 #include <string.h>
+
+#include <NetPacket.h>
+#include <NetBurst.h>
+#include <OpenSandModelConf.h>
+
+#include <opensand_output/Output.h>
+
 
 bool SimpleGseRust::init()
 {

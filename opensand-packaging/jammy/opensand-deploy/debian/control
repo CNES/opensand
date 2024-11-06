@@ -3,9 +3,9 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper-compat (= 13), yarn (>= 1.22),
  autotools-dev, automake, libtool, pkg-config,
- nodejs (>= 14), opensand-core (>= 6.1.0),
- libopensand-gse-encap-plugin (>= 6.1.0),
- libopensand-rle-encap-plugin (>= 6.1.0)
+ nodejs (>= 14), opensand-core (>= 7.0.0),
+ libopensand-gse-encap-plugin (>= 7.0.0),
+ libopensand-rle-encap-plugin (>= 7.0.0)
 Standards-Version: 3.8.3
 Section: misc
 
