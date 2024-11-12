@@ -28,7 +28,7 @@ libopensand_gseRust_encap_plugin_la_SOURCES = \
 
 libopensand_gseRust_encap_plugin_la_LIBADD = libgse_rust_c_api.la
 
-pluginsdir = $(prefix)/lib/opensand/plugins
+pluginsdir = $(libdir)/opensand/plugins
 
 lib_LTLIBRARIES = libgse_rust_c_api.la
 
