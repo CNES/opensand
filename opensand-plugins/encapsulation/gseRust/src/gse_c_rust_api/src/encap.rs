@@ -61,9 +61,9 @@ fn new_encap_metadata_fromc(c_metadata: RustEncapMetadata) -> EncapMetadata {
 
 fn new_rust_context_frag(rs_context: ContextFrag) -> RustContextFrag {
     RustContextFrag {
-        frag_id: rs_context.frag_id,
-        crc: rs_context.crc,
-        len_pdu_frag: rs_context.len_pdu_frag,
+        frag_id: rs_context.frag_id(),
+        crc: rs_context.crc(),
+        len_pdu_frag: rs_context.len_pdu_frag(),
     }
 }
 
@@ -157,18 +157,25 @@ pub unsafe extern "C" fn delete_encapsulator(ptr: *mut OpaquePtrEncap) {
 
 impl RustContextFrag {
     fn to_context_frag(self) -> ContextFrag {
-        ContextFrag {
-            frag_id: self.frag_id,
-            crc: self.crc,
-            len_pdu_frag: self.len_pdu_frag,
-        }
+        ContextFrag::new(self.frag_id, self.crc, self.len_pdu_frag)
+        //ContextFrag {
+            //frag_id: self.frag_id,
+            //crc: self.crc,
+            //len_pdu_frag: self.len_pdu_frag,
+        //}
     }
 }
 
 #[no_mangle]
-pub extern "C" fn enable_labelReUse(ptr: &mut OpaquePtrEncap, enable: bool){
+pub extern "C" fn enable_labelReUse(ptr: &mut OpaquePtrEncap, max_consecutive: u8){
     let encapsul = &mut *ptr;
-    encapsul.enable_re_use_label(enable);
+    encapsul.enable_re_use_label_with_max_consecutive(max_consecutive);
+}
+
+#[no_mangle]
+pub extern "C" fn disable_labelReUse(ptr: &mut OpaquePtrEncap) {
+    let encapsul = &mut *ptr;
+    encapsul.disable_re_use_label();
 }
 
 #[no_mangle]

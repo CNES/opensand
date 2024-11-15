@@ -209,7 +209,9 @@ OpaquePtrEncap *create_encapsulator();
 ///
 void delete_encapsulator(OpaquePtrEncap *ptr);
 
-void enable_labelReUse(OpaquePtrEncap *ptr, bool enable);
+void enable_labelReUse(OpaquePtrEncap *ptr, uint8_t max_consecutive);
+
+void disable_labelReUse(OpaquePtrEncap *ptr);
 
 RustEncapStatus rust_encap_frag(RustSlice c_pdu,
                                 RustContextFrag c_context,

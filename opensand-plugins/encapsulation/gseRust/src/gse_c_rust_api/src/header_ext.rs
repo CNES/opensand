@@ -1,4 +1,4 @@
-use dvb_gse_rust::header_extension::{Extension, ExtensionData};
+use dvb_gse_rust::header_extension::{Extension, ExtensionData, NewExtensionError};
 use libc::size_t;
 use std::ptr;
 #[repr(C)]
@@ -72,10 +72,11 @@ impl CHeaderExtensionSlice {
 
 pub fn new_headerext_fromrs(rs_extension: Extension) -> CHeaderExtension {
     let mut bytes: [u8; 8] = [0; 8];
-    let id: u16 = rs_extension.id;
+    let id: u16 = rs_extension.id();
+    let data: ExtensionData = rs_extension.data().clone();
 
     // Copy data into bytes array based on ExtensionData variant
-    match rs_extension.data {
+    match data {
         ExtensionData::MandatoryData(_) => panic!("No usage of MandatoryHeaderExtension in OpenSAND"),
         ExtensionData::NoData => {}
         ExtensionData::Data2(d) => {
@@ -100,46 +101,36 @@ pub fn new_headerext_fromrs(rs_extension: Extension) -> CHeaderExtension {
 
 impl CHeaderExtension {
     pub fn to_rust_extension(&self) -> Extension {
-        let extension_data: ExtensionData = match (self.id >> 8) & 0b111 {
+        let extension: Result<Extension, NewExtensionError> = match (self.id >> 8) & 0b111 {
             0 => panic!("No usage of MandatoryHeaderExtension in OpenSAND"),
-            1 => ExtensionData::NoData,
-            2 => unsafe { ExtensionData::Data2([*self.data.add(0), *self.data.add(1)]) },
-            3 => unsafe {
-                ExtensionData::Data4([
-                    *self.data.add(0),
-                    *self.data.add(1),
-                    *self.data.add(2),
-                    *self.data.add(3),
-                ])
-            },
-            4 => unsafe {
-                ExtensionData::Data6([
-                    *self.data.add(0),
-                    *self.data.add(1),
-                    *self.data.add(2),
-                    *self.data.add(3),
-                    *self.data.add(4),
-                    *self.data.add(5),
-                ])
-            },
-            5 => unsafe {
-                ExtensionData::Data8([
-                    *self.data.add(0),
-                    *self.data.add(1),
-                    *self.data.add(2),
-                    *self.data.add(3),
-                    *self.data.add(4),
-                    *self.data.add(5),
-                    *self.data.add(6),
-                    *self.data.add(7),
-                ])
-            },
+            1 => Extension::new(self.id, &[]),
+            2 => Extension::new(self.id, unsafe {&[*self.data.add(0), *self.data.add(1)]}),
+            3 => Extension::new(self.id, unsafe {&[
+                *self.data.add(0),
+                *self.data.add(1),
+                *self.data.add(2),
+                *self.data.add(3),
+            ]}),
+            4 => Extension::new(self.id, unsafe {&[
+                *self.data.add(0),
+                *self.data.add(1),
+                *self.data.add(2),
+                *self.data.add(3),
+                *self.data.add(4),
+                *self.data.add(5),
+            ]}),
+            5 => Extension::new(self.id, unsafe {&[
+                *self.data.add(0),
+                *self.data.add(1),
+                *self.data.add(2),
+                *self.data.add(3),
+                *self.data.add(4),
+                *self.data.add(5),
+                *self.data.add(6),
+                *self.data.add(7),
+            ]}),
             _ => panic!("unreachable"),
         };
-
-        Extension {
-            id: self.id,
-            data: extension_data,
-        }
+        extension.unwrap()
     }
 }

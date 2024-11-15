@@ -611,12 +611,11 @@ bool SimpleGseRust::encapNextPacket(Rt::Ptr<NetPacket> packet,
 }
 
 // CONSTRUCTORS
-SimpleGseRust::SimpleGseRust() : SimpleEncapPlugin(NET_PROTO::GSE, "gse")
+SimpleGseRust::SimpleGseRust() : SimpleEncapPlugin(NET_PROTO::GSE, "gse"), force_compatibility{false}, max_reuse{16}
 {
 	// initialize using default value
 	uint8_t max_frag_id = 5;		   // 5 FIFO so 5 id should be ok, but Gse protocol allows 256 different id
 	uint16_t decap_buffer_len = 12000; // GSE protocol allows entire packet of 65 536 bytes
-	this->force_compatibility = false;
 
 	auto gse = OpenSandModelConf::Get()->getProfileData()->getComponent("encap")->getComponent("gse_Rust");
 	if (!gse)
@@ -631,9 +630,13 @@ SimpleGseRust::SimpleGseRust() : SimpleEncapPlugin(NET_PROTO::GSE, "gse")
 	this->decap_buffer = c_memory_new(max_frag_id, decap_buffer_len);
 	this->rust_encapsulator = create_encapsulator();
 
-	if (this->force_compatibility == true)
+	if (this->force_compatibility)
 	{
-		enable_labelReUse(this->rust_encapsulator, false);
+		disable_labelReUse(this->rust_encapsulator);
+	}
+	else
+	{
+		enable_labelReUse(this->rust_encapsulator, this->max_reuse);
 	}
 
 	this->rust_decapsulator = create_deencapsulator(this->decap_buffer);

@@ -100,6 +100,8 @@ private:
 	 */
 	bool force_compatibility;
 
+	uint8_t max_reuse;
+
 public:
 	/**
 	 * @class Context
