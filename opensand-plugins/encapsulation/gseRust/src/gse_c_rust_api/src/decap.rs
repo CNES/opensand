@@ -44,7 +44,7 @@ pub fn new_decap_context_fromrs(rs_context: DecapContext) -> RustDecapContext {
         pdu_len: rs_context.pdu_len,
         from_label_reuse: rs_context.from_label_reuse,
         header_extensions: CHeaderExtensionSlice::from(from_rust_vec_to_c_vec(
-            rs_context.extensions_header,
+            &rs_context.extensions_header,
         )),
     }
 }
@@ -131,7 +131,7 @@ fn new_decap_metadata_fromrs(rs_metadata: DecapMetadata) -> RustDecapMetadata {
         protocol_type: rs_metadata.protocol_type(),
         label: new_label_fromrs(rs_metadata.label()),
         pdu_len: rs_metadata.pdu_len(),
-        extensions: CHeaderExtensionSlice::from(from_rust_vec_to_c_vec(rs_metadata.extensions().to_vec())),
+        extensions: CHeaderExtensionSlice::from(from_rust_vec_to_c_vec(rs_metadata.extensions())),
     }
 }
 

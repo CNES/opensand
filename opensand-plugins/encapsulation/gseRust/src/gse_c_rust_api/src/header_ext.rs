@@ -41,7 +41,7 @@ pub fn from_c_vec_to_rust_vec(mut c_vec: Vec<CHeaderExtension>) -> Vec<Extension
     ret
 }
 
-pub fn from_rust_vec_to_c_vec(c_vec: Vec<Extension>) -> Vec<CHeaderExtension> {
+pub fn from_rust_vec_to_c_vec(c_vec: &Vec<Extension>) -> Vec<CHeaderExtension> {
 
     let mut ret: Vec<CHeaderExtension> = vec![];
     for rust_header_ext in c_vec {
@@ -70,26 +70,25 @@ impl CHeaderExtensionSlice {
     }
 }
 
-pub fn new_headerext_fromrs(rs_extension: Extension) -> CHeaderExtension {
+pub fn new_headerext_fromrs(rs_extension: &Extension) -> CHeaderExtension {
     let mut bytes: [u8; 8] = [0; 8];
     let id: u16 = rs_extension.id();
-    let data: ExtensionData = rs_extension.data().clone();
 
     // Copy data into bytes array based on ExtensionData variant
-    match data {
+    match rs_extension.data() {
         ExtensionData::MandatoryData(_) => panic!("No usage of MandatoryHeaderExtension in OpenSAND"),
         ExtensionData::NoData => {}
         ExtensionData::Data2(d) => {
-            bytes[..2].copy_from_slice(&d);
+            bytes[..2].copy_from_slice(d);
         }
         ExtensionData::Data4(d) => {
-            bytes[..4].copy_from_slice(&d);
+            bytes[..4].copy_from_slice(d);
         }
         ExtensionData::Data6(d) => {
-            bytes[..6].copy_from_slice(&d);
+            bytes[..6].copy_from_slice(d);
         }
         ExtensionData::Data8(d) => {
-            bytes.copy_from_slice(&d);
+            bytes = *d;
         }
     };
 
@@ -104,7 +103,10 @@ impl CHeaderExtension {
         let extension: Result<Extension, NewExtensionError> = match (self.id >> 8) & 0b111 {
             0 => panic!("No usage of MandatoryHeaderExtension in OpenSAND"),
             1 => Extension::new(self.id, &[]),
-            2 => Extension::new(self.id, unsafe {&[*self.data.add(0), *self.data.add(1)]}),
+            2 => Extension::new(self.id, unsafe {&[
+                *self.data.add(0),
+                *self.data.add(1),
+            ]}),
             3 => Extension::new(self.id, unsafe {&[
                 *self.data.add(0),
                 *self.data.add(1),
