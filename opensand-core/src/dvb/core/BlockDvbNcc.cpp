@@ -203,7 +203,7 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 	{
 		// retrieve the TCP communication port dedicated
 		// for NCC/PEP and NCC/SVNO communications
-		int pep_tcp_port, svno_tcp_port;
+		uint16_t pep_tcp_port, svno_tcp_port;
 		if (!OpenSandModelConf::Get()->getNccPorts(pep_tcp_port, svno_tcp_port))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,

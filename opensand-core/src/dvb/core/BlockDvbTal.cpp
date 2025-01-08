@@ -37,12 +37,12 @@
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
-
+#include <limits>
 #include <sstream>
 #include <cstring>
+#include <csignal>
+#include <cinttypes>
 #include <unistd.h>
-#include <signal.h>
-#include <limits>
 
 #include "BlockDvbTal.h"
 
@@ -1191,10 +1191,10 @@ bool Rt::DownwardChannel<BlockDvbTal>::initQoSServer()
 		    "section entity, is missing QoS server informations\n");
 		return false;
 	}
-	if(this->qos_server_port <= 1024 || this->qos_server_port > 0xffff)
+	if(this->qos_server_port <= 1024)
 	{
 		LOG(this->log_qos_server, LEVEL_ERROR,
-		    "QoS Server port (%d) not valid\n",
+		    "QoS Server port (%" PRIu16 ") not valid\n",
 		    this->qos_server_port);
 		return false;
 	}
@@ -2192,7 +2192,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 	if(serv == nullptr)
 	{
 		LOG(this->log_qos_server, LEVEL_INFO,
-		    "service on TCP/%d is not available\n",
+		    "service on TCP/%" PRIu16 " is not available\n",
 		    this->qos_server_port);
 		return false;
 	}
@@ -2266,7 +2266,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 	}
 
 	LOG(this->log_qos_server, LEVEL_INFO,
-	    "try to connect with QoS Server at %s[%s]:%d\n",
+	    "try to connect with QoS Server at %s[%s]:%" PRIu16 "\n",
 	    this->qos_server_host.c_str(), straddr,
 	    this->qos_server_port);
 
@@ -2287,7 +2287,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 	}
 
 	LOG(this->log_qos_server, LEVEL_NOTICE,
-	    "connected with QoS Server at %s[%s]:%d\n",
+	    "connected with QoS Server at %s[%s]:%" PRIu16 "\n",
 	    this->qos_server_host.c_str(), straddr,
 	    this->qos_server_port);
 

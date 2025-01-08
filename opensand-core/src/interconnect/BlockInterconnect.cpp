@@ -32,7 +32,6 @@
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.fr>
  */
 
-
 #include <opensand_output/Output.h>
 #include <opensand_rt/TimerEvent.h>
 #include <opensand_rt/MessageEvent.h>
@@ -153,8 +152,8 @@ bool Rt::UpwardChannel<BlockInterconnectDownward>::onInit()
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
-	unsigned int data_port;
-	unsigned int sig_port;
+	uint16_t data_port;
+	uint16_t sig_port;
 	std::string remote_addr("");
 	int32_t socket_event;
 
@@ -197,8 +196,8 @@ bool Rt::DownwardChannel<BlockInterconnectDownward>::onInit()
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
-	unsigned int data_port;
-	unsigned int sig_port;
+	uint16_t data_port;
+	uint16_t sig_port;
 	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
@@ -339,8 +338,8 @@ bool Rt::UpwardChannel<BlockInterconnectUpward>::onInit()
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
-	unsigned int data_port;
-	unsigned int sig_port;
+	uint16_t data_port;
+	uint16_t sig_port;
 	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
@@ -378,8 +377,8 @@ bool Rt::DownwardChannel<BlockInterconnectUpward>::onInit()
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
-	unsigned int data_port;
-	unsigned int sig_port;
+	uint16_t data_port;
+	uint16_t sig_port;
 	std::string remote_addr("");
 	int32_t socket_event;
 

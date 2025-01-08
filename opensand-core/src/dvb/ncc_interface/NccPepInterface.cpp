@@ -140,15 +140,8 @@ std::unique_ptr<PepRequest> NccPepInterface::getNextPepRequest()
  *
  * @return  true on success, false on failure
  */
-bool NccPepInterface::initPepSocket(int tcp_port)
+bool NccPepInterface::initPepSocket(uint16_t tcp_port)
 {
-	if(tcp_port <= 0 && tcp_port >= 0xffff)
-	{
-		LOG(this->log_ncc_interface, LEVEL_ERROR,
-		    "bad value for parameter 'PEP DAMA port'\n");
-		return false;
-	}
-
 	LOG(this->log_ncc_interface, LEVEL_NOTICE,
 	    "TCP port to listen for PEP connections = %d\n", tcp_port);
 

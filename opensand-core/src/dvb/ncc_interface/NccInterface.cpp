@@ -95,7 +95,7 @@ void NccInterface::setIsConnected(bool is_connected)
 	this->is_connected = is_connected;
 }
 
-bool NccInterface::initSocket(int tcp_port)
+bool NccInterface::initSocket(uint16_t tcp_port)
 {
 	struct sockaddr_in local_addr;
 	int ret;

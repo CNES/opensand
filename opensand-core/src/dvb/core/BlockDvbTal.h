@@ -427,7 +427,7 @@ protected:
 	/* QoS Server / Policy Enforcement Point (PEP) on ST side */
 	static int qos_server_sock;    ///< The socket for the QoS Server
 	std::string qos_server_host;   ///< The hostname of the QoS Server
-	int qos_server_port;           ///< The TCP port of the QoS Server
+	uint16_t qos_server_port;      ///< The TCP port of the QoS Server
 	event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
 
 	// Output events

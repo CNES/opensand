@@ -5,16 +5,26 @@
 
 import os
 import re
+import sys
 import typing
 import argparse
 import subprocess
+from shutil import which
+from pathlib import Path
 from contextlib import suppress
 
 from opensand_network import opensand_network_utils as utils
 
 
 IDs = typing.Iterable[int]
-File = typing.Union[str, typing.IO]
+
+
+class FilePathType(argparse.FileType):
+    def __call__(self, argument):
+        with super().__call__(argument) as _file:
+            if _file is sys.stdin:
+                raise ValueError('Cannot read from stdin, pass in a file path instead')
+            return str(Path(_file.name).resolve())
 
 
 def create_tap(name: str, netns: str, address: str, mac: str):
@@ -141,32 +151,17 @@ def clean(dev_bridge: str, emu_bridge: str, isl_bridge: str):
     utils.RAISE_ERROR = True
 
 
-def _extract_file_name(filepath: File) -> str:
-    try:
-        with filepath:
-            return filepath.name
-    except AttributeError:
-        pass
-
-    return filepath
-
-
-def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: File, profile: File=None, debug: bool=False, check: bool=False):
-    topology = _extract_file_name(topology)
-    infrastructure = _extract_file_name(infrastructure)
-    if profile is not None:
-        profile = _extract_file_name(profile)
-
+def launch(entity_kind: str, entity_id: int, topology: str, infrastructure: str, profile: str=None, debug: bool=False, check: bool=False):
     command = ['ip', 'netns', 'exec', f'{entity_kind}{entity_id}']
 
     sudo_user = os.getenv('SUDO_USER')
     if sudo_user:
-        command.extend(('sudo', '-E', '-u', sudo_user))
+        command.extend(('sudo', '--preserve-env=LD_LIBRARY_PATH', '-u', sudo_user))
 
     if debug:
         command.extend(('gdb', '--args'))
 
-    command.extend(('opensand', '-v', '-i', infrastructure, '-t', topology))
+    command.extend((which('opensand'), '-v', '-i', infrastructure, '-t', topology))
     if profile is not None:
         command.extend(('-p', profile))
     if check:
@@ -369,15 +364,15 @@ def command_line_parser() -> argparse.ArgumentParser:
             help='ID of the entity that will be launched')
     parser_launch.add_argument(
             'topology',
-            type=argparse.FileType('r'),
+            type=FilePathType('r'),
             help='Path to the topology.xml file for this entity')
     parser_launch.add_argument(
             'infrastructure',
-            type=argparse.FileType('r'),
+            type=FilePathType('r'),
             help='Path to the infrastructure.xml file for this entity')
     parser_launch.add_argument(
             'profile',
-            type=argparse.FileType('r'),
+            type=FilePathType('r'),
             nargs='?',
             help='Path to the profile.xml file for this entity')
 

@@ -121,10 +121,10 @@ void OpenSandModelConf::createModels()
 		                             types->getType("string"),
 		                             "Address other satellites should listen on for "
 		                             "messages from this satellite");
-		interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"));
-		interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"));
-		interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"));
-		interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"));
+		interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("ushort"));
+		interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("ushort"));
+		interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("ushort"));
+		interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("ushort"));
 		interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
@@ -148,21 +148,21 @@ void OpenSandModelConf::createModels()
 		gateway->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this gateway routes traffic to");
 		gateway->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
 		gateway->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
-		gateway->addParameter("ctrl_out_st_port", "Port (Control Messages Out ST)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("ctrl_out_gw_port", "Port (Control Messages Out GW)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("ctrl_in_st_port", "Port (Control Messages In ST)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("ctrl_in_gw_port", "Port (Control Messages In GW)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("data_in_st_port", "Port (Data In ST)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("data_out_gw_port", "Port (Data Out GW)", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("data_in_gw_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
+		gateway->addParameter("ctrl_out_st_port", "Port (Control Messages Out ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("ctrl_out_gw_port", "Port (Control Messages Out GW)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("ctrl_in_st_port", "Port (Control Messages In ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("ctrl_in_gw_port", "Port (Control Messages In GW)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("data_in_st_port", "Port (Data In ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("data_out_gw_port", "Port (Data Out GW)", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("data_in_gw_port", "Port (Data Out ST)", types->getType("ushort"))->setAdvanced(true);
 		gateway->addParameter("udp_stack", "UDP Stack", types->getType("int"))->setAdvanced(true);
 		gateway->addParameter("udp_rmem", "UDP RMem", types->getType("int"))->setAdvanced(true);
 		gateway->addParameter("udp_wmem", "UDP WMem", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("pep_port", "PEP DAMA Port", types->getType("int"))->setAdvanced(true);
-		gateway->addParameter("svno_port", "SVNO Port", types->getType("int"))->setAdvanced(true);
+		gateway->addParameter("pep_port", "PEP DAMA Port", types->getType("ushort"))->setAdvanced(true);
+		gateway->addParameter("svno_port", "SVNO Port", types->getType("ushort"))->setAdvanced(true);
 	}
 
 	{
@@ -191,8 +191,8 @@ void OpenSandModelConf::createModels()
 		interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("uint"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("uint"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("uint"))->setAdvanced(true);
-		gateway_net_acc->addParameter("pep_port", "PEP DAMA Port", types->getType("int"))->setAdvanced(true);
-		gateway_net_acc->addParameter("svno_port", "SVNO Port", types->getType("int"))->setAdvanced(true);
+		gateway_net_acc->addParameter("pep_port", "PEP DAMA Port", types->getType("ushort"))->setAdvanced(true);
+		gateway_net_acc->addParameter("svno_port", "SVNO Port", types->getType("ushort"))->setAdvanced(true);
 	}
 
 	{
@@ -212,26 +212,26 @@ void OpenSandModelConf::createModels()
 		                             types->getType("string"),
 		                             "Address the net access gateway is listening on for "
 		                             "messages from this physical layer gateway");
-		interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
-		interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
-		interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
-		interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("ushort"))->setAdvanced(true);
+		interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("ushort"))->setAdvanced(true);
+		interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("ushort"))->setAdvanced(true);
+		interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("ushort"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 		gateway_phy->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this gateway should listen on for messages from the satellite");
 		gateway_phy->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
 		gateway_phy->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
-		gateway_phy->addParameter("ctrl_out_st_port", "Port (Control Messages Out ST)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("ctrl_out_gw_port", "Port (Control Messages Out GW)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("ctrl_in_st_port", "Port (Control Messages In ST)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("ctrl_in_gw_port", "Port (Control Messages In GW)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("data_in_st_port", "Port (Data In ST)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("data_out_gw_port", "Port (Data Out GW)", types->getType("int"))->setAdvanced(true);
-		gateway_phy->addParameter("data_in_gw_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
+		gateway_phy->addParameter("ctrl_out_st_port", "Port (Control Messages Out ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("ctrl_out_gw_port", "Port (Control Messages Out GW)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("ctrl_in_st_port", "Port (Control Messages In ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("ctrl_in_gw_port", "Port (Control Messages In GW)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("data_in_st_port", "Port (Data In ST)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("data_out_gw_port", "Port (Data Out GW)", types->getType("ushort"))->setAdvanced(true);
+		gateway_phy->addParameter("data_in_gw_port", "Port (Data Out ST)", types->getType("ushort"))->setAdvanced(true);
 		gateway_phy->addParameter("udp_stack", "UDP Stack (Satellite)", types->getType("int"))->setAdvanced(true);
 		gateway_phy->addParameter("udp_rmem", "UDP RMem (Satellite)", types->getType("int"))->setAdvanced(true);
 		gateway_phy->addParameter("udp_wmem", "UDP WMem (Satellite)", types->getType("int"))->setAdvanced(true);
@@ -250,7 +250,7 @@ void OpenSandModelConf::createModels()
 		terminal->addParameter("mac_address", "MAC Address", types->getType("string"),
 		                       "MAC address this satellite terminal routes traffic to");
 		terminal->addParameter("qos_server_host", "QoS server Host Agent", types->getType("string"))->setAdvanced(true);
-		terminal->addParameter("qos_server_port", "QoS server Host Port", types->getType("int"))->setAdvanced(true);
+		terminal->addParameter("qos_server_port", "QoS server Host Port", types->getType("ushort"))->setAdvanced(true);
 	}
 
 	auto log_levels = infrastructure_model->getRoot()->addComponent("logs", "Logs");
@@ -957,7 +957,7 @@ bool OpenSandModelConf::getLocalStorage(bool &enabled, std::string &output_folde
 }
 
 
-bool OpenSandModelConf::getRemoteStorage(bool &enabled, std::string &address, unsigned short &stats_port, unsigned short &logs_port) const
+bool OpenSandModelConf::getRemoteStorage(bool &enabled, std::string &address, uint16_t &stats_port, uint16_t &logs_port) const
 {
 	if (infrastructure == nullptr) {
 		return false;
@@ -1073,7 +1073,7 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 }
 
 
-bool OpenSandModelConf::getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const
+bool OpenSandModelConf::getNccPorts(uint16_t &pep_tcp_port, uint16_t &svno_tcp_port) const
 {
 	if (infrastructure == nullptr) {
 		return false;
@@ -1100,7 +1100,7 @@ bool OpenSandModelConf::getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const
 }
 
 
-bool OpenSandModelConf::getQosServerHost(std::string &qos_server_host_agent, int &qos_server_host_port) const
+bool OpenSandModelConf::getQosServerHost(std::string &qos_server_host_agent, uint16_t &qos_server_host_port) const
 {
 	if (infrastructure == nullptr) {
 		return false;
@@ -1926,8 +1926,8 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 
 bool OpenSandModelConf::getInterconnectCarrier(bool upward,
                                                std::string &remote,
-                                               unsigned int &data_port,
-                                               unsigned int &sig_port,
+                                               uint16_t &data_port,
+                                               uint16_t &sig_port,
                                                unsigned int &udp_stack,
                                                unsigned int &udp_rmem,
                                                unsigned int &udp_wmem,
@@ -2078,3 +2078,4 @@ RegenLevel OpenSandModelConf::getRegenLevel() const {
 	    "The regen level \"%s\" is not supported", regen_level.c_str());
 	return RegenLevel::Unknown;
 }
+

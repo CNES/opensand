@@ -81,7 +81,7 @@ public:
 	/**** socket management ****/
 	
 	/*create a TCP socket connected to the component */
-	bool initSocket(int tcp_port);
+	bool initSocket(uint16_t tcp_port);
 };
 
 #endif

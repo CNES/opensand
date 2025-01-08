@@ -79,7 +79,7 @@ public:
 	/**** socket management ****/
 
 	/* create a TCP socket that listens for incoming PEP connections */
-	bool initPepSocket(int tcp_port);
+	bool initPepSocket(uint16_t tcp_port);
 
 	/**
 	 * @brief Read a set of commands sent by the connected PEP component
