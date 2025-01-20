@@ -292,21 +292,30 @@ bool Rt::UpwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_burs
 		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		Component dest = Component::unknown;
-		switch (OpenSandModelConf::Get()->getEntityType(src_id))
+		Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+		if (dest == Component::unknown)
 		{
-			case Component::gateway:
-				dest = Component::terminal;
-				break;
-			case Component::terminal:
-				dest = Component::gateway;
-				break;
-			default:
-				LOG(log_receive, LEVEL_ERROR, "Invalid source type for NetBurst (ID %d)", src_id);
+			if (dest_id == BROADCAST_TAL_ID)
+			{
+				for (auto &&route: routes)
+				{
+					Ptr<NetPacket> copy = make_ptr<NetPacket>(*pkt);
+					getNetBurstOrCreate(bursts, route.first)->push_back(std::move(copy));
+				}
+				pkt.reset();
+			}
+			else
+			{
+				LOG(log_receive, LEVEL_ERROR,
+				    "Invalid destination type for NetBurst (ID %d)",
+				    dest_id);
 				return false;
+			}
 		}
-
-		getNetBurstOrCreate(bursts, SpotComponentPair{spot_id, dest})->push_back(std::move(pkt));
+		else
+		{
+			getNetBurstOrCreate(bursts, SpotComponentPair{spot_id, dest})->push_back(std::move(pkt));
+		}
 	}
 
 	// Send all bursts to their respective destination
@@ -551,8 +560,10 @@ bool Rt::DownwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_bu
 		}
 		else
 		{
-			// send by ISL
-			ok &= sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+			// Assume the upward channel did the job of sharing with all recipients and
+			// the message we received is only for us; no need to send back using ISL.
+			// Which is a safe assumption for a 2-satellites constellation but might need
+			// some rework to support more satellites in the future.
 		}
 	}
 	return ok;
