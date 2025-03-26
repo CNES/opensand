@@ -10,5 +10,4 @@ dvb_gse_rust = { git = "https://github.com/viveris/dvb_gse_rust.git", tag = "v0.
 
 [lib]
 name = "gse_rust_c_api"
-crate-type = ["cdylib", "staticlib"] # Creates static lib
-
+crate-type = ["cdylib", "staticlib"] # Creates dynamic and static C lib
