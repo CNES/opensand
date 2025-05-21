@@ -68,6 +68,8 @@ void usage(std::ostream &stream, const std::string &progname)
 	stream << progname << " [-h] [-v] [-V] -i infrastructure_path -t topology_path [-p profile_path]" << std::endl;
 	stream << "\t-h                         print this message and exit" << std::endl;
 	stream << "\t-V                         print version and exit" << std::endl;
+	stream << "\t-c							check: perform some basic checks on the configuration files and" << std::endl;
+	stream << "\t                           print the full tree of enabled logs and probes" << std::endl;
 	stream << "\t-v                         enable verbose output: logs are handed to stderr in addition" << std::endl;
 	stream << "\t                           to the configuration in the infrastructure configuration file" << std::endl;
 	stream << "\t-i <infrastructure_path>   path to the XML file describing the network infrastructure of the platform" << std::endl;
@@ -76,7 +78,10 @@ void usage(std::ostream &stream, const std::string &progname)
 }
 
 
-Entity::Entity(const std::string& name, tal_id_t instance_id): name(name), instance_id(instance_id)
+Entity::Entity(const std::string& name, tal_id_t instance_id, bool check):
+	name(name),
+	instance_id(instance_id),
+	check_mode(check)
 {
 	this->status = Output::Get()->registerEvent("Status");
 }
@@ -102,6 +107,7 @@ tal_id_t Entity::getInstanceId() const
 std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &return_code)
 {
 	int opt;
+	bool check_mode = false;
 	const std::string progname = argv[0];
 	std::string infrastructure_path;
 	std::string topology_path;
@@ -110,7 +116,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	auto output = Output::Get();
 
 	return_code = 0;
-	while((opt = getopt(argc, argv, "-hVvi:t:p:g:")) != EOF)
+	while((opt = getopt(argc, argv, "-hVvci:t:p:g:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -122,6 +128,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			break;
 		case 'p':
 			profile_path = optarg;
+			break;
+		case 'c':
+			check_mode = true;
 			break;
 		case 'v':
 			// Configure terminal output before constructing Conf to see Conf logs
@@ -149,7 +158,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 																  "Gateway Phy",
 																  "Satellite",
 																  "Terminal"});
-				types->addEnumType("upload", "Upload Method", {"Download", "NFS", "SCP", "SFTP"});
+				types->addEnumType("upload", "Upload Method", {"File System", "SCP", "SFTP"});
 				types->addEnumType("run", "Run Method", {"LAUNCH", "STATUS", "PING", "STOP"});
 
 				auto platform = Conf->getOrCreateComponent("platform", "Platform", "The Machines of the Project");
@@ -193,15 +202,15 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				temporary = std::make_shared<EntitySat>();
 				temporary->createSpecificConfiguration(folder + "/profile_sat.xsd");
 				*/
-				temporary = std::make_shared<EntitySt>(0);
+				temporary = std::make_shared<EntitySt>(0, true);
 				temporary->createSpecificConfiguration(folder + "/profile_st.xsd");
-				temporary = std::make_shared<EntitySat>(0);
+				temporary = std::make_shared<EntitySat>(0, true);
 				temporary->createSpecificConfiguration(folder + "/profile_sat.xsd");
-				temporary = std::make_shared<EntityGw>(0);
+				temporary = std::make_shared<EntityGw>(0, true);
 				temporary->createSpecificConfiguration(folder + "/profile_gw.xsd");
-				temporary = std::make_shared<EntityGwNetAcc>(0);
+				temporary = std::make_shared<EntityGwNetAcc>(0, true);
 				temporary->createSpecificConfiguration(folder + "/profile_gw_net_acc.xsd");
-				temporary = std::make_shared<EntityGwPhy>(0);
+				temporary = std::make_shared<EntityGwPhy>(0, true);
 				temporary->createSpecificConfiguration(folder + "/profile_gw_phy.xsd");
 			}
 			return nullptr;
@@ -277,23 +286,23 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	std::shared_ptr<Entity> entity;
 	if(type == "sat")
 	{
-		entity = std::make_shared<EntitySat>(entity_id);
+		entity = std::make_shared<EntitySat>(entity_id, check_mode);
 	}
 	else if(type == "gw")
 	{
-		entity = std::make_shared<EntityGw>(entity_id);
+		entity = std::make_shared<EntityGw>(entity_id, check_mode);
 	}
 	else if(type == "gw_net_acc")
 	{
-		entity = std::make_shared<EntityGwNetAcc>(entity_id);
+		entity = std::make_shared<EntityGwNetAcc>(entity_id, check_mode);
 	}
 	else if(type == "gw_phy")
 	{
-		entity = std::make_shared<EntityGwPhy>(entity_id);
+		entity = std::make_shared<EntityGwPhy>(entity_id, check_mode);
 	}
 	else if(type == "st")
 	{
-		entity = std::make_shared<EntitySt>(entity_id);
+		entity = std::make_shared<EntitySt>(entity_id, check_mode);
 	}
 	else
 	{
@@ -359,14 +368,20 @@ bool Entity::createBlocks()
 bool Entity::run()
 {
 	// make the entity alive
-	if(!Rt::init())
+	if(!Rt::Rt::init())
 	{
 		return false;
 	}
 	Output::Get()->finalizeConfiguration();
 	status->sendEvent("Blocks initialized");
 
-	if(!Rt::run())
+	if (check_mode)
+	{
+		std::cout << *Output::Get();
+		return true;
+	}
+
+	if(!Rt::Rt::run())
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot run process loop",

@@ -32,9 +32,8 @@
  * @author  Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef _DAMA_CONTROLLER_H_
-#define _DAMA_CONTROLLER_H_
-#endif
+#ifndef DAMA_CONTROLLER_H
+#define DAMA_CONTROLLER_H
 
 
 #include "Sac.h"
@@ -47,10 +46,12 @@
 #include "Logon.h"
 #include "Logoff.h"
 
-#include <opensand_output/Output.h>
-
 #include <cstdio>
 #include <map>
+
+
+class OutputLog;
+template<typename> class Probe;
 
 
 /**
@@ -73,7 +74,7 @@ public:
 	/**
 	 * @brief  Initialize DAMA controller
 	 *
-	 * @param   frame_duration_ms       duration of the frame (in ms).
+	 * @param   frame_duration          duration of the frame.
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
 	 * @param   categories              pointer to category list.
@@ -85,13 +86,13 @@ public:
 	 * @param   simulated               Whether there is simulated requests
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool initParent(time_ms_t frame_duration_ms,
+	virtual bool initParent(time_us_t frame_duration,
 	                        time_sf_t rbdc_timeout_sf,
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories<TerminalCategoryDama> categories,
 	                        TerminalMapping<TerminalCategoryDama> terminal_affectation,
-	                        TerminalCategoryDama *default_category,
-	                        const StFmtSimuList *const input_sts,
+	                        std::shared_ptr<TerminalCategoryDama> default_category,
+	                        std::shared_ptr<const StFmtSimuList> input_sts,
 	                        FmtDefinitionTable *const input_modcod_def,
 	                        bool simulated);
 
@@ -103,7 +104,7 @@ public:
 	 * @param   logon  logon request.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsLogon(const LogonRequest *logon);
+	virtual bool hereIsLogon(Rt::Ptr<LogonRequest> logon);
 
 	/**
 	 * @brief  Process a Logoff request frame.
@@ -111,7 +112,7 @@ public:
 	 * @param   logoff  logoff request.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsLogoff(const Logoff *logoff);
+	virtual bool hereIsLogoff(Rt::Ptr<Logoff> logoff);
 
 	/**
 	 * @brief  Process a SAC frame.
@@ -121,7 +122,7 @@ public:
 	 * @param   sac             SAC frame.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsSAC(const Sac *sac) = 0;
+	virtual bool hereIsSAC(Rt::Ptr<Sac> sac) = 0;
 
 	/**
 	 * @brief  Build the TTP frame.
@@ -129,7 +130,7 @@ public:
 	 * @param   ttp  the TTP built.
 	 * @return  true on succes, false otherwise.
 	 */
-	virtual bool buildTTP(Ttp *ttp) = 0;
+	virtual bool buildTTP(Ttp &ttp) = 0;
 
 	/**
 	 * @brief  Apply a PEP command
@@ -138,7 +139,7 @@ public:
 	 * @param   request  PEP request
 	 * @return  true on success, false otherwise
 	 */
-	virtual bool applyPepCommand(const PepRequest* request) = 0;
+	virtual bool applyPepCommand(std::unique_ptr<PepRequest> request) = 0;
 
 	/**
 	 * @brief  To be called on each SuperFrame change (when SOF is received)
@@ -166,7 +167,7 @@ public:
 	 *
 	 * @param event_stream  The events file
 	 */
-	virtual void setRecordFile(FILE * event_stream);
+	virtual void setRecordFile(std::ostream *event_stream);
 
 	/**
 	 * @brief    Get a pointer to the categories
@@ -227,7 +228,7 @@ protected:
 	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool createTerminal(TerminalContextDama **terminal,
+	virtual bool createTerminal(std::shared_ptr<TerminalContextDama> &terminal,
 	                            tal_id_t tal_id,
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
@@ -291,7 +292,7 @@ protected:
 	 * @return            The context of the terminal
 	 *
 	 */
-	virtual TerminalContextDama *getTerminalContext(tal_id_t tal_id) const;
+	virtual std::shared_ptr<TerminalContextDama> getTerminalContext(tal_id_t tal_id) const;
 
 	// Output Log
 	std::shared_ptr<OutputLog> log_init;
@@ -307,7 +308,7 @@ protected:
 	bool is_parent_init;
 
 	// Helper to simplify context manipulation
-	typedef std::map<tal_id_t, TerminalContextDama *> DamaTerminalList;
+	typedef std::map<tal_id_t, std::shared_ptr<TerminalContextDama>> DamaTerminalList;
 
 	/** List of registered terminals */
 	DamaTerminalList terminals;
@@ -316,7 +317,7 @@ protected:
 	time_sf_t current_superframe_sf;
 
 	/** frame duration (in ms) */
-	time_ms_t frame_duration_ms;
+	time_us_t frame_duration;
 
 	/** RBDC request timeout (in superframe number) */
 	time_sf_t rbdc_timeout_sf;
@@ -347,10 +348,10 @@ protected:
 	 * Default terminal category.
 	 * Used on terminals which are not affected to any specific category.
 	 */
-	TerminalCategoryDama *default_category;
+	std::shared_ptr<TerminalCategoryDama> default_category;
 
 	/** list of Sts with modcod informations for input link */
-	const StFmtSimuList *input_sts;
+	std::shared_ptr<const StFmtSimuList> input_sts;
 
 	/** Fmt Definition table for input link */
 	FmtDefinitionTable *input_modcod_def;
@@ -359,7 +360,9 @@ protected:
 	bool simulated;
 
 	/// if set to other than NULL, the fd where recording events
-	FILE *event_file;
+	std::ostream* event_file;
+	template<typename Arg, typename... Args>
+	void record_event(Arg&& arg, Args&&... args);
 
 	/// Output probe and stats
 
@@ -429,12 +432,17 @@ protected:
 	std::string output_prefix;
 };
 
-#define DC_RECORD_EVENT(fmt,args...) \
-{ \
-	if (this->event_file != NULL) \
-	{ \
-		fprintf(this->event_file, "SF%u " fmt "\n", \
-		        this->current_superframe_sf, ##args); \
-	} \
+
+template<typename Arg, typename... Args>
+void DamaCtrl::record_event(Arg&& arg, Args&&... args)
+{
+	if (this->event_file)
+	{
+		(*event_file) << "SF" << this->current_superframe_sf << ' ' << std::forward<Arg>(arg);
+		(((*event_file) << std::forward<Args>(args)), ...);
+		(*event_file) << "\n";
+	}
 }
 
+
+#endif

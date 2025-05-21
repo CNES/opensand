@@ -34,9 +34,12 @@
  * @author  Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#include "TerminalContextDama.h"
+
+#include <cmath>
 
 #include <opensand_output/Output.h>
+
+#include "TerminalContextDama.h"
 
 
 TerminalContextDama::TerminalContextDama(tal_id_t tal_id,
@@ -245,14 +248,14 @@ vol_kb_t TerminalContextDama::getTotalVolumeAllocation() const
 	return this->vbdc_alloc_kb;
 }
 
-bool TerminalContextDama::sortByRemainingCredit(const TerminalContextDama *e1,
-                                                const TerminalContextDama *e2)
+bool TerminalContextDama::sortByRemainingCredit(const std::shared_ptr<TerminalContextDama> &e1,
+                                                const std::shared_ptr<TerminalContextDama> &e2)
 {
 	return e1->rbdc_credit > e2->rbdc_credit;
 }
 
-bool TerminalContextDama::sortByVbdcReq(const TerminalContextDama *e1,
-                                        const TerminalContextDama *e2)
+bool TerminalContextDama::sortByVbdcReq(const std::shared_ptr<TerminalContextDama> &e1,
+                                        const std::shared_ptr<TerminalContextDama> &e2)
 {
 	return e1->vbdc_request_kb > e2->vbdc_request_kb;
 }

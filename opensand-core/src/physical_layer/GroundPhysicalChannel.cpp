@@ -33,18 +33,22 @@
  * @author Aurélien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#include "GroundPhysicalChannel.h"
-#include "Plugin.h"
-#include "FifoElement.h"
-#include "OpenSandCore.h"
-#include "OpenSandModelConf.h"
-#include "NetContainer.h"
 
 #include <math.h>
 #include <algorithm>
 #include <string>
 
+#include <opensand_output/Output.h>
 #include <opensand_rt/RtChannelBase.h>
+
+#include "GroundPhysicalChannel.h"
+#include "PhysicalLayerPlugin.h"
+#include "Plugin.h"
+#include "FifoElement.h"
+#include "OpenSandCore.h"
+#include "OpenSandModelConf.h"
+#include "NetContainer.h"
+#include "Except.h"
 
 
 GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
@@ -57,7 +61,7 @@ GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
 	fifo_timer{-1}
 {
 	// Initialize logs
-	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
+	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.Channel");
 }
 
 void GroundPhysicalChannel::generateConfiguration()
@@ -81,7 +85,9 @@ void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
 	this->satdelay_model = satdelay;
 }
 
-bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannelBase *channel, std::shared_ptr<OutputLog> log_init)
+bool GroundPhysicalChannel::initGround(bool upward_channel,
+                                       Rt::ChannelBase &channel,
+                                       std::shared_ptr<OutputLog> log_init)
 {
 	auto output = Output::Get();
 	auto Conf = OpenSandModelConf::Get();
@@ -118,13 +124,14 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannelBase *chann
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
-	    "delay_refresh_period = %d ms", refresh_period_ms);
+	    "delay_refresh_period = %f ms",
+	    refresh_period_ms);
 
 	// Initialize the FIFO event
-	this->fifo_timer = channel->addTimerEvent("fifo_timer", refresh_period_ms);
+	this->fifo_timer = channel.addTimerEvent("fifo_timer", ArgumentWrapper(refresh_period_ms));
 
 	// Initialize log
-	this->log_event = output->registerLog(LEVEL_WARNING, "PhysicalLayer." + link + "ward.Event");
+	this->log_event = output->registerLog(LEVEL_WARNING, "Physical_Layer." + link + "ward.Event");
 
 	// Get the refresh period
 	if(!Conf->getAcmRefreshPeriod(refresh_period_ms))
@@ -134,7 +141,8 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannelBase *chann
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
-	    "attenuation_refresh_period = %d ms", refresh_period_ms);
+	    "attenuation_refresh_period = %f ms",
+	    refresh_period_ms);
 
 	// Get the clear sky condition
 	if(!OpenSandModelConf::extractParameterData(link_attenuation->getParameter("clear_sky"), this->clear_sky_condition))
@@ -172,14 +180,14 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannelBase *chann
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "Unable to initialize the physical layer attenuation plugin %s",
-		    attenuation_type.c_str());
+		    attenuation_type);
 		return false;
 	}
 
 	// Initialize the attenuation event
 	std::ostringstream name;
 	name << "attenuation_" << link;
-	this->attenuation_update_timer = channel->addTimerEvent(name.str(), refresh_period_ms);
+	this->attenuation_update_timer = channel.addTimerEvent(name.str(), ArgumentWrapper(refresh_period_ms));
 
 	// Initialize attenuation probes
 	this->probe_attenuation =
@@ -222,73 +230,49 @@ double GroundPhysicalChannel::getCurrentCn() const
 	return this->clear_sky_condition - this->attenuation_model->getAttenuation();
 }
 
-double GroundPhysicalChannel::computeTotalCn(double up_cn, double down_cn)
+//double GroundPhysicalChannel::computeTotalCn(double up_cn, double down_cn)
+double GroundPhysicalChannel::computeTotalCn(double up_cn) const
 {
-	double total_cn; 
-	double down_num, up_num, total_num; 
+	double down_cn = this->getCurrentCn();
 
 	// Calculation of the sub total C/N ratio
-	down_num = pow(10, down_cn / 10);
-	up_num = pow(10, up_cn / 10);
+	double down_num = pow(10, down_cn / 10);
+	double up_num = pow(10, up_cn / 10);
 
-	total_num = 1 / ((1 / down_num) + (1 / up_num)); 
-	total_cn = 10 * log10(total_num);
+	double total_num = 1 / ((1 / down_num) + (1 / up_num)); 
+	double total_cn = 10 * log10(total_num);
 
 	return total_cn;
 }
 
-bool GroundPhysicalChannel::pushPacket(NetContainer *pkt)
+bool GroundPhysicalChannel::pushPacket(Rt::Ptr<NetContainer> pkt)
 {
-	FifoElement *elem;
-	time_ms_t current_time = getCurrentTime();
-	time_ms_t delay = this->satdelay_model->getSatDelay();
-
-	// create a new FIFO element to store the packet
-	try
-	{
-		elem = new FifoElement(std::unique_ptr<NetContainer>{pkt}, current_time, current_time + delay);
-	}
-	catch (const std::bad_alloc&)
-	{
-		LOG(this->log_channel, LEVEL_ERROR,
-		    "Cannot allocate FIFO element, drop data");
-		return false;
-	}
+	std::string pkt_name = pkt->getName();
+	auto delay = this->satdelay_model->getSatDelay();
 
 	// append the data in the fifo
-	if(!this->delay_fifo.push(elem))
+	if(!this->delay_fifo.push(std::move(pkt), delay))
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "FIFO is full: drop data");
-		delete elem;
 		return false;
 	}
 
 	LOG(this->log_channel, LEVEL_NOTICE,
-	    "%s data stored in FIFO (tick_in = %ld, tick_out = %ld, delay = %u ms)",
-	    pkt->getName().c_str(),
-	    elem->getTickIn(),
-	    elem->getTickOut(),
-	    delay);
+	    "%s data stored in FIFO (delay = %f ms)",
+	    pkt_name, delay);
 	return true;
 }
 
 bool GroundPhysicalChannel::forwardReadyPackets()
 {
-	time_ms_t current_time = getCurrentTime();
-
 	LOG(this->log_channel, LEVEL_DEBUG,
 		"Forward ready packets");
 
-	while (this->delay_fifo.getCurrentSize() > 0 &&
-	       ((unsigned long)this->delay_fifo.getTickOut()) <= current_time)
+	for (auto &&elem: delay_fifo)
 	{
-		FifoElement *elem = this->delay_fifo.pop();
-		assert(elem != nullptr);
-
-		std::unique_ptr<NetContainer> pkt = elem->getElem();
-		delete elem;
-		this->forwardPacket(reinterpret_cast<DvbFrame *>(pkt.release()));
+		ASSERT(elem != nullptr, "Null element in fifo retrieved from GroundPhysicalChannel::forwardReadyPackets");
+		this->forwardPacket(elem->releaseElem<DvbFrame>());
 	}
 	return true;
 }

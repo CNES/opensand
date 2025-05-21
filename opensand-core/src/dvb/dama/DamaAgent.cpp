@@ -33,12 +33,13 @@
  */
 
 
-#include "DamaAgent.h"
+#include <opensand_output/Output.h>
 
+#include "DamaAgent.h"
+#include "DvbFifo.h"
 #include "OpenSandFrames.h"
 #include "OpenSandModelConf.h"
 
-#include <opensand_output/Output.h>
 
 DamaAgent::DamaAgent():
 	is_parent_init(false),
@@ -48,7 +49,7 @@ DamaAgent::DamaAgent():
 	current_superframe_sf(0),
 	rbdc_enabled(false),
 	vbdc_enabled(false),
-	frame_duration_ms(0.0),
+	frame_duration(0),
 	cra_kbps(0.0),
 	max_rbdc_kbps(0.0),
 	rbdc_timeout_sf(0),
@@ -61,18 +62,18 @@ DamaAgent::~DamaAgent()
 {
 }
 
-bool DamaAgent::initParent(time_ms_t frame_duration_ms,
+bool DamaAgent::initParent(time_us_t frame_duration,
                            rate_kbps_t cra_kbps,
                            rate_kbps_t max_rbdc_kbps,
                            time_sf_t rbdc_timeout_sf,
                            vol_kb_t max_vbdc_kb,
                            time_sf_t msl_sf,
                            time_sf_t sync_period_sf,
-                           EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           const fifos_t &dvb_fifos,
+                           std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+                           std::shared_ptr<fifos_t> dvb_fifos,
                            spot_id_t spot_id)
 {
-	this->frame_duration_ms = frame_duration_ms;
+	this->frame_duration = frame_duration;
 	this->cra_kbps = cra_kbps;
 	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
@@ -83,9 +84,9 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->dvb_fifos = dvb_fifos;
 
 	// Check if RBDC or VBDC CR are activated
-	for(auto&& it: this->dvb_fifos)
+	for(auto&& [qos, fifo]: *(this->dvb_fifos))
 	{
-		auto cr_type = it.second->getAccessType();
+		auto cr_type = fifo->getAccessType();
 		if (!cr_type.IsReturnAccess())
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -107,7 +108,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 			default:
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Unknown CR type for FIFO %s: %d\n",
-				    it.second->getName().c_str(), cr_type);
+				    fifo->getName().c_str(), cr_type);
 				return false;
 		}
 	}
@@ -159,7 +160,7 @@ bool DamaAgent::initOutput(spot_id_t spot_id)
 	return true;
 }
 
-bool DamaAgent::hereIsLogonResp(const LogonResponse *response)
+bool DamaAgent::hereIsLogonResp(Rt::Ptr<LogonResponse> response)
 {
 	this->group_id = response->getGroupId();
 	this->tal_id = response->getLogonId();

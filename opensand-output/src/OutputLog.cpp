@@ -33,25 +33,22 @@
  */
 
 
-#include <cstdio>
-
 #include "OutputLog.h"
-#include "OutputHandler.h"
 
 
 const char *OutputLog::levels[] =
 {
-  "",
-  "",
-  "CRITICAL",
-  "ERROR",
-  "WARNING",
-  "NOTICE",
-  "INFO",
-  "DEBUG",
-  "",
-  "",
-  "EVENT",
+	"",
+	"",
+	"CRITICAL",
+	"ERROR",
+	"WARNING",
+	"NOTICE",
+	"INFO",
+	"DEBUG",
+	"",
+	"",
+	"EVENT",
 };
 
 
@@ -64,70 +61,33 @@ OutputLog::OutputLog(log_level_t display_level, const std::string &name):
 
 OutputLog::~OutputLog()
 {
-  handlers.clear();
+	handlers.clear();
 }
 
 
 log_level_t OutputLog::getDisplayLevel(void) const
 {
-  OutputLock acquire{lock};
-  return this->display_level;
+	OutputLock acquire{lock};
+	return this->display_level;
+}
+
+
+std::string OutputLog::getDisplayLevelString() const
+{
+	OutputLock acquire{lock};
+	return levels[this->display_level];
 }
 
 
 void OutputLog::setDisplayLevel(log_level_t level)
 {
-  OutputLock acquire{lock};
-  this->display_level = level;
+	OutputLock acquire{lock};
+	this->display_level = level;
 }
 
 
 void OutputLog::addHandler(std::shared_ptr<LogHandler> handler)
 {
-  OutputLock acquire{lock};
-  handlers.push_back(handler);
-}
-
-
-void OutputLog::sendLog(log_level_t log_level, const char* msg_format, ...) const
-{
-  std::va_list args;
-  va_start(args, msg_format);
-  vSendLog(log_level, msg_format, args);
-  va_end(args);
-}
-
-
-void OutputLog::vSendLog(log_level_t log_level, const char* msg_format, va_list args) const
-{
-  if (log_level > display_level) {
-    return;
-  }
-
-  std::string message = formatMessage(msg_format, args);
-
-  const std::string level = levels[log_level];
-  for (auto& handler : handlers) {
-    handler->emitLog(name, level, message);
-  }
-}
-
-
-std::string formatMessage(const char* name, std::va_list args)
-{
-  std::va_list args_copy;
-  va_copy(args_copy, args);
-
-  // Check size of the resulting string
-  const int size = std::vsnprintf(nullptr, 0, name, args_copy);
-  va_end(args_copy);
-
-  if (size < 0) {
-    return std::string();
-  }
-
-  std::vector<char> buffer(size + 1);
-  std::vsnprintf(buffer.data(), buffer.size(), name, args);
-
-  return std::string(buffer.data(), size);
+	OutputLock acquire{lock};
+	handlers.push_back(handler);
 }

@@ -41,14 +41,14 @@
 #include <opensand_output/Output.h>
 
 
-GseEncapCtx::GseEncapCtx(GseIdentifier *identifier, uint16_t spot_id)
+GseEncapCtx::GseEncapCtx(const GseIdentifier &identifier, uint16_t spot_id)
 {
-	this->src_tal_id = identifier->getSrcTalId();
-	this->dst_tal_id = identifier->getDstTalId();
-	this->qos = identifier->getQos();
+	this->src_tal_id = identifier.getSrcTalId();
+	this->dst_tal_id = identifier.getDstTalId();
+	this->qos = identifier.getQos();
 	this->is_full = false;
-	this->vfrag = NULL;
-	this->buf = NULL;
+	this->vfrag = nullptr;
+	this->buf = nullptr;
 	this->protocol = NET_PROTO::ERROR;
 	this->name = "unknown";
 	this->dest_spot = spot_id;
@@ -58,27 +58,27 @@ GseEncapCtx::GseEncapCtx(GseIdentifier *identifier, uint16_t spot_id)
 
 GseEncapCtx::~GseEncapCtx()
 {
-	if(this->vfrag != NULL)
+	if(this->vfrag != nullptr)
 	{
 		gse_free_vfrag(&(this->vfrag));
 	}
-	if(this->buf != NULL)
+	if(this->buf != nullptr)
 	{
 		delete[] this->buf;
 	}
 }
 
-gse_status_t GseEncapCtx::add(NetPacket *packet)
+gse_status_t GseEncapCtx::add(const NetPacket &packet)
 {
 	gse_status_t status = GSE_STATUS_OK;
 
 	size_t previous_length = 0;
 
 	// Check is context already contains data
-	if(this->vfrag == NULL)
+	if(this->vfrag == nullptr)
 	{
 		// If vfrag was NULL, then buf must also be NULL
-		if(this->buf == NULL)
+		if(this->buf == nullptr)
 		{
 			this->buf = new uint8_t[GSE_MAX_PACKET_LENGTH +
 			                        GSE_MAX_HEADER_LENGTH +
@@ -101,15 +101,15 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 			    "failed to affect buf to vfrag\n");
 			goto error;
 		}
-		this->protocol = packet->getType();
-		this->name = packet->getName();
+		this->protocol = packet.getType();
+		this->name = packet.getName();
 	}
 	// Check if context has to be reset
 	else if(this->getReset())
 	{
 		this->is_full = false;
-		this->protocol = packet->getType();
-		this->name = packet->getName();
+		this->protocol = packet.getType();
+		this->name = packet.getName();
 		status = gse_affect_buf_vfrag(this->vfrag, this->buf,
 		                              GSE_MAX_HEADER_LENGTH,
 		                              GSE_MAX_TRAILER_LENGTH,
@@ -136,11 +136,11 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	}
 
 	memcpy(gse_get_vfrag_start(this->vfrag) + previous_length,
-	       packet->getRawData(),
-	       packet->getTotalLength());
+	       packet.getRawData(),
+	       packet.getTotalLength());
 	// Update the virtual fragment length
 	status = gse_set_vfrag_length(this->vfrag, previous_length +
-	                              packet->getTotalLength());
+	                              packet.getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -151,7 +151,7 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	// if there is not enough space in buffer for another packet
 	// set is_full to true
 	if((GSE_MAX_PACKET_LENGTH -
-	   gse_get_vfrag_length(this->vfrag)) < packet->getTotalLength())
+	   gse_get_vfrag_length(this->vfrag)) < packet.getTotalLength())
 	{
 		this->is_full = true;
 	}
@@ -165,9 +165,9 @@ gse_vfrag_t *GseEncapCtx::data()
 	return this->vfrag;
 }
 
-size_t GseEncapCtx::length()
+std::size_t GseEncapCtx::length() const
 {
-	if(this->vfrag != NULL)
+	if(this->vfrag != nullptr)
 	{
 		return gse_get_vfrag_length(this->vfrag);
 	}
@@ -177,37 +177,37 @@ size_t GseEncapCtx::length()
 	}
 }
 
-bool GseEncapCtx::isFull()
+bool GseEncapCtx::isFull() const
 {
 	return this->is_full;
 }
 
-uint8_t GseEncapCtx::getSrcTalId()
+uint8_t GseEncapCtx::getSrcTalId() const
 {
 	return this->src_tal_id;
 }
 
-uint8_t GseEncapCtx::getDstTalId()
+uint8_t GseEncapCtx::getDstTalId() const
 {
 	return this->dst_tal_id;
 }
 
-uint8_t GseEncapCtx::getQos()
+uint8_t GseEncapCtx::getQos() const
 {
 	return this->qos;
 }
 
-uint16_t GseEncapCtx::getProtocol()
+uint16_t GseEncapCtx::getProtocol() const
 {
 	return to_underlying(this->protocol);
 }
 
-std::string GseEncapCtx::getPacketName()
+std::string GseEncapCtx::getPacketName() const
 {
 	return this->name;
 }
 
-uint16_t GseEncapCtx::getDestSpot()
+uint16_t GseEncapCtx::getDestSpot() const
 {
 	return this->dest_spot;
 }
@@ -216,7 +216,7 @@ void GseEncapCtx::setReset()
 {
 	gse_status_t status = GSE_STATUS_OK;
 
-	if(this->vfrag != NULL)
+	if(this->vfrag != nullptr)
 	{
 		// free vfrag because cant have more than two acceesses
 		status = gse_free_vfrag_no_alloc(&this->vfrag,1,0);
@@ -230,7 +230,7 @@ void GseEncapCtx::setReset()
 	this->to_reset = true;
 }
 
-bool GseEncapCtx::getReset()
+bool GseEncapCtx::getReset() const
 {
 	return this->to_reset;
 }   

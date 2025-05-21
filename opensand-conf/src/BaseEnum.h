@@ -58,7 +58,7 @@ namespace OpenSANDConf
 		 * @return  The enumeration values
 		 */
 		const std::vector<std::string> &getValues() const;
-
+		std::vector<std::string> &getMutableValues();
 	protected:
 		/**
 		 * @brief Constructor

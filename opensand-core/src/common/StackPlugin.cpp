@@ -45,11 +45,6 @@ StackPlugin::StackPacketHandler::StackPacketHandler(StackPlugin &pl):
 }
 
 
-StackPlugin::StackPacketHandler::~StackPacketHandler()
-{
-}
-
-
 NET_PROTO StackPlugin::StackPacketHandler::getEtherType() const
 {
 	return plugin.ether_type;
@@ -69,15 +64,10 @@ StackPlugin::StackContext::StackContext(StackPlugin &pl):
 }
 
 
-StackPlugin::StackContext::~StackContext()
-{
-}
-
-
-NetBurst *StackPlugin::StackContext::encapsulate(NetBurst *burst)
+Rt::Ptr<NetBurst> StackPlugin::StackContext::encapsulate(Rt::Ptr<NetBurst> burst)
 {
 	std::map<long, int> time_contexts;
-	return this->encapsulate(burst, time_contexts);
+	return this->encapsulate(std::move(burst), time_contexts);
 }
 
 
@@ -93,7 +83,7 @@ NET_PROTO StackPlugin::StackContext::getEtherType() const
 }
 
 
-bool StackPlugin::StackContext::setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
+bool StackPlugin::StackContext::setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl)
 {
 	if (pkt_hdl == nullptr)
 	{
@@ -107,7 +97,7 @@ bool StackPlugin::StackContext::setUpperPacketHandler(StackPlugin::StackPacketHa
 }
 
 
-void StackPlugin::StackContext::updateStats(unsigned int)
+void StackPlugin::StackContext::updateStats(const time_ms_t &)
 {
 }
 
@@ -118,11 +108,11 @@ std::string StackPlugin::StackContext::getName() const
 }
 
 
-std::unique_ptr<NetPacket> StackPlugin::StackContext::createPacket(const Data &data,
-                                                                   std::size_t data_length,
-                                                                   uint8_t qos,
-                                                                   uint8_t src_tal_id,
-                                                                   uint8_t dst_tal_id)
+Rt::Ptr<NetPacket> StackPlugin::StackContext::createPacket(const Rt::Data &data,
+                                                           std::size_t data_length,
+                                                           uint8_t qos,
+                                                           uint8_t src_tal_id,
+                                                           uint8_t dst_tal_id)
 {
 	return plugin.packet_handler->build(data, data_length, qos, src_tal_id, dst_tal_id);
 }
@@ -135,20 +125,13 @@ StackPlugin::StackPlugin(NET_PROTO ether_type):
 }
 
 
-StackPlugin::~StackPlugin()
-{
-	delete this->context;
-	delete this->packet_handler;
-}
-
-
-StackPlugin::StackContext *StackPlugin::getContext() const
+std::shared_ptr<StackPlugin::StackContext> StackPlugin::getContext() const
 {
 	return this->context;
 }
 
 
-StackPlugin::StackPacketHandler *StackPlugin::getPacketHandler() const
+std::shared_ptr<StackPlugin::StackPacketHandler> StackPlugin::getPacketHandler() const
 {
 	return this->packet_handler;
 }

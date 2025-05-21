@@ -1,12 +1,13 @@
 import React from 'react';
-import type {FormikProps} from 'formik';
 
+import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import ListItemText from '@mui/material/ListItemText';
+import Stack from '@mui/material/Stack';
 
 import {styled} from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
@@ -14,21 +15,9 @@ import DeleteIcon from '@mui/icons-material/HighlightOff';
 
 import Component from './Component';
 
-import {noActions} from '../../utils/actions';
-import type {IActions} from '../../utils/actions';
 import {useListMutators} from '../../utils/hooks';
 import {isReadOnly} from '../../xsd';
 import type {List as ListType, Component as ComponentType} from '../../xsd';
-
-
-const FlexBox = styled('div')({
-    display: "flex",
-});
-
-
-const RightPanel = styled('div')({
-    flexGrow: 4,
-});
 
 
 const LeftPanel = styled(List, {name: "LeftPanel", slot: "Wrapper"})(({ theme }) => {
@@ -36,6 +25,7 @@ const LeftPanel = styled(List, {name: "LeftPanel", slot: "Wrapper"})(({ theme })
     const color = theme.palette.mode === "dark" ? theme.palette.common.black : theme.palette.text.primary;
 
     return {
+        padding: 0,
         color,
         flexGrow: 1,
         '& .MuiListItem-root': {
@@ -56,17 +46,17 @@ const LeftPanel = styled(List, {name: "LeftPanel", slot: "Wrapper"})(({ theme })
 
 
 const SingleListComponent: React.FC<Props> = (props) => {
-    const {list, readOnly, prefix, form, autosave, actions} = props;
+    const {list, readOnly, prefix} = props;
 
     const [open, setOpen] = React.useState<number>(0);
-    const [addListItem, removeListItem] = useListMutators(list, actions.$, form, prefix);
+    const [addListItem, removeListItem] = useListMutators(list, prefix);
 
     const isEditable = !readOnly && !isReadOnly(list);
     const canGrow = list.elements.length < list.maxOccurences;
     const canShrink = list.elements.length > list.minOccurences;
 
     return (
-        <FlexBox>
+        <Stack direction="row" spacing={0}>
             <LeftPanel>
                 {isEditable && canGrow && (
                     <ListItem key={0} button selected onClick={addListItem}>
@@ -91,21 +81,19 @@ const SingleListComponent: React.FC<Props> = (props) => {
                     </ListItem>
                 ))}
             </LeftPanel>
-            <RightPanel>
+            <Box flexGrow={4}>
                 {list.elements.map((c: ComponentType, i: number) => (
                     <Collapse key={i} in={open === i} timeout="auto" unmountOnExit>
                         <Component
                             component={c}
+                            padding={0}
                             readOnly={!isEditable}
                             prefix={`${prefix}.elements.${i}`}
-                            form={form}
-                            actions={actions['#'][c.id] || noActions}
-                            autosave={autosave}
                         />
                     </Collapse>
                 ))}
-            </RightPanel>
-        </FlexBox>
+            </Box>
+        </Stack>
     );
 };
 
@@ -114,9 +102,6 @@ interface Props {
     list: ListType;
     readOnly?: boolean;
     prefix: string;
-    form: FormikProps<ComponentType>;
-    actions: IActions;
-    autosave: boolean;
 }
 
 

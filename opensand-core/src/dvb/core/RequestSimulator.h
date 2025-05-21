@@ -36,16 +36,17 @@
 #ifndef REQUEST_SIMULATOR_H
 #define REQUEST_SIMULATOR_H
 
-#include "SlottedAlohaNcc.h"
-#include "Sac.h"
-#include "Logon.h"
-#include "Logoff.h"
-#include "DvbFifo.h"
+#include <list>
+#include <memory>
+#include <fstream>
 
-#define SIMU_BUFF_LEN 255
+#include "OpenSandCore.h"
+#include "DvbFrame.h"
+#include "DvbFifoTypes.h"
 
 
 class OutputLog;
+
 
 enum Simulate
 {
@@ -60,8 +61,8 @@ class RequestSimulator
 public:
 	RequestSimulator(spot_id_t spot_id,
 	                 tal_id_t mac_id,
-	                 FILE** evt_file);
-	~RequestSimulator();
+	                 std::ostream* &evt_file);
+	virtual ~RequestSimulator();
 
 	static void generateConfiguration();
 	
@@ -69,13 +70,13 @@ public:
 	 * Simulate event based on an input file
 	 * @return true on success, false otherwise
 	 */
-	virtual bool simulation(std::list<DvbFrame *>* msgs,
+	virtual bool simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
 	                        time_sf_t super_frame_counter) = 0;
 	
-	virtual bool stopSimulation(void) = 0;
+	virtual bool stopSimulation() = 0;
 
 	// statistics update
-	void updateStatistics(void);
+	//void updateStatistics();
 
 protected:
 	/** Read configuration for the request simulation
@@ -95,8 +96,7 @@ protected:
 	fifos_t dvb_fifos;
 
 	/// parameters for request simulation
-	FILE *event_file;
-	FILE *simu_file;
+	std::unique_ptr<std::ostream, void(*)(std::ostream*)> event_file;
 	long simu_st;
 	long simu_rt;
 	long simu_max_rbdc;
@@ -104,11 +104,11 @@ protected:
 	long simu_cr;
 	long simu_interval;
 	bool simu_eof;
-	char simu_buffer[SIMU_BUFF_LEN];
 
 	// Output logs and events
 	std::shared_ptr<OutputLog> log_request_simulation;
 	std::shared_ptr<OutputLog> log_init;
 };
+
 
 #endif

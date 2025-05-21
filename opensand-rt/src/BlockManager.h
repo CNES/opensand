@@ -43,8 +43,11 @@
 #include "TemplateHelper.h"
 
 
-class RtFifo;
 class OutputLog;
+
+
+namespace Rt
+{
 
 
 /**
@@ -55,9 +58,6 @@ class OutputLog;
 class BlockManager
 {
 	friend class Rt;
-
- public:
-	static std::shared_ptr<RtFifo> createFifo();
 
  protected:
 	BlockManager();
@@ -70,8 +70,12 @@ class BlockManager
 	 * @param name      The block name
 	 * @return A pointer to the newly created block
 	 */
+#if __cplusplus < 202002L
 	template <class Bl>
-	Bl *createBlock(const std::string &name);
+#else
+	template<IsBlock Bl>
+#endif
+	Bl& createBlock(const std::string &name);
 
 	/**
 	 * @brief Creates and adds a block to the application.
@@ -82,8 +86,12 @@ class BlockManager
 	 *                  constructor of the block
 	 * @return A pointer to the newly created block
 	 */
+#if __cplusplus < 202002L
 	template <class Bl, class Specific>
-	Bl *createBlock(const std::string &name, Specific specific);
+#else
+	template<IsBlock Bl, class Specific>
+#endif
+	Bl& createBlock(const std::string &name, Specific specific);
 
 	/**
 	 * @brief Connects two blocks
@@ -91,8 +99,12 @@ class BlockManager
 	 * @param upper     The upper block
 	 * @param lower     The lower block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
-	void connectBlocks(const UpperBl *upper, const LowerBl *lower);
+#else
+	template<SimpleUpper UpperBl, SimpleLower LowerBl>
+#endif
+	void connectBlocks(UpperBl& upper, LowerBl& lower);
 
 	/**
 	 * @brief Connects a multiplexer block to a simple block
@@ -103,10 +115,13 @@ class BlockManager
 	 * @param down_key  The key to send messages from the upper block to
 	 *                  the lower block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
-	void connectBlocks(const UpperBl *upper,
-	                   const LowerBl *lower,
-	                   typename UpperBl::Downward::DemuxKey down_key);
+#else
+	template<MultipleUpper UpperBl, SimpleLower LowerBl>
+#endif
+	void connectBlocks(UpperBl& upper, LowerBl& lower,
+	                   typename UpperBl::ChannelDownward::DemuxKey down_key);
 
 	/**
 	 * @brief Connects a simple block to a multiplexer block
@@ -117,10 +132,13 @@ class BlockManager
 	 * @param up_key    The key to send messages from the lower block to
 	 *                  the upper block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
-	void connectBlocks(const UpperBl *upper,
-	                   const LowerBl *lower,
-	                   typename LowerBl::Upward::DemuxKey up_key);
+#else
+	template<SimpleUpper UpperBl, MultipleLower LowerBl>
+#endif
+	void connectBlocks(UpperBl& upper, LowerBl& lower,
+	                   typename LowerBl::ChannelUpward::DemuxKey up_key);
 
 	/**
 	 * @brief Connects two multiplexer blocks
@@ -134,31 +152,14 @@ class BlockManager
 	 * @param down_key  The key to send messages from the upper block to
 	 *                  the lower block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
-	void connectBlocks(const UpperBl *upper,
-	                   const LowerBl *lower,
-	                   typename LowerBl::Upward::DemuxKey up_key,
-	                   typename UpperBl::Downward::DemuxKey down_key);
-
-	/**
-	 * @brief Connects two channels together, bypasses usual safety-checks
-	 *
-	 * @param sender    The channel that will send data into the fifo
-	 * @param receiver  The channel that will receive data through the fifo
-	 */
-	template <class SenderCh, class ReceiverCh>
-	void connectChannels(SenderCh &sender, ReceiverCh &receiver);
-
-	/**
-	 * @brief Connects two channels together, bypasses usual safety-checks
-	 *
-	 * @param sender    The channel that will send data into the fifo
-	 * @param receiver  The channel that will receive data through the fifo
-	 * @param key       The key under which the receiver is known from
-	 *                  the sender
-	 */
-	template <class SenderCh, class ReceiverCh>
-	void connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key);
+#else
+	template<MultipleUpper UpperBl, MultipleLower LowerBl>
+#endif
+	void connectBlocks(UpperBl& upper, LowerBl& lower,
+	                   typename LowerBl::ChannelUpward::DemuxKey up_key,
+	                   typename UpperBl::ChannelDownward::DemuxKey down_key);
 
 	/**
 	 * @brief stops the application
@@ -166,20 +167,20 @@ class BlockManager
 	 *
 	 * @param signal  The received signal
 	 */
-	void stop(void);
+	void stop();
 
 	/**
 	 * @brief Initialize the manager, creates and initialize blocks
 	 *
 	 * @return true if succesful, false otherwise
 	 */
-	bool init(void);
+	bool init();
 
 	/**
 	 * @brief Start blocks
 	 *
 	 */
-	bool start(void);
+	bool start();
 
 	/**
 	 * @brief Internal error report
@@ -193,231 +194,182 @@ class BlockManager
 	 * @brief Checks if threads and application are alive or should be stopped
 	 *        Exits when application goes stopped
 	 */
-	void wait(void);
+	void wait();
 
 	/**
 	 * @brief Check if something got really wrong in the process
 	 *
 	 * @return true if no fatal error occured, false otherwise
 	 */
-	bool getStatus(void);
+	bool getStatus();
 
 	/// Output Log
 	std::shared_ptr<OutputLog> log_rt;
 
  private:
-	void setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward);
-
-	bool checkConnectedBlocks(const Block *upper, const Block *lower);
-
 	/// list of pointers to the blocks
-	std::vector<Block *> block_list;
+	std::vector<std::unique_ptr<BlockBase>> block_list;
 
 	/// check if we already tried to stop process
 	bool stopped;
 
 	/// whether a critical error was raised
 	bool status;
+
+	int stop_fd;
 };
 
 
+#if __cplusplus < 202002L
 template <class Bl>
-Bl *BlockManager::createBlock(const std::string &name)
+#else
+template<IsBlock Bl>
+#endif
+Bl& BlockManager::createBlock(const std::string &name)
 {
-	auto *block = new Bl(name);
-	auto *upward = new typename Bl::Upward(name);
-	auto *downward = new typename Bl::Downward(name);
-	setupBlock(block, upward, downward);
-	return block;
+	auto block = new Bl{name};
+	this->block_list.push_back(std::unique_ptr<Bl>{block});
+	return *block;
 }
 
 
+#if __cplusplus < 202002L
 template <class Bl, class Specific>
-Bl *BlockManager::createBlock(const std::string &name,
-                              Specific specific)
+#else
+template<IsBlock Bl, class Specific>
+#endif
+Bl& BlockManager::createBlock(const std::string &name, Specific specific)
 {
-	auto *block = new Bl(name, specific);
-	auto *upward = new typename Bl::Upward(name, specific);
-	auto *downward = new typename Bl::Downward(name, specific);
-	setupBlock(block, upward, downward);
-	return block;
+	auto block = new Bl{name, specific};
+	this->block_list.push_back(std::unique_ptr<Bl>{block});
+	return *block;
 }
 
 
-template <class UpperBl, class LowerBl>
-void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)
+struct ChannelsConnector
 {
-	static_assert(has_one_input<typename UpperBl::Upward>::value);
-	static_assert(has_one_output<typename UpperBl::Downward>::value);
-	static_assert(has_one_output<typename LowerBl::Upward>::value);
-	static_assert(has_one_input<typename LowerBl::Downward>::value);
-
-	if (!this->checkConnectedBlocks(upper, lower))
+	template <class Sender, class Receiver, std::enable_if_t<has_one_input<Receiver>::value, bool> = true>
+	static inline void connect(Sender &sender, Receiver &receiver)
 	{
-		return;
+		auto fifo = BlockBase::createFifo();
+		sender.setNextFifo(fifo);
+		receiver.setPreviousFifo(fifo);
 	}
 
-	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
-	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
-	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
-	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
-
-	connectChannels(*lower_upward, *upper_upward);
-	connectChannels(*upper_downward, *lower_downward);
-}
-
-template <class UpperBl, class LowerBl>
-void BlockManager::connectBlocks(const UpperBl *upper,
-                                 const LowerBl *lower,
-                                 typename UpperBl::Downward::DemuxKey down_key)
-{
-	static_assert(has_n_inputs<typename UpperBl::Upward>::value);
-	static_assert(has_n_outputs<typename UpperBl::Downward>::value);
-	static_assert(has_one_output<typename LowerBl::Upward>::value);
-	static_assert(has_one_input<typename LowerBl::Downward>::value);
-
-	if (!this->checkConnectedBlocks(upper, lower))
+	template <class Sender, class Receiver, std::enable_if_t<!has_one_input<Receiver>::value, bool> = true>
+	static inline void connect(Sender &sender, Receiver &receiver)
 	{
-		return;
+		auto fifo = BlockBase::createFifo();
+		sender.setNextFifo(fifo);
+		receiver.addPreviousFifo(fifo);
 	}
 
-	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
-	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
-	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
-	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
+	template <class Sender, class Receiver, std::enable_if_t<has_one_input<Receiver>::value, bool> = true>
+	static inline std::void_t<typename Sender::DemuxKey> connect(Sender &sender, Receiver &receiver, typename Sender::DemuxKey key)
+	{
+		auto fifo = BlockBase::createFifo();
+		sender.addNextFifo(key, fifo);
+		receiver.setPreviousFifo(fifo);
+	}
 
-	connectChannels(*lower_upward, *upper_upward);
-	connectChannels(*upper_downward, *lower_downward, down_key);
+	template <class Sender, class Receiver, std::enable_if_t<!has_one_input<Receiver>::value, bool> = true>
+	static inline std::void_t<typename Sender::DemuxKey> connect(Sender &sender, Receiver &receiver, typename Sender::DemuxKey key)
+	{
+		auto fifo = BlockBase::createFifo();
+		sender.addNextFifo(key, fifo);
+		receiver.addPreviousFifo(fifo);
+	}
+};
+
+
+#if __cplusplus < 202002L
+template <class UpperBl, class LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower)
+{
+	static_assert(has_one_input<typename UpperBl::ChannelUpward>::value);
+	static_assert(has_one_output<typename UpperBl::ChannelDownward>::value);
+	static_assert(has_one_output<typename LowerBl::ChannelUpward>::value);
+	static_assert(has_one_input<typename LowerBl::ChannelDownward>::value);
+
+	ChannelsConnector::connect(lower.upward, upper.upward);
+	ChannelsConnector::connect(upper.downward, lower.downward);
 }
 
 template <class UpperBl, class LowerBl>
-void BlockManager::connectBlocks(const UpperBl *upper,
-                                 const LowerBl *lower,
-                                 typename LowerBl::Upward::DemuxKey up_key)
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename UpperBl::ChannelDownward::DemuxKey down_key)
 {
-	static_assert(has_one_input<typename UpperBl::Upward>::value);
-	static_assert(has_one_output<typename UpperBl::Downward>::value);
-	static_assert(has_n_outputs<typename LowerBl::Upward>::value);
-	static_assert(has_n_inputs<typename LowerBl::Downward>::value);
+	static_assert(has_n_inputs<typename UpperBl::ChannelUpward>::value);
+	static_assert(has_n_outputs<typename UpperBl::ChannelDownward>::value);
+	static_assert(has_one_output<typename LowerBl::ChannelUpward>::value);
+	static_assert(has_one_input<typename LowerBl::ChannelDownward>::value);
+
+	ChannelsConnector::connect(lower.upward, upper.upward);
+	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
+}
+
+template <class UpperBl, class LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename LowerBl::ChannelUpward::DemuxKey up_key)
+{
+	static_assert(has_one_input<typename UpperBl::ChannelUpward>::value);
+	static_assert(has_one_output<typename UpperBl::ChannelDownward>::value);
+	static_assert(has_n_outputs<typename LowerBl::ChannelUpward>::value);
+	static_assert(has_n_inputs<typename LowerBl::ChannelDownward>::value);
 	
-	if (!this->checkConnectedBlocks(upper, lower))
-	{
-		return;
-	}
-
-	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
-	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
-	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
-	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
-
-	connectChannels(*lower_upward, *upper_upward, up_key);
-	connectChannels(*upper_downward, *lower_downward);
+	ChannelsConnector::connect(lower.upward, upper.upward, up_key);
+	ChannelsConnector::connect(upper.downward, lower.downward);
 }
 
 template <class UpperBl, class LowerBl>
-void BlockManager::connectBlocks(const UpperBl *upper,
-                                 const LowerBl *lower,
-                                 typename LowerBl::Upward::DemuxKey up_key,
-                                 typename UpperBl::Downward::DemuxKey down_key)
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename LowerBl::ChannelUpward::DemuxKey up_key,
+                                 typename UpperBl::ChannelDownward::DemuxKey down_key)
 {
-	static_assert(has_n_inputs<typename UpperBl::Upward>::value);
-	static_assert(has_n_outputs<typename UpperBl::Downward>::value);
-	static_assert(has_n_outputs<typename LowerBl::Upward>::value);
-	static_assert(has_n_inputs<typename LowerBl::Downward>::value);
+	static_assert(has_n_inputs<typename UpperBl::ChannelUpward>::value);
+	static_assert(has_n_outputs<typename UpperBl::ChannelDownward>::value);
+	static_assert(has_n_outputs<typename LowerBl::ChannelUpward>::value);
+	static_assert(has_n_inputs<typename LowerBl::ChannelDownward>::value);
 
-	if (!this->checkConnectedBlocks(upper, lower))
-	{
-		return;
-	}
-
-	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
-	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
-	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
-	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
-
-	connectChannels(*lower_upward, *upper_upward, up_key);
-	connectChannels(*upper_downward, *lower_downward, down_key);
+	ChannelsConnector::connect(lower.upward, upper.upward, up_key);
+	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
+}
+#else
+template<SimpleUpper UpperBl, SimpleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower)
+{
+	ChannelsConnector::connect(lower.upward, upper.upward);
+	ChannelsConnector::connect(upper.downward, lower.downward);
 }
 
-
-template <class SenderCh, class ReceiverCh, bool> struct ChannelsConnectorBase;
-
-
-template <class SenderCh, class ReceiverCh>
-struct ChannelsConnectorBase<SenderCh, ReceiverCh, true>
+template<MultipleUpper UpperBl, SimpleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename UpperBl::ChannelDownward::DemuxKey down_key)
 {
-	static inline void connect(SenderCh &sender,
-	                           ReceiverCh &receiver)
-	{
-		auto fifo = BlockManager::createFifo();
-		sender.setNextFifo(fifo);
-		receiver.setPreviousFifo(fifo);
-	}
-};
-
-
-template <class SenderCh, class ReceiverCh>
-struct ChannelsConnectorBase<SenderCh, ReceiverCh, false>
-{
-	static inline void connect(SenderCh &sender,
-	                           ReceiverCh &receiver)
-	{
-		auto fifo = BlockManager::createFifo();
-		sender.setNextFifo(fifo);
-		receiver.addPreviousFifo(fifo);
-	}
-};
-
-
-template <class SenderCh, class ReceiverCh, bool B, bool>
-struct ChannelsConnector : public ChannelsConnectorBase<SenderCh, ReceiverCh, B>
-{
-};
-
-
-template <class SenderCh, class ReceiverCh>
-struct ChannelsConnector<SenderCh, ReceiverCh, true, true> : public ChannelsConnectorBase<SenderCh, ReceiverCh, true>
-{
-	static inline void connect(SenderCh &sender,
-	                           ReceiverCh &receiver,
-	                           typename SenderCh::DemuxKey key)
-	{
-		auto fifo = BlockManager::createFifo();
-		sender.addNextFifo(key, fifo);
-		receiver.setPreviousFifo(fifo);
-	}
-};
-
-
-template <class SenderCh, class ReceiverCh>
-struct ChannelsConnector<SenderCh, ReceiverCh, false, true> : public ChannelsConnectorBase<SenderCh, ReceiverCh, false>
-{
-	static inline void connect(SenderCh &sender,
-	                           ReceiverCh &receiver,
-	                           typename SenderCh::DemuxKey key)
-	{
-		auto fifo = BlockManager::createFifo();
-		sender.addNextFifo(key, fifo);
-		receiver.addPreviousFifo(fifo);
-	}
-};
-
-
-template <class SenderCh, class ReceiverCh>
-void BlockManager::connectChannels(SenderCh &sender,
-                                   ReceiverCh &receiver)
-{
-	ChannelsConnector<SenderCh, ReceiverCh, has_one_input<ReceiverCh>::value, false>::connect(sender, receiver);
+	ChannelsConnector::connect(lower.upward, upper.upward);
+	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
 }
 
-
-template <class SenderCh, class ReceiverCh>
-void BlockManager::connectChannels(SenderCh &sender,
-                                   ReceiverCh &receiver,
-                                   typename SenderCh::DemuxKey key)
+template<SimpleUpper UpperBl, MultipleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename LowerBl::ChannelUpward::DemuxKey up_key)
 {
-	ChannelsConnector<SenderCh, ReceiverCh, has_one_input<ReceiverCh>::value, true>::connect(sender, receiver, key);
+	ChannelsConnector::connect(lower.upward, upper.upward, up_key);
+	ChannelsConnector::connect(upper.downward, lower.downward);
 }
+
+template<MultipleUpper UpperBl, MultipleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename LowerBl::ChannelUpward::DemuxKey up_key,
+                                 typename UpperBl::ChannelDownward::DemuxKey down_key)
+{
+	ChannelsConnector::connect(lower.upward, upper.upward, up_key);
+	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
+}
+#endif
+
+
+};  // namespace Rt
 
 
 #endif

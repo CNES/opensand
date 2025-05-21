@@ -5,16 +5,26 @@
 
 import os
 import re
+import sys
 import typing
 import argparse
 import subprocess
+from shutil import which
+from pathlib import Path
 from contextlib import suppress
 
 from opensand_network import opensand_network_utils as utils
 
 
 IDs = typing.Iterable[int]
-File = typing.Union[str, typing.IO]
+
+
+class FilePathType(argparse.FileType):
+    def __call__(self, argument):
+        with super().__call__(argument) as _file:
+            if _file is sys.stdin:
+                raise ValueError('Cannot read from stdin, pass in a file path instead')
+            return str(Path(_file.name).resolve())
 
 
 def create_tap(name: str, netns: str, address: str, mac: str):
@@ -39,11 +49,11 @@ def create_entity(entity: str, entity_id: int, dev_bridge: str, emu_bridge: str,
     name = f'{entity}{entity_id}'
     utils.create_netns(name)
     utils.set_up('lo', name)
-    create_network('dev', name, f'192.168.100.{entity_id}/24', dev_bridge)
-    create_network('emu', name, f'192.168.18.{entity_id}/24', emu_bridge)
+    create_network('dev', name, f'192.168.100.{entity_id+1}/24', dev_bridge)
+    create_network('emu', name, f'192.168.18.{entity_id+1}/24', emu_bridge)
 
     if setup_tap:
-        create_tap('opensand_tap', name, f'192.168.63.{entity_id}/24', f'00:00:00:00:00:{entity_id:0>2X}')
+        create_tap('opensand_tap', name, f'192.168.63.{entity_id}/24', f'00:00:00:00:00:{entity_id+1:0>2X}')
 
 
 def _prepare_isl_env(satellite_id: int, isl_id: int = None, isl_bridge: str = 'opensand_isl'):
@@ -52,33 +62,31 @@ def _prepare_isl_env(satellite_id: int, isl_id: int = None, isl_bridge: str = 'o
     if isl_id is not None:
         utils.delete_iface(f'isl{satellite_id}_{isl_id}_veth', netns)
         utils.delete_iface(f'isl_{isl_id}', netns)
-        return isl_id
+    else:
+        isl_id = 1 + max(
+                (
+                    int(name.split('_')[1])
+                    for name in utils.list_ifaces(netns)
+                    if name.split('_')[-1] == 'tap'
+                ),
+                default=0
+        )
 
-    isl_id = 1 + max(
-            (
-                int(name.split('_')[1])
-                for name in utils.list_ifaces(netns)
-                if name.split('_')[-1] == 'tap'
-            ),
-            default=0
-    )
+        tap_name = f'isl_{isl_id}_tap'
+        create_tap(tap_name, netns,
+                   f'10.0.{satellite_id}.{isl_id}/16',
+                   f'00:00:00:00:{satellite_id:0>2X}:{isl_id:0>2X}')
 
-    tap_name = f'isl_{isl_id}_tap'
-    create_tap(tap_name, netns,
-               f'10.0.{isl_id}.{satellite_id}/24',
-               f'00:00:00:00:{isl_id:0>2X}:{satellite_id:0>2X}')
-
-    bridge_name = f'isl_{isl_id}_bridge'
-    utils.create_bridge(bridge_name, [tap_name], netns)
-    utils.set_up(bridge_name, netns)
+        bridge_name = f'isl_{isl_id}_bridge'
+        utils.create_bridge(bridge_name, [tap_name], netns)
+        utils.set_up(bridge_name, netns)
 
     sock_src = f'isl_{isl_id}'
     sock_dest = f'isl_sock{satellite_id}_{isl_id}'
     utils.create_veth_ifaces_pair(sock_src, sock_dest)
-    utils.attach_iface(isl_bridge, sock_dest)
     utils.move_iface(sock_src, netns)
-    utils.set_mac_address(sock_src, f'10:10:00:00:{satellite_id:0>2X}:{isl_id:0>2X}', netns)
     utils.add_address(sock_src, f'10.10.{satellite_id}.{isl_id}/16', netns)
+    utils.attach_iface(isl_bridge, sock_dest)
     utils.set_up(sock_src, netns)
     utils.set_up(sock_dest)
 
@@ -117,6 +125,8 @@ def setup(terminals: IDs, gateways: IDs, satellites: IDs, dev_bridge: str, emu_b
         create_entity('gw', id, dev_bridge, emu_bridge, True)
     for id in satellites:
         create_entity('sat', id, dev_bridge, emu_bridge, False)
+        utils.create_tap_iface('opensand_regen', f'sat{id}')
+        utils.set_up('opensand_regen', f'sat{id}')
 
     utils.add_address(dev_bridge, '192.168.100.100/24')
     utils.set_up(dev_bridge)
@@ -141,33 +151,21 @@ def clean(dev_bridge: str, emu_bridge: str, isl_bridge: str):
     utils.RAISE_ERROR = True
 
 
-def _extract_file_name(filepath: File) -> str:
-    try:
-        with filepath:
-            return filepath.name
-    except AttributeError:
-        pass
-
-    return filepath
-
-
-def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: File, profile: File=None, debug: bool=False):
-    topology = _extract_file_name(topology)
-    infrastructure = _extract_file_name(infrastructure)
-    profile = _extract_file_name(profile)
-
+def launch(entity_kind: str, entity_id: int, topology: str, infrastructure: str, profile: str=None, debug: bool=False, check: bool=False):
     command = ['ip', 'netns', 'exec', f'{entity_kind}{entity_id}']
 
     sudo_user = os.getenv('SUDO_USER')
     if sudo_user:
-        command.extend(('sudo', '-E', '-u', sudo_user))
+        command.extend(('sudo', '--preserve-env=LD_LIBRARY_PATH', '-u', sudo_user))
 
     if debug:
         command.extend(('gdb', '--args'))
 
-    command.extend(('opensand', '-v', '-i', infrastructure, '-t', topology))
+    command.extend((which('opensand'), '-v', '-i', infrastructure, '-t', topology))
     if profile is not None:
         command.extend(('-p', profile))
+    if check:
+        command.append('-c')
 
     subprocess.run(command, check=True)
 
@@ -308,11 +306,53 @@ def command_line_parser() -> argparse.ArgumentParser:
             default='opensand_isl',
             help='Name of the ISL bridge')
 
+    def ip_address(value):
+        import ipaddress
+        parsed = ipaddress.ip_address(value)
+        return parsed.compressed
+
+    parser_eth = subparsers.add_parser(
+            'network', help='Setup interfaces to connect an terrestrial entity to a physical network')
+    parser_eth.add_argument(
+            'entity_kind',
+            choices=('st', 'gw'),
+            help='Type of the entity to connect')
+    parser_eth.add_argument(
+            'entity_id',
+            metavar='ID',
+            type=unsigned_byte,
+            help='ID of the entity to connect')
+    group_address = parser_eth.add_argument_group(
+            'By Address',
+            'Assign an address to a virtual interface connected to the '
+            'entity so you can route your traffic through it')
+    group_address.add_argument(
+            '--address', '-a',
+            type=ip_address,
+            help='Address to assign to the entity')
+    group_bridge = parser_eth.add_argument_group(
+            'By Bridge',
+            'Bind a physical interface to the entity so any traffic received '
+            'on this interface is automatically handled by the entity')
+    group_bridge.add_argument(
+            '--interface', '-i',
+            help='Physical interface to bind to the entity')
+    group_bridge.add_argument(
+            '--bridge-name', '--bridge', '-b',
+            help='Name of the bridge used to bind the entity '
+            'to the physical network, if the `-i` option is provided')
+
     parser_launch = subparsers.add_parser('launch', help='Run OpenSAND inside a netns')
     parser_launch.add_argument(
             '--debug', '--gdb',
             action='store_true',
             help='Run the OpenSAND process inside GDB')
+    parser_launch.add_argument(
+            '--check', '-c',
+            action='store_true',
+            help='Perform basic checks of the configuration '
+            'files instead of a full OpenSAND run and print '
+            'the liboutput whole configuration')
     parser_launch.add_argument(
             'entity_kind',
             choices=('st', 'gw', 'sat'),
@@ -324,15 +364,15 @@ def command_line_parser() -> argparse.ArgumentParser:
             help='ID of the entity that will be launched')
     parser_launch.add_argument(
             'topology',
-            type=argparse.FileType('r'),
+            type=FilePathType('r'),
             help='Path to the topology.xml file for this entity')
     parser_launch.add_argument(
             'infrastructure',
-            type=argparse.FileType('r'),
+            type=FilePathType('r'),
             help='Path to the infrastructure.xml file for this entity')
     parser_launch.add_argument(
             'profile',
-            type=argparse.FileType('r'),
+            type=FilePathType('r'),
             nargs='?',
             help='Path to the profile.xml file for this entity')
 

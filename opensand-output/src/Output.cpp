@@ -49,6 +49,13 @@
 #include "OutputHandler.h"
 
 
+void printIndent(std::ostream& os, uint32_t indent) {
+	for (uint32_t i = 0; i < indent; ++i) {
+		os << "│   ";
+	}
+}
+
+
 class AlreadyExistsError : public std::runtime_error {
  public:
 	explicit AlreadyExistsError(const std::string& what_arg) : std::runtime_error(what_arg) {}
@@ -69,6 +76,7 @@ class OutputItem
 	virtual void setLogLevel(log_level_t level) = 0;
 	virtual void enableStats(bool enabled) = 0;
 	virtual void gatherEnabledStats(std::vector<std::shared_ptr<BaseProbe>>& probes) const = 0;
+	virtual void print(std::ostream& os, uint32_t indent) const = 0;
 
  protected:
 	std::string buildChildFullName(const std::string& name) const {
@@ -88,7 +96,6 @@ class Output::OutputSection : public OutputItem
 {
  public:
 	OutputSection(const std::string& name, const std::string& full_name) : OutputItem(name, full_name) {}
-	~OutputSection() { children.clear(); }
 
 	void setLogLevel(log_level_t level) {
 		for (auto& child : children) {
@@ -99,6 +106,15 @@ class Output::OutputSection : public OutputItem
 		for (auto& child : children) {
 			child.second->enableStats(enabled);
 		}
+	}
+	void print(std::ostream& os, uint32_t indent) const {
+		for (auto& child : children) {
+			printIndent(os, indent);
+			os << "├───┬ " << child.first << '\n';
+			child.second->print(os, indent + 1);
+		}
+		printIndent(os, indent);
+		os << "╵\n";
 	}
 
 	void gatherEnabledStats(std::vector<std::shared_ptr<BaseProbe>>& probes) const {
@@ -171,6 +187,32 @@ class OutputUnit : public OutputItem
 			throw AlreadyExistsError(message.str());
 		}
 		this->log = log;
+	}
+
+	void print(std::ostream& os, uint32_t indent) const {
+		if (this->log != nullptr) {
+			printIndent(os, indent);
+			os << "├── [LOG] [" << log->getDisplayLevelString() << "] " << log->getName() << '\n';
+		}
+		if (!this->stats.empty()) {
+			for (auto& stat : stats) {
+				auto probe = stat.second;
+				if (probe->isEnabled())
+				{
+					printIndent(os, indent);
+					os << "├── [PROBE] " << probe->getName();
+
+					auto unit = probe->getUnit();
+					if (!unit.empty())
+					{
+						os << " (" << unit << ")";
+					}
+					os << '\n';
+				}
+			}
+		}
+		printIndent(os, indent);
+		os << "╵\n";
 	}
 
 	void setLogLevel(log_level_t level) {
@@ -387,28 +429,6 @@ std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const 
 }
 
 
-std::shared_ptr<OutputEvent> Output::registerEvent(const char *identifier, ...)
-{
-	std::va_list args;
-	va_start(args, identifier);
-	std::string eventName = formatMessage(identifier, args);
-	va_end(args);
-
-	return Output::registerEvent(eventName);
-}
-
-
-std::shared_ptr<OutputLog> Output::registerLog(log_level_t default_display_level, const char* name, ...)
-{
-	std::va_list args;
-	va_start(args, name);
-	std::string logName = formatMessage(name, args);
-	va_end(args);
-
-	return Output::registerLog(default_display_level, logName);
-}
-
-
 std::string Output::getEntityName() const
 {
 	if (this->entityName.empty()) {
@@ -514,15 +534,6 @@ void Output::sendProbes(void)
 	for (auto& handler : probeHandlers) {
 		handler->emitStats(probesValues);
 	}
-}
-
-
-void Output::sendLog(log_level_t log_level, const char *msg_format, ...)
-{
-	std::va_list args;
-	va_start(args, msg_format);
-	defaultLog->vSendLog(log_level, msg_format, args);
-	va_end(args);
 }
 
 
@@ -693,4 +704,11 @@ void Output::setLevels(const std::map<std::string, log_level_t> &levels)
 			currentItem->setLogLevel(log_level.second);
 		}
 	}
+}
+
+
+std::ostream& operator << (std::ostream& os, const Output& o) {
+	os << "liboutput configuration:\n";
+	o.root->print(os, 0);
+	return os;
 }

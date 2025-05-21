@@ -1,0 +1,7 @@
+usr/lib/${DEB_HOST_MULTIARCH}/libopensand_dama.a
+usr/lib/${DEB_HOST_MULTIARCH}/libopensand_dama.la
+usr/lib/${DEB_HOST_MULTIARCH}/libopensand_plugin.a
+usr/lib/${DEB_HOST_MULTIARCH}/libopensand_plugin.la
+usr/lib/${DEB_HOST_MULTIARCH}/opensand/plugins/libopensand_*_plugin.a
+usr/lib/${DEB_HOST_MULTIARCH}/opensand/plugins/libopensand_*_plugin.la
+usr/share/doc/opensand-core/*

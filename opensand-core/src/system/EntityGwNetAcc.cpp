@@ -57,18 +57,22 @@
  */
 
 
+#include <opensand_rt/Rt.h>
+
 #include "EntityGwNetAcc.h"
 #include "OpenSandModelConf.h"
 
 #include "BlockInterconnect.h"
 #include "BlockLanAdaptation.h"
 #include "BlockDvbNcc.h"
-#include "BlockEncap.h"
-
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 #include "PacketSwitch.h"
+#include "Ethernet.h"
 
 
-EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id): Entity("gw_net_acc" + std::to_string(instance_id), instance_id)
+EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id, bool check_mode):
+	Entity("gw_net_acc" + std::to_string(instance_id), instance_id, check_mode)
 {
 }
 
@@ -82,32 +86,41 @@ bool EntityGwNetAcc::createSpecificBlocks()
 {
 	try
 	{
+		auto Conf = OpenSandModelConf::Get();
+		const auto &spot_topo = Conf->getSpotsTopology();
+		bool isRegen = false;
+		for (auto &&[spot_id, topo]: spot_topo)
+		{
+			if (topo.gw_id == this->instance_id)
+			{
+				isRegen = topo.forward_regen_level != RegenLevel::Transparent
+				       && topo.return_regen_level != RegenLevel::Transparent;
+				break;
+			}
+		}
+
 		la_specific spec_la;
 		spec_la.tap_iface = this->tap_iface;
-		spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
-
-		EncapConfig encap_cfg;
-		encap_cfg.entity_id = this->instance_id;
-		encap_cfg.entity_type = Component::gateway;
-		encap_cfg.filter_packets = true;
+		spec_la.packet_switch = std::make_shared<GatewayPacketSwitch>(this->instance_id);
+		spec_la.packet_switch = isRegen ? std::make_shared<RegenGatewayPacketSwitch>(this->instance_id) : std::make_shared<GatewayPacketSwitch>(this->instance_id);
 
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = false;
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = instance_id;
+		dvb_spec.is_ground_entity = true;
+		dvb_spec.upper_encap = Ethernet::constructPlugin();
 
 		InterconnectConfig interco_cfg;
 		interco_cfg.interconnect_addr = this->interconnect_address;
-		interco_cfg.delay = 0;
+		interco_cfg.delay = time_ms_t::zero();
 
-		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
-		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
-		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
-		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("Interconnect.Downward", interco_cfg);
+		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
+		auto& block_dvb = Rt::Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
+		auto& block_interconnect = Rt::Rt::createBlock<BlockInterconnectDownward>("Interconnect.Downward", interco_cfg);
 
-		Rt::connectBlocks(block_lan_adaptation, block_encap);
-		Rt::connectBlocks(block_encap, block_dvb);
-		Rt::connectBlocks(block_dvb, block_interconnect);
+		Rt::Rt::connectBlocks(block_lan_adaptation, block_dvb);
+		Rt::Rt::connectBlocks(block_dvb, block_interconnect);
 	}
 	catch (const std::bad_alloc &e)
 	{
@@ -146,6 +159,6 @@ void EntityGwNetAcc::defineProfileMetaModel() const
 	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
 
 	BlockLanAdaptation::generateConfiguration();
-	BlockEncap::generateConfiguration();
+	BlockDvb::generateConfiguration();
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 }

@@ -107,7 +107,7 @@ public:
 	 * @param addr the MAC address to compare with
 	 * @return true if MAC addresses matches, false otherwise
 	 */
-	bool matches(const MacAddress *addr) const;
+	bool matches(const MacAddress &addr) const;
 };
 
 

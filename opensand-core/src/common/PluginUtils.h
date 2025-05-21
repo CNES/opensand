@@ -62,7 +62,12 @@ namespace OpenSANDConf {
 }
 
 
-using PluginConfigurationContainer = std::map<std::string, std::pair<fn_configure, fn_create>>;
+struct PluginConfigurationElement {
+	fn_configure init;
+	fn_create create;
+	OpenSandPlugin *plugin;
+};
+using PluginConfigurationContainer = std::map<std::string, PluginConfigurationElement>;
 
 
 /**
@@ -81,7 +86,6 @@ protected:
 	PluginConfigurationContainer error;
 	PluginConfigurationContainer sat_delay;
 	std::vector<void *> handlers;
-	std::vector<OpenSandPlugin *> plugins;
 
 	PluginUtils();
 
@@ -161,13 +165,9 @@ protected:
 	/**
 	 * @brief get the encapsulation plugins list
 	 *
-	 * @param encapsulation  The encapsulation plugins
-	 * @return true on success, false otherwise
+	 * @return a vector containing the names of all known encapsulation plugins
 	 */
-	inline void getAllEncapsulationPlugins(PluginConfigurationContainer &encapsulation)
-	{
-		encapsulation = this->encapsulation;
-	}
+	std::vector<std::string> getAllEncapsulationPlugins();
 
 	void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
 	                                  PluginType plugin_type,

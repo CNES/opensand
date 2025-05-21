@@ -67,269 +67,316 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+
 ///////////////////////// TopMux /////////////////////////
 
-TopMux::Upward::Upward(const std::string &name):
-    RtUpwardMux(name)
-{}
-
-bool TopMux::Upward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sharing message to downward channel: " << *static_cast<std::string *>(data) << "\n";
-	shareMessage(&data);
-	return true;
-}
-
-TopMux::Downward::Downward(const std::string &name):
-    RtDownwardDemux<Side>(name) {}
-
-bool TopMux::Downward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::RIGHT, &data, 0, 0);
-	return true;
-}
-
-///////////////////////// TopBlock /////////////////////////
-
-TopBlock::TopBlock(const std::string &name, Side side):
-    Block{name} {}
-
-TopBlock::Upward::Upward(const std::string &name, Side side):
-    RtUpwardMux{name}, side{side} {}
-
-bool TopBlock::Upward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	if (side == Side::RIGHT)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(&data, 0, 0);
-	return true;
-}
-
-TopBlock::Downward::Downward(const std::string &name, Side side):
-    RtDownwardDemux<Side>{name}, side{side} {}
-
-bool TopBlock::Downward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	if (side == Side::LEFT)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::RIGHT, &data, 0, 0);
-	return true;
-}
-///////////////////////// MiddleBlock /////////////////////////
-
-MiddleBlock::MiddleBlock(const std::string &name, Side side):
-    Block{name} {}
-
-MiddleBlock::Upward::Upward(const std::string &name, Side side):
-    RtUpwardMuxDemux<Side>(name), side{side} {}
-
-bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	if (side == Side::RIGHT)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::LEFT, &data, 0, 0);
-	return true;
-}
-
-MiddleBlock::Downward::Downward(const std::string &name, Side side):
-    RtDownwardMuxDemux<Side>(name), side{side} {}
-
-bool MiddleBlock::Downward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	if (side == Side::LEFT)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::RIGHT, &data, 0, 0);
-	return true;
-}
-
-///////////////////////// BottomBlock /////////////////////////
-
-BottomBlock::BottomBlock(const std::string &name, Side side):
-    Block{name} {}
-
-BottomBlock::Upward::Upward(const std::string &name, Side side):
-    RtUpwardDemux<Side>(name), side{side} {}
-
-bool BottomBlock::Upward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	if (side == Side::RIGHT)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::LEFT, &data, 0, 0);
-	return true;
-}
-
-BottomBlock::Downward::Downward(const std::string &name, Side side):
-    RtDownwardMux(name), side{side} {}
-
-bool BottomBlock::Downward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-		return false;
-	}
-	if (side == Side::LEFT)
-	{
-		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
-		return false;
-	}
-	auto msg = static_cast<const MessageEvent *>(event);
-	auto data = msg->getData();
-	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(&data, 0, 0);
-	return true;
-}
-
-///////////////////////// BottomMux /////////////////////////
-
-BottomMux::Upward::Upward(const std::string &name):
-    RtUpwardDemux<Side>(name) {}
-
-bool BottomMux::Upward::onInit()
-{
-	void *data = new std::string{"test"};
-	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::LEFT, &data, 0, 0);
-	return true;
-}
-
-bool BottomMux::Upward::onEvent(const RtEvent *const event)
+bool Rt::UpwardChannel<TopMux>::onEvent(const Event& event)
 {
 	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 	return false;
 }
 
-BottomMux::Downward::Downward(const std::string &name):
-    RtDownwardMux(name) {}
 
-bool BottomMux::Downward::onInit()
+Rt::UpwardChannel<TopMux>::UpwardChannel(const std::string& name):
+	Channels::UpwardMux<UpwardChannel<TopMux>>{name}
+{
+}
+
+
+bool Rt::UpwardChannel<TopMux>::onEvent(const MessageEvent& event)
+{
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sharing message to downward channel: " << *data << "\n";
+	shareMessage(std::move(data), 0);
+	return true;
+}
+
+
+Rt::DownwardChannel<TopMux>::DownwardChannel(const std::string& name):
+	Channels::DownwardDemux<DownwardChannel<TopMux>, Side>{name}
+{
+}
+
+
+bool Rt::DownwardChannel<TopMux>::onEvent(const Event& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+bool Rt::DownwardChannel<TopMux>::onEvent(const MessageEvent& event)
+{
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sending message downward: " << *data << "\n";
+	enqueueMessage(Side::RIGHT, std::move(data), 0);
+	return true;
+}
+
+
+///////////////////////// TopBlock /////////////////////////
+
+Rt::UpwardChannel<TopBlock>::UpwardChannel(const std::string &name, Side side):
+	Channels::UpwardMux<UpwardChannel<TopBlock>>{name},
+	side{side}
+{
+}
+
+
+bool Rt::UpwardChannel<TopBlock>::onEvent(const Event& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+bool Rt::UpwardChannel<TopBlock>::onEvent(const MessageEvent& event)
+{
+	if (side == Side::RIGHT)
+	{
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
+		return false;
+	}
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sending message upward: " << *data << "\n";
+	enqueueMessage(std::move(data), 0);
+	return true;
+}
+
+
+Rt::DownwardChannel<TopBlock>::DownwardChannel(const std::string &name, Side side):
+	Channels::DownwardDemux<DownwardChannel<TopBlock>, Side>{name},
+	side{side}
+{
+}
+
+
+bool Rt::DownwardChannel<TopBlock>::onEvent(const Event& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+bool Rt::DownwardChannel<TopBlock>::onEvent(const MessageEvent& event)
+{
+	if (side == Side::LEFT)
+	{
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
+		return false;
+	}
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sending message downward: " << *data << "\n";
+	enqueueMessage(Side::RIGHT, std::move(data), 0);
+	return true;
+}
+
+
+///////////////////////// MiddleBlock /////////////////////////
+
+Rt::UpwardChannel<MiddleBlock>::UpwardChannel(const std::string &name, Side side):
+	Channels::UpwardMuxDemux<UpwardChannel<MiddleBlock>, Side>{name},
+	side{side}
+{
+}
+
+
+bool Rt::UpwardChannel<MiddleBlock>::onEvent(const Event& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+bool Rt::UpwardChannel<MiddleBlock>::onEvent(const MessageEvent& event)
+{
+	if (side == Side::RIGHT)
+	{
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
+		return false;
+	}
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sending message upward: " << *data << "\n";
+	enqueueMessage(Side::LEFT, std::move(data), 0);
+	return true;
+}
+
+
+Rt::DownwardChannel<MiddleBlock>::DownwardChannel(const std::string &name, Side side):
+	Channels::DownwardMuxDemux<DownwardChannel<MiddleBlock>, Side>{name},
+	side{side}
+{
+}
+
+
+bool Rt::DownwardChannel<MiddleBlock>::onEvent(const Event& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+bool Rt::DownwardChannel<MiddleBlock>::onEvent(const MessageEvent& event)
+{
+	if (side == Side::LEFT)
+	{
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
+		return false;
+	}
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sending message downward: " << *data << "\n";
+	enqueueMessage(Side::RIGHT, std::move(data), 0);
+	return true;
+}
+
+
+///////////////////////// BottomBlock /////////////////////////
+
+Rt::UpwardChannel<BottomBlock>::UpwardChannel(const std::string &name, Side side):
+	Channels::UpwardDemux<UpwardChannel<BottomBlock>, Side>{name},
+	side{side}
+{
+}
+
+
+bool Rt::UpwardChannel<BottomBlock>::onEvent(const Event& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BottomBlock>::onEvent(const MessageEvent& event)
+{
+	if (side == Side::RIGHT)
+	{
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
+		return false;
+	}
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sending message upward: " << *data << "\n";
+	enqueueMessage(Side::LEFT, std::move(data), 0);
+	return true;
+}
+
+
+Rt::DownwardChannel<BottomBlock>::DownwardChannel(const std::string &name, Side side):
+	Channels::DownwardMux<DownwardChannel<BottomBlock>>{name},
+	side{side}
+{
+}
+
+
+bool Rt::DownwardChannel<BottomBlock>::onEvent(const Event& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BottomBlock>::onEvent(const MessageEvent& event)
+{
+	if (side == Side::LEFT)
+	{
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
+		return false;
+	}
+	auto data = event.getMessage<std::string>();
+	std::cout << getName() << ": Sending message downward: " << *data << "\n";
+	enqueueMessage(std::move(data), 0);
+	return true;
+}
+
+
+///////////////////////// BottomMux /////////////////////////
+
+bool Rt::UpwardChannel<BottomMux>::onInit()
+{
+	auto data = make_ptr<std::string>("test");
+	std::cout << getName() << ": Sending message upward: " << *data << "\n";
+	enqueueMessage(Side::LEFT, std::move(data), 0);
+	return true;
+}
+
+
+Rt::UpwardChannel<BottomMux>::UpwardChannel(const std::string& name):
+	Channels::UpwardDemux<UpwardChannel<BottomMux>, Side>{name}
+{
+}
+
+
+bool Rt::UpwardChannel<BottomMux>::onEvent(const Event&)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
+	return false;
+}
+
+
+Rt::DownwardChannel<BottomMux>::DownwardChannel(const std::string& name):
+	Channels::DownwardMux<DownwardChannel<BottomMux>>{name}
+{
+}
+
+
+bool Rt::DownwardChannel<BottomMux>::onInit()
 {
 	addTimerEvent("timeout", 1000, false);
 	return true;
 }
 
-bool BottomMux::Downward::onEvent(const RtEvent *const event)
+
+bool Rt::DownwardChannel<BottomMux>::onEvent(const Event& event)
 {
-	switch (event->getType())
-	{
-    case EventType::Message:
-		{
-			auto msg = static_cast<const MessageEvent *>(event);
-			auto data = static_cast<std::string *>(msg->getData());
-			std::cout << "Received message: " << *data << "\n";
-			if (*data != "test")
-			{
-				Rt::reportError(getName(), std::this_thread::get_id(), true, "Message has been modified");
-				return false;
-			}
-			delete data;
-			kill(getpid(), SIGTERM);
-			return true;
-		}
-    case EventType::Timer:
-			Rt::reportError(getName(), std::this_thread::get_id(), true, "Timeout while waiting for message");
-			return false;
-		default:
-			Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
-			return false;
-	}
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 	return false;
 }
 
+
+bool Rt::DownwardChannel<BottomMux>::onEvent(const TimerEvent& event)
+{
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Timeout while waiting for message");
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BottomMux>::onEvent(const MessageEvent& event)
+{
+	auto data = event.getMessage<std::string>();
+	std::cout << "Received message: " << *data << "\n";
+	if (*data != "test")
+	{
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Message has been modified");
+		return false;
+	}
+	kill(getpid(), SIGTERM);
+	return true;
+}
+
+
 int main()
 {
-	auto top_mux = Rt::createBlock<TopMux>("top_mux");
-	auto top_left = Rt::createBlock<TopBlock>("top_left", Side::LEFT);
-	auto top_right = Rt::createBlock<TopBlock>("top_right", Side::RIGHT);
-	auto middle_left = Rt::createBlock<MiddleBlock>("middle_left", Side::LEFT);
-	auto middle_right = Rt::createBlock<MiddleBlock>("middle_right", Side::RIGHT);
-	auto bottom_left = Rt::createBlock<BottomBlock>("bottom_left", Side::LEFT);
-	auto bottom_right = Rt::createBlock<BottomBlock>("bottom_right", Side::RIGHT);
-	auto bottom_mux = Rt::createBlock<BottomMux>("bottom_mux");
-	Rt::connectBlocks(top_mux, top_left, Side::LEFT);
-	Rt::connectBlocks(top_mux, top_right, Side::RIGHT);
-	Rt::connectBlocks(top_left, middle_left, Side::LEFT, Side::LEFT);
-	Rt::connectBlocks(top_right, middle_right, Side::RIGHT, Side::RIGHT);
-	Rt::connectBlocks(middle_left, bottom_left, Side::LEFT, Side::LEFT);
-	Rt::connectBlocks(middle_right, bottom_right, Side::RIGHT, Side::RIGHT);
-	Rt::connectBlocks(bottom_left, bottom_mux, Side::LEFT);
-	Rt::connectBlocks(bottom_right, bottom_mux, Side::RIGHT);
+	auto& top_mux = Rt::Rt::createBlock<TopMux>("top_mux");
+	auto& top_left = Rt::Rt::createBlock<TopBlock>("top_left", Side::LEFT);
+	auto& top_right = Rt::Rt::createBlock<TopBlock>("top_right", Side::RIGHT);
+	auto& middle_left = Rt::Rt::createBlock<MiddleBlock>("middle_left", Side::LEFT);
+	auto& middle_right = Rt::Rt::createBlock<MiddleBlock>("middle_right", Side::RIGHT);
+	auto& bottom_left = Rt::Rt::createBlock<BottomBlock>("bottom_left", Side::LEFT);
+	auto& bottom_right = Rt::Rt::createBlock<BottomBlock>("bottom_right", Side::RIGHT);
+	auto& bottom_mux = Rt::Rt::createBlock<BottomMux>("bottom_mux");
+	Rt::Rt::connectBlocks(top_mux, top_left, Side::LEFT);
+	Rt::Rt::connectBlocks(top_mux, top_right, Side::RIGHT);
+	Rt::Rt::connectBlocks(top_left, middle_left, Side::LEFT, Side::LEFT);
+	Rt::Rt::connectBlocks(top_right, middle_right, Side::RIGHT, Side::RIGHT);
+	Rt::Rt::connectBlocks(middle_left, bottom_left, Side::LEFT, Side::LEFT);
+	Rt::Rt::connectBlocks(middle_right, bottom_right, Side::RIGHT, Side::RIGHT);
+	Rt::Rt::connectBlocks(bottom_left, bottom_mux, Side::LEFT);
+	Rt::Rt::connectBlocks(bottom_right, bottom_mux, Side::RIGHT);
 
 	auto output = Output::Get();
 	output->configureTerminalOutput();
 	output->finalizeConfiguration();
 
-	if (!Rt::run(true))
+	if (!Rt::Rt::run(true))
 	{
 		std::cerr << "Error during execution\n";
 		return 1;

@@ -36,12 +36,12 @@
 #define SAT_CARRIER_CHANNEL_SET_H
 
 
-#include "UdpChannel.h"
-#include "OpenSandCore.h"
-#include "OpenSandModelConf.h"
-
 #include <vector>
 #include <net/if.h>
+
+#include "OpenSandCore.h"
+#include "OpenSandModelConf.h"
+#include "UdpChannel.h"
 
 
 /**
@@ -49,11 +49,10 @@
  * @brief This implements a set of satellite carrier channels
  */
 // TODO why not a map<fd, carrier>?
-class sat_carrier_channel_set: public std::vector < UdpChannel * >
+class sat_carrier_channel_set: public std::vector<std::unique_ptr<UdpChannel>>
 {
 public:
 	sat_carrier_channel_set(tal_id_t tal_id);
-	~sat_carrier_channel_set();
 
 	/**
 	 * Read data from the configuration file and create input channels
@@ -102,10 +101,14 @@ public:
 	* @return  0 on success, 1 if the function should be
 	 *         called another time, -1 on error
 	*/
-	int receive(NetSocketEvent *const event,
+	UdpChannel::ReceiveStatus receive(const Rt::NetSocketEvent& event,
 	            unsigned int &op_carrier,
 	            spot_id_t &op_spot,
-	            unsigned char **op_buf, size_t &op_len);
+				Rt::Ptr<Rt::Data>& op_buf);
+	/*
+	            unsigned char **op_buf,
+	            std::size_t &op_len);
+	*/
 
 	int getChannelFdByChannelId(unsigned int i_channelID);
 

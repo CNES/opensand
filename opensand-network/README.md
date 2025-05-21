@@ -1,15 +1,37 @@
+# Usage overview
+
+OpenSAND emulates a satellite network connected to terrestrial entities. Each
+entity of this network must run on their own machine or netnamespace and be
+interconnected on a specific, ideally separate, subnetwork. Terrestrial
+entities are connected to the rest of the network using TAP interfaces. From
+the point of view of the network, OpenSAND acts as a black-box between these
+TAP.
+
+Configuration of how packets are routed to or from the TAP interface is
+outside the scope of the `opensand` binary but tools and examples are provided
+to reduce the learning curve and help users to quickly setup and discover
+OpenSAND capabilities.
+
+# OpenSAND CLI
+
+The [`opensand_cli`](opensand_cli/README.md) folder is a collection of
+Makefiles to easily configure your network on a machine and run a simple
+configuration of OpenSAND once done.
+
+Note that these are example configurations for a given purpose and in no way
+mandatory or a perfect fit. It is necessary to edit them and input values that
+make sense to your own network architecture. Additional changes may be needed
+to adapt to your specific network needs.
+
 # OpenSAND Network
 
-This folder provides tools to help network configuration on OpenSAND entities.
-None of these tools are mandatory, their main purpose is to reduce the learning
-curve and provide quick and easy ways to discover OpenSAND capabilities.
-
 The `opensand_network` folder provides a Python module to easily create TAP,
-bridges and routing on a machine or inside a net-namespace.
+bridges and routing on a machine or inside a net-namespace. This utility
+is provided in the `opensand-network` debian package for convenience.
 
-The [`opensand_cli`](opensand_cli/README.md) is a collection of Makefiles to
-easily configure your network on a machine and run a simple configuration of
-OpenSAND once done.
+Using the `opensand-network` tool to create netnamespaces will save you the
+burden to interconnect them all, but will force some design choices on your
+network. This is a tradeoff, use where appropriate.
 
 ## opensand-network
 

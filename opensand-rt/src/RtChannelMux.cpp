@@ -35,15 +35,19 @@
 #include "RtFifo.h"
 
 
-RtChannelMux::RtChannelMux(const std::string &name, const std::string &type):
-	RtChannelBase{name, type},
+namespace Rt
+{
+
+
+ChannelMux::ChannelMux(const std::string &name, const std::string &type):
+	ChannelBase{name, type},
 	previous_fifos{},
 	next_fifo{nullptr}
 {
 }
 
 
-bool RtChannelMux::initPreviousFifo()
+bool ChannelMux::initPreviousFifo()
 {
 	bool success = true;
 	for (auto&& fifo : this->previous_fifos)
@@ -52,19 +56,25 @@ bool RtChannelMux::initPreviousFifo()
 	return success;
 }
 
-bool RtChannelMux::enqueueMessage(void **data, size_t size, uint8_t type)
+
+bool ChannelMux::enqueueMessage(Ptr<void> data, uint8_t type)
 {
-	return this->pushMessage(this->next_fifo, data, size, type);
+	Message m{std::move(data)};
+	m.type = type;
+	return this->pushMessage(this->next_fifo, std::move(m));
 }
 
 
-void RtChannelMux::addPreviousFifo(std::shared_ptr<RtFifo> &fifo)
+void ChannelMux::addPreviousFifo(std::shared_ptr<Fifo> &fifo)
 {
 	this->previous_fifos.push_back(fifo);
 }
 
 
-void RtChannelMux::setNextFifo(std::shared_ptr<RtFifo> &fifo)
+void ChannelMux::setNextFifo(std::shared_ptr<Fifo> &fifo)
 {
 	this->next_fifo = fifo;
 }
+
+
+};

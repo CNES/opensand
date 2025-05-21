@@ -36,33 +36,22 @@
 
 
 #include "ReturnSchedulingRcs2.h"
+#include "DvbFifo.h"
 #include "FifoElement.h"
 #include "OpenSandFrames.h"
 
 #include <opensand_output/Output.h>
 
 #include <algorithm>
+#include <limits>
 
 
-constexpr const uint32_t max_allocation = 1U << (8 * sizeof(vol_kb_t));
+constexpr const uint32_t max_allocation = std::numeric_limits<vol_kb_t>::max();
 
 
-typedef enum
-{
-	state_next_fifo,      // Go to the next fifo
-	state_get_fifo,       // Get the fifo
-	state_next_encap_pkt, // Get the next encapsulated packets
-	state_get_chunk,      // Get the next chunk of encapsulated packets
-	state_add_data,       // Add data of the chunk of encapsulated packets
-	state_finalize_frame, // Finalize frame
-	state_end,            // End occurred
-	state_error           // Error occurred
-} sched_state_t;
-
-
-ReturnSchedulingRcs2::ReturnSchedulingRcs2(EncapPlugin::EncapPacketHandler *packet_handler,
-                                           const fifos_t &fifos):
-	Scheduling(packet_handler, fifos, NULL),
+ReturnSchedulingRcs2::ReturnSchedulingRcs2(std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+                                           std::shared_ptr<fifos_t> fifos):
+	Scheduling(packet_handler, fifos, nullptr),
 	max_burst_length_b(0)
 {
 }
@@ -84,8 +73,7 @@ void ReturnSchedulingRcs2::setMaxBurstLength(vol_b_t length_b)
 
 
 bool ReturnSchedulingRcs2::schedule(const time_sf_t current_superframe_sf,
-                                    clock_t UNUSED(current_time),
-                                    std::list<DvbFrame *> *complete_dvb_frames,
+                                    std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                     uint32_t &remaining_allocation)
 {
 	if(remaining_allocation > max_allocation)
@@ -116,194 +104,53 @@ bool ReturnSchedulingRcs2::schedule(const time_sf_t current_superframe_sf,
 	return true;
 }
 
-bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
-                                       std::list<DvbFrame *> *complete_dvb_frames,
-                                       vol_b_t &remaining_allocation_b)
+
+bool ReturnSchedulingRcs2::schedulePacket(const time_sf_t current_superframe_sf,
+                                          unsigned int &sent_packets,
+                                          unsigned int &complete_frames_count,
+                                          vol_b_t &frame_length_b,
+                                          vol_b_t &remaining_allocation_b,
+                                          std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+                                          Rt::Ptr<DvbRcsFrame> &incomplete_dvb_frame,
+                                          Rt::Ptr<NetPacket> encap_packet)
 {
-	int ret;
-	unsigned int complete_frames_count;
-	unsigned int sent_packets;
-	vol_b_t frame_length_b;
-	DvbRcsFrame *incomplete_dvb_frame = NULL;
-	fifos_t::const_iterator fifo_it;
-	std::unique_ptr<NetPacket> encap_packet;
-	std::unique_ptr<NetPacket> data;
-	std::unique_ptr<NetPacket> remaining_data;
-	FifoElement *elem = NULL;
-	DvbFifo *fifo = NULL;
-	sched_state_t state;
-
-	LOG(this->log_scheduling, LEVEL_INFO,
-	    "SF#%u: attempt to extract encap packets from MAC"
-	    " FIFOs (remaining allocation = %d kbits)\n",
-	    current_superframe_sf,
-	    remaining_allocation_b / 1000);
-
-	// create an incomplete DVB-RCS frame
-	if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
+	while (encap_packet)
 	{
-		return false;
-	}
-	//frame_length_b = incomplete_dvb_frame->getHeaderLength() << 3;
-	frame_length_b = 0;
+		LOG(this->log_scheduling, LEVEL_DEBUG,
+		    "SF#%u: Extracted packet: %d kbits (%d bytes)",
+		    current_superframe_sf,
+		    (encap_packet->getTotalLength() << 3) / 1000,
+		    encap_packet->getTotalLength());
 
-	// extract encap packets from MAC FIFOs while some UL capacity is available
-	// (MAC fifos priorities are in MAC IDs order)
-	// fifo are classified by priority value (map are ordered)
-	complete_frames_count = 0;
-	sent_packets = 0;
-	fifo_it = this->dvb_fifos.begin();
-	state = state_get_fifo;
-
-	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
-	    current_superframe_sf,
-	    complete_frames_count,
-	    remaining_allocation_b / 1000,
-	    remaining_allocation_b >> 3);
-	LOG(this->log_scheduling, LEVEL_DEBUG,
-		"SF#%u: DVB Frame filling (%d packets): used %d kbits (%d bytes), free %d kbits (%d bytes)",
-		current_superframe_sf,
-		incomplete_dvb_frame->getNumPackets(),
-		frame_length_b / 1000,
-		frame_length_b >> 3,
-		(incomplete_dvb_frame->getFreeSpace() << 3) / 1000,
-		incomplete_dvb_frame->getFreeSpace());
-
-	while (state != state_end && state != state_error)
-	{
-		switch (state)
+		Rt::Ptr<NetPacket> data = Rt::make_ptr<NetPacket>(nullptr);
+		int ret = this->packet_handler->encapNextPacket(std::move(encap_packet),
+		                                                incomplete_dvb_frame->getFreeSpace(),
+		                                                incomplete_dvb_frame->getPacketsCount() == 0,
+		                                                data, this->remaining_data);
+		if(!ret)
 		{
-		case state_next_fifo:      // Go to the next fifo
+			LOG(this->log_scheduling, LEVEL_ERROR,
+			    "SF#%u: error while processing packet "
+			    "#%u\n", current_superframe_sf,
+			    sent_packets + 1);
+			// continue anyways with other packets in the fifo
+			return true;
+		}
 
-			// Pass to the next fifo
-			++fifo_it;
-			state = state_get_fifo;
-			break;
+		LOG(this->log_scheduling, LEVEL_DEBUG,
+		    "SF#%u: %s encapsulated packet length = %d kbits (%d bytes)",
+		    current_superframe_sf,
+		    this->remaining_data ? "Partial" : "Complete",
+		    data ? (data->getTotalLength() << 3) / 1000 : 0,
+		    data ? data->getTotalLength() : 0);
 
-		case state_get_fifo:        // Get the fifo
-
-			// Check this is not the end of the fifos list
-			if(fifo_it == this->dvb_fifos.end())
-			{
-				state = state_end;
-				break;
-			}
-
-			// Check the fifo access
-			fifo = (*fifo_it).second;
-			if(fifo->getAccessType() == ForwardOrReturnAccessType{ReturnAccessType::saloha})
-			{
-				// not the good fifo
-				LOG(this->log_scheduling, LEVEL_DEBUG,
-				    "SF#%u: ignore MAC FIFO %s  "
-				    "not the right access type (%d)\n",
-				    current_superframe_sf,
-				    fifo->getName().c_str(),
-				    fifo->getAccessType());
-				state = state_next_fifo;
-				break;
-			}
-
-			state = state_next_encap_pkt;
-			break;
-
-		case state_next_encap_pkt: // Get the next encapsulated packets
-		
-			// Check the encapsulated packets of the fifo
-			if(fifo->getCurrentSize() <= 0)
-			{
-				LOG(this->log_scheduling, LEVEL_DEBUG,
-				    "SF#%u: ignore MAC FIFO %s: "
-				    "no data (left) to schedule\n",
-				    current_superframe_sf,
-				    fifo->getName().c_str());
-				state = state_next_fifo;
-				break;
-			}
-
-			// FIFO with awaiting data
-			LOG(this->log_scheduling, LEVEL_DEBUG,
-			    "SF#%u: extract packet from "
-			    "MAC FIFO %s: "
-			    "%u awaiting packets (remaining "
-			    "allocation = %d kbits)\n",
-			    current_superframe_sf,
-			    fifo->getName().c_str(),
-			    fifo->getCurrentSize(),
-			    remaining_allocation_b / 1000);
-
-			// extract next encap packet context from MAC fifo
-			elem = fifo->pop();
-			encap_packet = elem->getElem<NetPacket>();
-			if(!encap_packet)
-			{
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: error while getting packet (null) "
-				    "#%u\n", current_superframe_sf,
-				    sent_packets + 1);
-				delete elem;
-				elem = nullptr;
-				break;
-			}
-
-			LOG(this->log_scheduling, LEVEL_DEBUG,
-			    "SF#%u: Extracted packet: %d kbits (%d bytes)",
-			    current_superframe_sf,
-			    (encap_packet->getTotalLength() << 3) / 1000,
-			    encap_packet->getTotalLength());
-
-			state = state_get_chunk;
-			break;
-
-		case state_get_chunk:     // Get the next chunk of encapsulated packets
-			// Encapsulate packet
-			data.reset();
-			remaining_data.reset();
-			ret = this->packet_handler->encapNextPacket(std::move(encap_packet),
-			                                            incomplete_dvb_frame->getFreeSpace(),
-			                                            incomplete_dvb_frame->getPacketsCount() == 0,
-			                                            data, remaining_data);
-			if(!ret)
-			{
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: error while processing packet "
-				    "#%u\n", current_superframe_sf,
-				    sent_packets + 1);
-				delete elem;
-				elem = nullptr;
-				state = state_next_encap_pkt;
-				break;
-			}
-
-			LOG(this->log_scheduling, LEVEL_DEBUG,
-			    "SF#%u: %s encapsulated packet length = %d kbits (%d bytes)",
-			    current_superframe_sf,
-			    remaining_data ? "Partial" : "Complete",
-			    data ? (data->getTotalLength() << 3) / 1000 : 0,
-			    data ? data->getTotalLength() : 0);
-
-			// Check the frame allows data
-			state = data ? state_add_data : state_finalize_frame;
-
-			// Replace the fifo first element with the remaining data
-			if(remaining_data)
-			{
-				// Re-insert packet
-				elem->setElem(std::move(remaining_data));
-				fifo->pushFront(elem);
-			}
-			else
-			{
-				// Delete packet
-				delete elem;
-				elem = NULL;
-			}
-			break;
-			
-		case state_add_data:       // Add data of the chunk of encapsulated packets
+		// Check the frame allows data
+		bool missing_alloc = this->remaining_data != nullptr;
+	
+		if (data)
+		{
 			// Add data to the frame
-			if(!incomplete_dvb_frame->addPacket(data.get()))
+			if(!incomplete_dvb_frame->addPacket(*data))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to add encapsulation "
@@ -314,9 +161,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    incomplete_dvb_frame->getModcodId(),
 				    data->getTotalLength(),
 				    incomplete_dvb_frame->getFreeSpace());
-
-				state = state_error;
-				break;
+				return false;
 			}
 
 			// Delete the NetPacket once it has been copied in the DVB-RCS2 Frame
@@ -335,21 +180,22 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Check the frame is completed
 			if(incomplete_dvb_frame->getFreeSpace() <= 0)
 			{
-				state = state_finalize_frame;
-				break;
+				missing_alloc = true;
 			}
 			
 			// Check there is enough remaining allocation
 			if(remaining_allocation_b <= frame_length_b)
 			{
-				state = state_finalize_frame;
-				break;
+				missing_alloc = true;
 			}
+		}
+		else
+		{
+			missing_alloc = true;
+		}
 
-			state = state_next_encap_pkt;
-			break;
-
-		case state_finalize_frame: // Finalize frame
+		if (missing_alloc)
+		{
 			// is there any packets in the current DVB-RCS frame ?
 			if(incomplete_dvb_frame->getNumPackets() <= 0)
 			{
@@ -360,9 +206,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    incomplete_dvb_frame->getFreeSpace());
 
 				frame_length_b = 0;
-				
-				state = state_error;
-				break;
+				return false;
 			}
 			
 			LOG(this->log_scheduling, LEVEL_DEBUG,
@@ -372,9 +216,9 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    complete_frames_count + 1);
 
 			// Store DVB-RCS2 frame with completed frames
-			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
+			complete_dvb_frames.push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
 			complete_frames_count++;
-			remaining_allocation_b = (vol_b_t)std::max((int)(remaining_allocation_b - frame_length_b), 0);
+			remaining_allocation_b -= std::min(frame_length_b, remaining_allocation_b);
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 				"SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
 				current_superframe_sf,
@@ -383,25 +227,20 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				remaining_allocation_b >> 3);
 
 			// Check the remaining allocation
-			if(remaining_allocation_b <= 0)
+			if(!remaining_allocation_b)
 			{
-				incomplete_dvb_frame = NULL;
-
-				state = state_end;
-				break;
+				incomplete_dvb_frame.reset();
+				return true;
 			}
 
 			// Create a new incomplete DVB-RCS2 frame
-			if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
+			if(!this->allocateDvbRcsFrame(incomplete_dvb_frame))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to create a new DVB frame\n",
 				    current_superframe_sf);
-
-				state = state_error;
-				break;
+				return false;
 			}
-			//frame_length_b = incomplete_dvb_frame->getHeaderLength() << 3;
 			frame_length_b = 0;
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 				"SF#%u: DVB Frame filling (%d packets): used %d kbits (%d bytes), free %d kbits (%d bytes)",
@@ -411,30 +250,137 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				frame_length_b >> 3,
 				(incomplete_dvb_frame->getFreeSpace() << 3) / 1000,
 				incomplete_dvb_frame->getFreeSpace());
-
-			state = state_next_encap_pkt;
-			break;
-
-		default:
-			state = state_error;
-			LOG(this->log_scheduling, LEVEL_ERROR,
-			    "SF#%u: an unexpected error occurred during scheduling\n",
-			    current_superframe_sf);
-			break;
 		}
+
+		// Replace the fifo current element with the remaining data
+		encap_packet = std::move(this->remaining_data);
 	}
 
-	// Check error
-	if(state == state_error)
+	return true;
+}
+
+
+bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
+                                       std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+                                       vol_b_t &remaining_allocation_b)
+{
+	Rt::Ptr<DvbRcsFrame> incomplete_dvb_frame = Rt::make_ptr<DvbRcsFrame>(nullptr);
+
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: attempt to extract encap packets from MAC"
+	    " FIFOs (remaining allocation = %d kbits)\n",
+	    current_superframe_sf,
+	    remaining_allocation_b / 1000);
+
+	// create an incomplete DVB-RCS frame
+	if(!this->allocateDvbRcsFrame(incomplete_dvb_frame))
 	{
-		delete incomplete_dvb_frame;
-		incomplete_dvb_frame = NULL;
 		return false;
+	}
+
+	vol_b_t frame_length_b = 0;
+	//frame_length_b = incomplete_dvb_frame->getHeaderLength() << 3;
+
+	// extract encap packets from MAC FIFOs while some UL capacity is available
+	// (MAC fifos priorities are in MAC IDs order)
+	// fifo are classified by priority value (map are ordered)
+	unsigned int complete_frames_count = 0;
+	unsigned int sent_packets = 0;
+
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
+	    current_superframe_sf,
+	    complete_frames_count,
+	    remaining_allocation_b / 1000,
+	    remaining_allocation_b >> 3);
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+		"SF#%u: DVB Frame filling (%d packets): used %d kbits (%d bytes), free %d kbits (%d bytes)",
+		current_superframe_sf,
+		incomplete_dvb_frame->getNumPackets(),
+		frame_length_b / 1000,
+		frame_length_b >> 3,
+		(incomplete_dvb_frame->getFreeSpace() << 3) / 1000,
+		incomplete_dvb_frame->getFreeSpace());
+
+	if (!this->schedulePacket(current_superframe_sf,
+	                          sent_packets,
+	                          complete_frames_count,
+	                          frame_length_b,
+	                          remaining_allocation_b,
+	                          complete_dvb_frames,
+	                          incomplete_dvb_frame,
+	                          std::move(this->remaining_data)))
+	{
+		return false;
+	}
+
+	for (auto&& fifo_it: *(this->dvb_fifos))
+	{
+		if (!remaining_allocation_b)
+		{
+			break;
+		}
+
+		DvbFifo &fifo = *(fifo_it.second);
+		if (fifo.getAccessType() == ForwardOrReturnAccessType{ReturnAccessType::saloha})
+		{
+			// not the good fifo
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+			    "SF#%u: ignore MAC FIFO %s  "
+			    "not the right access type (%d)\n",
+			    current_superframe_sf,
+			    fifo.getName(),
+			    fifo.getAccessType());
+			continue;
+		}
+
+		for (auto &&elem: fifo)
+		{
+			// FIFO with awaiting data
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+			    "SF#%u: extract packet from "
+			    "MAC FIFO %s: "
+			    "%u awaiting packets (remaining "
+			    "allocation = %d kbits)\n",
+			    current_superframe_sf,
+			    fifo.getName(),
+			    fifo.getCurrentSize(),
+			    remaining_allocation_b / 1000);
+
+			Rt::Ptr<NetPacket> encap_packet = elem->releaseElem<NetPacket>();
+			if(!encap_packet)
+			{
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "SF#%u: error while getting packet (null) "
+				    "#%u\n", current_superframe_sf,
+				    sent_packets + 1);
+			}
+			else
+			{
+				// extract next encap packet context from MAC fifo
+				if (!this->schedulePacket(current_superframe_sf,
+				                          sent_packets,
+				                          complete_frames_count,
+				                          frame_length_b,
+				                          remaining_allocation_b,
+				                          complete_dvb_frames,
+				                          incomplete_dvb_frame,
+				                          std::move(encap_packet)))
+				{
+					return false;
+				}
+
+				if (!remaining_allocation_b)
+				{
+					break;
+				}
+			}
+		}
 	}
 
 	// Add the incomplete DVB-RCS2 frame to the list of complete DVB-RCS2 frame
 	// if it is not empty
-	if(incomplete_dvb_frame != NULL)
+	if(incomplete_dvb_frame != nullptr)
 	{
 		if(0 < incomplete_dvb_frame->getNumPackets())
 		{
@@ -445,7 +391,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    complete_frames_count + 1);
 
 			// Store DVB-RCS2 frame with completed frames
-			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
+			complete_dvb_frames.push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
 			complete_frames_count++;
 			remaining_allocation_b = (vol_b_t)std::max((int)(remaining_allocation_b - frame_length_b), 0);
 			LOG(this->log_scheduling, LEVEL_DEBUG,
@@ -454,11 +400,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				complete_frames_count,
 				remaining_allocation_b / 1000,
 				remaining_allocation_b >> 3);
-		}
-		else
-		{
-			delete incomplete_dvb_frame;
-			incomplete_dvb_frame = NULL;
 		}
 	}
 
@@ -473,13 +414,13 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	return true;
 }
 
-bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame)
+bool ReturnSchedulingRcs2::allocateDvbRcsFrame(Rt::Ptr<DvbRcsFrame> &incomplete_dvb_frame)
 {
 	vol_bytes_t length_bytes;
 
 	try
 	{
-		*incomplete_dvb_frame = new DvbRcsFrame();
+		incomplete_dvb_frame = Rt::make_ptr<DvbRcsFrame>();
 	}
 	catch (const std::bad_alloc&)
 	{ 
@@ -492,14 +433,13 @@ bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_fram
 	length_bytes = this->max_burst_length_b >> 3;
 	if(length_bytes <= 0)
 	{
-		delete (*incomplete_dvb_frame);
-		*incomplete_dvb_frame = nullptr;
+		incomplete_dvb_frame.reset();
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "failed to create DVB-RCS2 frame: invalid burst length\n");
 		return false;
 	}
 
-	length_bytes += (*incomplete_dvb_frame)->getHeaderLength();
+	length_bytes += incomplete_dvb_frame->getHeaderLength();
 	//length_bytes += sizeof(T_DVB_PHY);
 	if(MSG_DVB_RCS_SIZE_MAX < length_bytes)
 	{
@@ -508,14 +448,14 @@ bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_fram
 
 	// set the max size of the DVB-RCS2 frame, also set the type
 	// of encapsulation packets the DVB-RCS2 frame will contain
-	(*incomplete_dvb_frame)->setMaxSize(length_bytes);
+	incomplete_dvb_frame->setMaxSize(length_bytes);
 
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "new DVB-RCS2 frame with max length %u bytes (<= %u bytes), "
 	    "payload length %u bytes, header length %u bytes\n",
-	    (*incomplete_dvb_frame)->getMaxSize(),
+	    incomplete_dvb_frame->getMaxSize(),
 	    MSG_DVB_RCS_SIZE_MAX,
-	    (*incomplete_dvb_frame)->getFreeSpace(),
-	    (*incomplete_dvb_frame)->getHeaderLength());
+	    incomplete_dvb_frame->getFreeSpace(),
+	    incomplete_dvb_frame->getHeaderLength());
 	return true;
 }

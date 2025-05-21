@@ -39,6 +39,7 @@
 #include "Gate.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/Types.h>
 
 
 Gate::Gate():ErrorInsertionPlugin()
@@ -83,7 +84,7 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 }
 
 
-bool Gate::modifyPacket(const Data &)
+bool Gate::modifyPacket(const Rt::Data &)
 {
 	LOG(this->log_error, LEVEL_INFO,
 	    "Payload is modified\n");

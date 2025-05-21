@@ -31,14 +31,13 @@
  * @brief Generic LAN adaptation plugin
  */
 
+#include <opensand_output/Output.h>
+
 #include "LanAdaptationPlugin.h"
 #include "NetBurst.h"
 #include "NetContainer.h"
 #include "SarpTable.h"
-
-#include <opensand_output/Output.h>
-
-#include <cassert>
+#include "Except.h"
 
 
 LanAdaptationPlugin::LanAdaptationPlugin(NET_PROTO ether_type):
@@ -48,9 +47,7 @@ LanAdaptationPlugin::LanAdaptationPlugin(NET_PROTO ether_type):
 
 bool LanAdaptationPlugin::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "LanAdaptation.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Lan_Adaptation." + this->getName());
 	return true;
 }
 
@@ -62,35 +59,33 @@ LanAdaptationPlugin::LanAdaptationPacketHandler::LanAdaptationPacketHandler(LanA
 
 bool LanAdaptationPlugin::LanAdaptationPacketHandler::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "LanAdaptation.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Lan_Adaptation." + this->getName());
 	return true;
 }
 
 
 std::size_t LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength() const
 {
-	assert(0);
+	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength");
 }
 
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(std::unique_ptr<NetPacket>,
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(Rt::Ptr<NetPacket>,
                                                                       std::size_t,
                                                                       bool,
-                                                                      std::unique_ptr<NetPacket> &,
-                                                                      std::unique_ptr<NetPacket> &)
+                                                                      Rt::Ptr<NetPacket> &,
+                                                                      Rt::Ptr<NetPacket> &)
 {
-	assert(0);
+	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket");
 }
 
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer>,
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContainer>,
                                                                              bool &,
-                                                                             std::vector<std::unique_ptr<NetPacket>> &,
+                                                                             std::vector<Rt::Ptr<NetPacket>> &,
                                                                              unsigned int)
 {
-	assert(0);
+	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets");
 }
 
 
@@ -102,21 +97,19 @@ LanAdaptationPlugin::LanAdaptationContext::LanAdaptationContext(LanAdaptationPlu
 
 bool LanAdaptationPlugin::LanAdaptationContext::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "LanAdaptation.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Lan_Adaptation." + this->getName());
 	return true;
 }
 
 bool LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id_t tal_id,
-                                                                         PacketSwitch *packet_switch)
+                                                                         std::shared_ptr<PacketSwitch> packet_switch)
 {
 	this->tal_id = tal_id;
 	this->packet_switch = packet_switch;
 	return true;
 }
 
-bool LanAdaptationPlugin::LanAdaptationContext::setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
+bool LanAdaptationPlugin::LanAdaptationContext::setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl)
 {
 	if(!pkt_hdl && this->handle_net_packet)
 	{

@@ -37,7 +37,6 @@
 
 #include <string>
 
-#include <Data.h>
 #include <NetPacket.h>
 #include <MacAddress.h>
 

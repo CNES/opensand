@@ -35,43 +35,57 @@
  */
 
 
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <sched.h>
+#include <unistd.h>
+#include <thread>
+
 #include <opensand_rt/Rt.h>
 
 #include "DelayFifo.h"
 #include "FifoElement.h"
 #include "OpenSandCore.h"
 #include "NetContainer.h"
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <sched.h>
-#include <unistd.h>
 
-time_ms_t elem_times[5] = {0, 10, 20, 30, 40};
+
+time_ms_t elem_times[5] = {time_ms_t(0), time_ms_t(10), time_ms_t(20), time_ms_t(30), time_ms_t(40)};
+
 
 int main()
 {
-	int is_failure = 1;
-	time_ms_t current_time;
-	DelayFifo *fifo = new DelayFifo(1000);
+	DelayFifo fifo{1000};
 
 	// Add elements to fifo
-	current_time = getCurrentTime();
-
-	for(unsigned int i=0; i < sizeof(elem_times); i++)
+	time_ms_t max_time = time_ms_t::zero();
+	for (auto &&duration: elem_times)
 	{
-		FifoElement *elem = new FifoElement(nullptr, current_time, current_time + elem_times[i]);
-		fifo->push(elem);
+		if (duration > max_time)
+		{
+			max_time = duration;
+		}
+		fifo.push(Rt::make_ptr<NetContainer>(nullptr), duration);
+	}
+
+	std::this_thread::sleep_for(max_time);
+
+	std::size_t remaining = sizeof(elem_times);
+	for (auto &&elem: fifo)
+	{
+		--remaining;
 	}
 
 	// everything went fine, so report success
-	is_failure = 0;
-
-	while(fifo->getCurrentSize() > 0)
+	if (remaining)
 	{
-		FifoElement *elem = fifo->pop();
-		delete elem;
+		return EXIT_FAILURE;
 	}
-	delete fifo;
-	return is_failure;
+
+	if (fifo.getCurrentSize())
+	{
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
 }

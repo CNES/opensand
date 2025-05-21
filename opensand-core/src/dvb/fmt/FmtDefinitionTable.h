@@ -45,8 +45,6 @@
 #include <map>
 
 
-typedef std::map<fmt_id_t, FmtDefinition *>::const_iterator fmt_def_table_pos_t;
-
 /**
  * @class FmtDefinitionTable
  * @brief The table of definitions of FMTs
@@ -55,7 +53,7 @@ class FmtDefinitionTable
 {
 private:
 	/** The internal map that stores all the FMT definitions */
-	std::map<fmt_id_t, FmtDefinition *> definitions;
+	std::map<fmt_id_t, std::unique_ptr<FmtDefinition>> definitions;
 
 protected:
 	// Output Log
@@ -78,7 +76,7 @@ public:
 	 * @param fmt_def  the new FMT
 	 * @return         true if the addition is successful, false otherwise
 	 */
-	bool add(FmtDefinition *fmt_def);
+	bool add(std::unique_ptr<FmtDefinition> fmt_def);
 
 	/**
 	 * @brief Does a FMT definition with the given ID exist ?
@@ -100,7 +98,7 @@ public:
 	 *
 	 * @return    definitions
 	 */
-	std::map<fmt_id_t, FmtDefinition* > getDefinitions(void) const;
+	//std::map<fmt_id_t, std::unique_ptr<FmtDefinition>> getDefinitions() const;
 
 	/**
 	 * @brief Get a FMT definition in the table
@@ -108,7 +106,7 @@ public:
 	 * @param id  The definition ID
 	 * @return  the definition
 	 */
-	FmtDefinition *getDefinition(fmt_id_t id) const;
+	FmtDefinition &getDefinition(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the modulation efficiency of the FMT definition
@@ -225,7 +223,7 @@ public:
 	vol_sym_t kbitsToSym(fmt_id_t id,
 	                     vol_kb_t vol_kb) const;
 
-	void print(void) const; /// For debug
+	void print() const; /// For debug
 };
 
 #endif

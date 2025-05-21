@@ -51,7 +51,7 @@ public:
 	/**
 	 * Build an entity network/access gateway process
 	 */
-	EntityGwNetAcc(tal_id_t instance_id);
+	EntityGwNetAcc(tal_id_t instance_id, bool check_mode);
 
 	/**
 	 * Destroy an entity network/access gateway process

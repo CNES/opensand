@@ -34,17 +34,18 @@
 #ifndef _DAMA_AGENT_H_
 #define _DAMA_AGENT_H_
 
+#include <list>
+
 #include "Ttp.h"
 #include "Sac.h"
-#include "DvbFifo.h"
+#include "DvbFifoTypes.h"
 #include "DvbFrame.h"
 #include "OpenSandCore.h"
 #include "EncapPlugin.h"
 #include "Logon.h"
 
-#include <opensand_output/Output.h>
-
-#include <list>
+class OutputLog;
+template<typename> class Probe;
 
 
 /**
@@ -71,7 +72,7 @@ public:
 	/**
 	 * @brief  Initalize the DAMA Agent common parameters
 	 *
-	 * @param frame_duration_ms      The frame duration (in ms)
+	 * @param frame_duration         The frame duration
 	 * @param cra_kbps               The CRA value (in kbits/s)
 	 * @param max_rbdc_kbps          The maximum RBDC value (in kbits/s)
 	 * @param rbdc_timeout_sf        The RBDC timeout (in superframe number)
@@ -86,15 +87,15 @@ public:
 	 * @param dvb_fifos              The MAC FIFOs
 	 * @return true on success, false otherwise
 	 */
-	bool initParent(time_ms_t frame_duration_ms,
+	bool initParent(time_us_t frame_duration,
 	                rate_kbps_t cra_kbps,
 	                rate_kbps_t max_rbdc_kbps,
 	                time_sf_t rbdc_timeout_sf,
 	                vol_kb_t max_vbdc_kb,
 	                time_sf_t msl_sf,
 	                time_sf_t sync_period_sf,
-	                EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                const fifos_t &dvb_fifos,
+	                std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+	                std::shared_ptr<fifos_t> dvb_fifos,
 	                spot_id_t spot_id);
 
 	/**
@@ -114,7 +115,7 @@ public:
 	 * @param response logon response.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool hereIsLogonResp(const LogonResponse *response);
+	virtual bool hereIsLogonResp(Rt::Ptr<LogonResponse> response);
 
 	/**
 	 * @brief Called when the DVB RCS layer receive a SOF.
@@ -134,7 +135,7 @@ public:
 	 * @param ttp received TTP.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool hereIsTTP(Ttp *ttp) = 0;
+	virtual bool hereIsTTP(Rt::Ptr<Ttp> ttp) = 0;
 
 	/**
 	 * @brief Build SAC.
@@ -145,7 +146,7 @@ public:
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool buildSAC(ReturnAccessType cr_type,
-	                      Sac *sac,
+	                      Rt::Ptr<Sac> &sac,
 	                      bool &empty) = 0;
 
 	/**
@@ -154,7 +155,7 @@ public:
 	 * @param complete_dvb_frames  created DVB frames.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool returnSchedule(std::list<DvbFrame *> *complete_dvb_frames) = 0;
+	virtual bool returnSchedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.
@@ -183,10 +184,10 @@ protected:
 	bool is_parent_init;
 
 	/** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler;
 
 	/** The MAC FIFOs */
-	fifos_t dvb_fifos;
+	std::shared_ptr<fifos_t> dvb_fifos;
 
 	/** Terminal ID of the ST */
 	tal_id_t tal_id;
@@ -202,7 +203,7 @@ protected:
 	bool vbdc_enabled;
 
 	/** Frame duration (in ms) */
-	time_ms_t frame_duration_ms;
+	time_us_t frame_duration;
 	/** CRA value for ST (in kb/s) */
 	rate_kbps_t cra_kbps;
 	/** RBDC max value (in kb/s) */
@@ -239,5 +240,5 @@ protected:
 	std::shared_ptr<Probe<int>> probe_st_remaining_allocation;
 };
 
-#endif
 
+#endif

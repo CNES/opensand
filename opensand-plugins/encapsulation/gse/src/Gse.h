@@ -37,13 +37,14 @@
 #define GSE_CONTEXT_H
 
 
-#include "GseIdentifier.h"
-
-#include <EncapPlugin.h>
-
 #include <map>
 #include <string>
 #include <vector>
+
+#include <EncapPlugin.h>
+
+#include "GseIdentifier.h"
+
 
 extern "C"
 {
@@ -90,7 +91,7 @@ class Gse: public EncapPlugin
 		uint8_t *buf;
 		/// Temporary buffers for encapsulation contexts. Contexts are identified
 		/// by an unique identifier
-		std::map<GseIdentifier *, GseEncapCtx *, ltGseIdentifier> contexts;
+		std::map<GseIdentifier, GseEncapCtx, ltGseIdentifier> contexts;
 		/// The packing threshold for encapsulation. Packing Threshold is the time
 		/// the context can wait for additional SNDU packets to fill the incomplete
 		/// GSE packet before sending the GSE packet with padding.
@@ -106,26 +107,26 @@ class Gse: public EncapPlugin
 		~Context();
 
 		bool init();
-		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &time_contexts);
-		NetBurst *deencapsulate(NetBurst *burst);
-		NetBurst *flush(int context_id);
-		NetBurst *flushAll();
+		Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &time_contexts);
+		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst);
+		Rt::Ptr<NetBurst> flush(int context_id);
+		Rt::Ptr<NetBurst> flushAll();
 
 	 private:
-		bool encapFixedLength(NetPacket *packet, NetBurst *gse_packets, long &time);
-		bool encapVariableLength(NetPacket *packet, NetBurst *gse_packets);
-		bool encapPacket(NetPacket *packet, NetBurst *gse_packets);
+		bool encapFixedLength(Rt::Ptr<NetPacket> packet, NetBurst &gse_packets, long &time);
+		bool encapVariableLength(Rt::Ptr<NetPacket> packet, NetBurst &gse_packets);
+		bool encapPacket(Rt::Ptr<NetPacket> packet, NetBurst &gse_packets);
 		bool deencapPacket(gse_vfrag_t *vfrag_gse,
 		                   uint16_t dest_spot,
-		                   NetBurst *net_packets);
+		                   NetBurst &net_packets);
 		bool deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 		                        uint16_t dest_spot,
 		                        uint8_t label[6],
-		                        NetBurst *net_packets);
+		                        NetBurst &net_packets);
 		bool deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 		                           uint16_t dest_spot,
 		                           uint8_t label[6],
-		                           NetBurst *net_packets);
+		                           NetBurst &net_packets);
 	};
 
 	/**
@@ -141,34 +142,35 @@ class Gse: public EncapPlugin
 	 public:
 		PacketHandler(EncapPlugin &plugin);
 
-		std::unique_ptr<NetPacket> build(const Data &data,
-		                                 std::size_t data_length,
-		                                 uint8_t qos,
-		                                 uint8_t src_tal_id,
-		                                 uint8_t dst_tal_id) const override;
+		Rt::Ptr<NetPacket> build(const Rt::Data &data,
+		                         std::size_t data_length,
+		                         uint8_t qos,
+		                         uint8_t src_tal_id,
+		                         uint8_t dst_tal_id) override;
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
-		bool getSrc(const Data &data, tal_id_t &tal_id) const;
-		bool getQos(const Data &data, qos_t &qos) const;
+		bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const;
+		bool getDst(const Rt::Data &data, tal_id_t &tal_id) const;
+		bool getQos(const Rt::Data &data, qos_t &qos) const;
 
-		bool checkPacketForHeaderExtensions(std::unique_ptr<NetPacket> &packet) override;
-		bool setHeaderExtensions(std::unique_ptr<NetPacket> packet,
-		                         std::unique_ptr<NetPacket>& new_packet,
+		bool checkPacketForHeaderExtensions(Rt::Ptr<NetPacket> &packet) override;
+		bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
+		                         Rt::Ptr<NetPacket>& new_packet,
 		                         tal_id_t tal_id_src,
 		                         tal_id_t tal_id_dst,
 		                         std::string callback,
 		                         void *opaque) override;
 
-		bool getHeaderExtensions(const std::unique_ptr<NetPacket>& packet,
+		bool getHeaderExtensions(const Rt::Ptr<NetPacket>& packet,
 		                         std::string callback,
 		                         void *opaque) override;
 
 	 protected:
-		bool getChunk(std::unique_ptr<NetPacket> packet,
-                  std::size_t remaining_length,
-		              std::unique_ptr<NetPacket>& data,
-                  std::unique_ptr<NetPacket>& remaining_data) const override;
+		bool getChunk(Rt::Ptr<NetPacket> packet,
+		              std::size_t remaining_length,
+		              Rt::Ptr<NetPacket>& data,
+		              Rt::Ptr<NetPacket>& remaining_data) override;
 	};
 
 	/// Constructor
@@ -191,7 +193,7 @@ class Gse: public EncapPlugin
 	 * @param   label   The label to set values of.
 	 * @return  true on success, false otherwise.
 	 */
-	static bool setLabel(NetPacket *packet, uint8_t label[]);
+	static bool setLabel(const NetPacket &packet, uint8_t label[]);
 
 	/**
 	 * @brief  Set the GSE packet label
@@ -200,7 +202,7 @@ class Gse: public EncapPlugin
 	 * @param   label   The label to set values of.
 	 * @return  true on success, false otherwise.
 	 */
-	static bool setLabel(GseEncapCtx *context, uint8_t label[]);
+	static bool setLabel(const GseEncapCtx &context, uint8_t label[]);
 
 	/**
 	 * @brief   Get the source TAL Id from label.
@@ -228,14 +230,14 @@ class Gse: public EncapPlugin
 	 * @param   packet  The packet to create the frag id from..
 	 * @return  the frag id.
 	 */
-	static uint8_t getFragId(NetPacket *packet);
+	static uint8_t getFragId(const NetPacket &packet);
 
 	/**
 	 * @brief   Create a fragment id from a GSE context.
 	 * @param   contextt  The context to create the frag id from..
 	 * @return  the frag id.
 	 */
-	static uint8_t getFragId(GseEncapCtx *context);
+	static uint8_t getFragId(const GseEncapCtx &context);
 
 	/**
 	 * @brief   Get the source TAL Id from a fragment id..

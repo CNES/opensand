@@ -1,10 +1,8 @@
 import React from 'react';
 
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
 
-import DownloadIcon from '@mui/icons-material/GetApp';
 import ErrorIcon from '@mui/icons-material/Error';
 import LaunchIcon from '@mui/icons-material/PlaylistPlay';
 import NothingIcon from '@mui/icons-material/Cancel';
@@ -23,7 +21,7 @@ import type {Component} from '../../xsd';
 
 
 const EntityAction: React.FC<Props> = (props) => {
-    const {project, entity, onDownload} = props;
+    const {project, entity} = props;
 
     const sshConfigured = useSelector((state) => state.ssh.configured);
     const state = useSelector((state) => state.action);
@@ -34,47 +32,39 @@ const EntityAction: React.FC<Props> = (props) => {
     const [forceStatusCheck, setForceStatusCheck] = React.useState<object>({});
 
     const handleCopy = React.useCallback((entity: string, folder: string) => {
-        if (project) {
-            dispatch(copyEntityConfiguration({project, entity, folder}));
-        }
+        dispatch(copyEntityConfiguration({project, entity, folder}));
     }, [dispatch, project]);
 
     const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, action: string, address: string) => {
-        if (project) {
-            dispatch(runSshCommand({
-                action: () => setDeployParameters({
-                    project, entity, address,
-                    folder, copyMethod: mode,
-                    runMethod: action,
-                })
-            }));
-        }
+        dispatch(runSshCommand({
+            action: () => setDeployParameters({
+                project, entity, address,
+                folder, copyMethod: mode,
+                runMethod: action,
+            })
+        }));
     }, [dispatch, project]);
 
     const handlePing = React.useCallback((entity: string, address: string) => {
-        if (project) {
-            dispatch(findPingDestinations({project}));
-            dispatch(setPingingEntity({name: entity, address}));
-        }
+        dispatch(findPingDestinations({project}));
+        dispatch(setPingingEntity({name: entity, address}));
     }, [dispatch, project]);
 
     React.useEffect(() => {
-        if (entity) {
-            const entityName = entity.elements.find((p) => (
-                isParameterElement(p) && p.element.id === "entity_name"
-            ));
-            if (isParameterElement(entityName)) {
-                const name = entityName.element.value;
-                const config = state[name];
-                if (!config) {
-                    dispatch(createEntityAction(name));
-                }
+        const entityName = entity.elements.find((p) => (
+            isParameterElement(p) && p.element.id === "entity_name"
+        ));
+        if (isParameterElement(entityName)) {
+            const name = entityName.element.value;
+            const config = state[name];
+            if (!config) {
+                dispatch(createEntityAction(name));
             }
         }
     }, [dispatch, state, entity]);
 
     React.useEffect(() => {
-        if (project && entity && sshConfigured) {
+        if (sshConfigured) {
             const now = new Date();
             const expired = new Date(lastStatus);
             expired.setSeconds(expired.getSeconds() + 5);
@@ -110,109 +100,100 @@ const EntityAction: React.FC<Props> = (props) => {
         }
     }, [dispatch, deployParameters]);
 
-    let title = "Error retrieving entity configuration";
+    let title = "Error";
     let clickAction: (() => void) | undefined = undefined;
     let child = <ErrorIcon />;
     let disabled = true;
 
-    if (entity) {
-        const entityConfig: {[key: string]: string;} = {};
-        entity.elements.forEach((p) => {
-            if (isParameterElement(p)) {
-                entityConfig[p.element.id] = p.element.value;
+    const entityConfig: {[key: string]: string;} = {};
+    entity.elements.forEach((p) => {
+        if (isParameterElement(p)) {
+            entityConfig[p.element.id] = p.element.value;
+        }
+    });
+
+    const {entity_name, upload, folder, run, address} = entityConfig;
+    const handleAction = () => handleDeploy(entity_name, upload, folder, run, address);
+
+    const entity_config = state[entity_name];
+    if (!entity_config) {
+        return null;
+    }
+
+    const running = entity_config.running;
+    disabled = !running && entity_config.status === "pending";
+
+    if (running) {
+        title = "OpenSAND is running";
+        child = <CircularProgress size={24} />;
+    }
+
+    switch (run) {
+        case "PING":
+            title = "Ping";
+            child = <PingIcon />;
+            clickAction = () => handlePing(entity_name, address);
+            break;
+        case "STOP":
+            title = "Stop OpenSAND";
+            child = <StopIcon />;
+            clickAction = handleAction;
+            break;
+        case "STATUS":
+            if (!running) {
+                title = "Check running";
+                child = <CircularProgress color="inherit" variant="determinate" value={30} size={24} />;
+                clickAction = handleAction;
             }
-        });
-
-        const {entity_name, upload, folder, run, address} = entityConfig;
-        const handleAction = () => handleDeploy(entity_name, upload, folder, run, address);
-
-        const entity_config = state[entity_name];
-        if (!entity_config) {
-            return null;
-        }
-
-        const running = entity_config.running;
-        disabled = !running && entity_config.status === "pending";
-
-        if (running) {
-            title = "OpenSAND is running";
-            child = <CircularProgress size={24} />;
-        }
-
-        switch (run) {
-            case "PING":
-                title = "Ping the emulated network";
-                child = <PingIcon />;
-                clickAction = () => handlePing(entity_name, address);
+            break;
+        default:
+            if (running) {
                 break;
-            case "STOP":
-                title = "Stop OpenSAND";
-                child = <StopIcon />;
-                clickAction = handleAction;
+            }
+
+            if (!upload && !run) {
+                title = "No action";
+                child = <NothingIcon />;
+                disabled = true;
                 break;
-            case "STATUS":
-                if (!running) {
-                    title = "Check if OpenSAND is running";
-                    child = <CircularProgress color="inherit" variant="determinate" value={30} size={24} />;
-                    clickAction = handleAction;
-                }
+            }
+
+            if (!folder) {
+                title = "No folder";
+                child = <UploadIcon />;
+                disabled = true;
                 break;
-            default:
-                if (upload === "Download") {
-                    title = "Download configuration files";
-                    child = <DownloadIcon />;
-                    clickAction = () => onDownload(entity_name);
-                    break;
-                }
+            }
 
-                if (running) {
-                    break;
-                }
-
-                if (!upload && !run) {
-                    title = "No action configured for this entity";
-                    child = <NothingIcon />;
-                    disabled = true;
-                    break;
-                }
-
-                if (!folder) {
-                    title = "No folder to upload into";
-                    child = <UploadIcon />;
-                    disabled = true;
-                    break;
-                }
-
-                if (!run) {
-                    title = "Deploy configuration files";
-                    child = <UploadIcon />;
-                    clickAction = upload === "NFS" ? (() => handleCopy(entity_name, folder)) : handleAction;
-                    break;
-                }
-
-                title = !upload ? "Launch OpenSAND without configuration" : "Configure and launch OpenSAND";
-                child = <LaunchIcon color={!upload ? "disabled" : "inherit"} />;
-                clickAction = handleAction;
+            if (!run) {
+                title = "Deploy configuration";
+                child = <UploadIcon />;
+                clickAction = upload === "NFS" ? (() => handleCopy(entity_name, folder)) : handleAction;
                 break;
-        }
+            }
+
+            title = !upload ? "Launch (without configuration)" : "Launch";
+            child = <LaunchIcon color={!upload ? "disabled" : "inherit"} />;
+            clickAction = handleAction;
+            break;
     }
 
     return (
-        <Tooltip title={title} placement="top">
-            <span>
-                <IconButton size="small" disabled={disabled} onClick={clickAction}>
-                    {child}
-                </IconButton>
-            </span>
-        </Tooltip>
+        <Button
+            variant="outlined"
+            startIcon={child}
+            disabled={disabled}
+            onClick={clickAction}
+        >
+            {title}
+        </Button>
     );
 };
 
 
 interface Props {
-    project?: string;
-    entity?: Component;
-    onDownload: (entity?: string) => void;
+    project: string;
+    entity: Component;
 }
 
 

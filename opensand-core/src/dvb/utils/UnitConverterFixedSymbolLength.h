@@ -52,14 +52,13 @@ public:
 	/**
 	 * @brief Create the unit converter
 	 *
-	 * @param  duration_ms  The frame duration in ms
+	 * @param  duration     The frame duration
 	 * @param  efficiency   The modulation efficiency
 	 * @param  length_sym   The fixed packet length in symbols
 	 */
-	UnitConverterFixedSymbolLength(
-		time_ms_t duration_ms,
-		unsigned int efficiency,
-		vol_sym_t length_sym);
+	UnitConverterFixedSymbolLength(time_us_t duration,
+	                               unsigned int efficiency,
+	                               vol_sym_t length_sym);
 	virtual ~UnitConverterFixedSymbolLength();
 
 	/**

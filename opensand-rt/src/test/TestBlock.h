@@ -41,59 +41,60 @@
 
 #include <utility>
 
-class TestBlock: public Block
+
+template<>
+class Rt::UpwardChannel<class TestBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<TestBlock>>
+{
+ public:
+	UpwardChannel (const std::string& name);
+	~UpwardChannel ();
+
+	void setOutputFd (int32_t fd);
+
+	bool onInit () override;
+
+	using Rt::ChannelBase::onEvent;
+	bool onEvent (const Rt::Event& event) override;
+	bool onEvent (const Rt::TimerEvent& event) override;
+	bool onEvent (const Rt::MessageEvent& event) override;
+
+ protected:
+	uint32_t nbr_timeouts;
+	int32_t output_fd;
+
+	/// the data written by timer that should be read on socket
+	std::string last_written;
+};
+
+
+template<>
+class Rt::DownwardChannel<class TestBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<TestBlock>>
+{
+ public:
+	DownwardChannel (const std::string& name);
+	~DownwardChannel ();
+
+	void setInputFd (int32_t fd);
+
+	bool onInit () override;
+
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::FileEvent& event) override;
+
+ protected:
+	int32_t input_fd;
+};
+
+
+class TestBlock: public Rt::Block<TestBlock>
 {
   public:
-
 	TestBlock(const std::string &name);
 	~TestBlock();
 
-	class Upward : public RtUpward
-	{
-	 public:
-	 	Upward(const std::string &name) :
-			RtUpward(name),
-			nbr_timeouts(0),
-			output_fd(-1)
-	 	{};
-	 	~Upward();
-	 	
-	 	void setOutputFd(int32_t fd);
-	 	
-	 protected:
-	 	
-	 	bool onInit(void);
-	 	bool onEvent(const RtEvent *const event);
-
-		uint32_t nbr_timeouts;
-		int32_t output_fd;
-
-		/// the data written by timer that should be read on socket
-		char last_written[64];
-	};
-
-	class Downward : public RtDownward
-	{
-	 public:
-	 	Downward(const std::string &name) :
-			RtDownward(name),
-			input_fd(-1)
-		{};
-		~Downward();
-	 	
-	 	void setInputFd(int32_t fd);
-	 	
-	 protected:
-	 	
-	 	bool onInit(void);
-	 	bool onEvent(const RtEvent *const event);
-	 	
-	    int32_t input_fd;
-	};
-	
   protected:
-
-	bool onInit(void);
+	bool onInit() override;
 };
 
 

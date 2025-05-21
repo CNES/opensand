@@ -124,7 +124,7 @@ export const fromXSD = (xsdContent: string): Model.Model => {
         "xs:simpleType": [],
     };
 
-    parseXML(xsdContent, function(err: Error, result: {"xs:schema": Schema}) {
+    parseXML(xsdContent, function(err: Error | null, result: {"xs:schema": Schema}) {
         schema = result["xs:schema"];
     });
 
@@ -282,7 +282,7 @@ export const fromXML = (model: Model.Model, xmlContent: string) => {
         root: [],
     };
 
-    parseXML(xmlContent, function (err: Error, result: {model: DataModel;}) {
+    parseXML(xmlContent, function (err: Error | null, result: {model: DataModel;}) {
         dataModel = result.model;
     });
 

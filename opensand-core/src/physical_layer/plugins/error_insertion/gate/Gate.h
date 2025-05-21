@@ -34,12 +34,9 @@
 #define GATE_ERROR_PLUGIN_H
 
 
-#include "PhysicalLayerPlugin.h"
-
 #include <string>
 
-
-class Data;
+#include "PhysicalLayerPlugin.h"
 
 
 /**
@@ -66,7 +63,7 @@ public:
 	                                  const std::string &param_id,
 	                                  const std::string &plugin_name);
 
-	bool init();
+	bool init() override;
 
 	/**
 	 * @brief Corrupt a package with error bits 
@@ -75,7 +72,7 @@ public:
 	 * @return true if DVB header should be tagged as corrupted,
 	 *         false otherwise
 	 */
-	bool modifyPacket(const Data &payload);
+	bool modifyPacket(const Rt::Data &payload) override;
 
 	/**
 	 * @brief Determine if a Packet shall be corrupted or not depending on
@@ -86,8 +83,7 @@ public:
 	 *
 	 * @return true if it must be corrupted, false otherwise 
 	 */
-	bool isToBeModifiedPacket(double cn_total,
-	                          double threshold_qef);
+	bool isToBeModifiedPacket(double cn_total, double threshold_qef) override;
 };
 
 

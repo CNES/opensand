@@ -35,17 +35,33 @@
 
 #include <tuple>
 
+#include <opensand_rt/MessageEvent.h>
+
 #include "BlockSatDispatcher.h"
 
 #include "OpenSandModelConf.h"
 #include "CarrierType.h"
-#include <opensand_rt/MessageEvent.h>
+#include "NetBurst.h"
+
 
 constexpr uint8_t DATA_IN_GW_ID = 8;
 constexpr uint8_t CTRL_IN_GW_ID = 4;
 
 
-BlockSatDispatcher::SpotByEntity::SpotByEntity():
+Rt::Ptr<NetBurst>& getNetBurstOrCreate(std::unordered_map<SpotComponentPair, Rt::Ptr<NetBurst>>& map, SpotComponentPair key)
+{
+	auto it = map.find(key);
+	if (it == map.end())
+	{
+		auto result = map.emplace(key, Rt::make_ptr<NetBurst>());
+		it = result.first;
+	}
+
+	return it->second;
+}
+
+
+SpotByEntity::SpotByEntity():
 	spot_by_entity{},
 	default_spot{0}
 {
@@ -53,19 +69,19 @@ BlockSatDispatcher::SpotByEntity::SpotByEntity():
 }
 
 
-void BlockSatDispatcher::SpotByEntity::addEntityInSpot(tal_id_t entity, spot_id_t spot)
+void SpotByEntity::addEntityInSpot(tal_id_t entity, spot_id_t spot)
 {
 	spot_by_entity[entity] = spot;
 }
 
 
-void BlockSatDispatcher::SpotByEntity::setDefaultSpot(spot_id_t spot)
+void SpotByEntity::setDefaultSpot(spot_id_t spot)
 {
 	default_spot = spot;
 }
 
 
-spot_id_t BlockSatDispatcher::SpotByEntity::getSpotForEntity(tal_id_t entity) const
+spot_id_t SpotByEntity::getSpotForEntity(tal_id_t entity) const
 {
 	auto found_spot = spot_by_entity.find(entity);
 	if (found_spot == spot_by_entity.end())
@@ -77,7 +93,7 @@ spot_id_t BlockSatDispatcher::SpotByEntity::getSpotForEntity(tal_id_t entity) co
 
 
 BlockSatDispatcher::BlockSatDispatcher(const std::string &name, SatDispatcherConfig config):
-	Block(name),
+	Rt::Block<BlockSatDispatcher, SatDispatcherConfig>{name, config},
 	entity_id{config.entity_id},
 	isl_enabled{config.isl_enabled}
 {
@@ -87,8 +103,6 @@ BlockSatDispatcher::BlockSatDispatcher(const std::string &name, SatDispatcherCon
 bool BlockSatDispatcher::onInit()
 {
 	const auto conf = OpenSandModelConf::Get();
-	auto downward = dynamic_cast<Downward *>(this->downward);
-	auto upward = dynamic_cast<Upward *>(this->upward);
 
 	SpotByEntity spot_by_entity;
 	std::unordered_map<SpotComponentPair, tal_id_t> routes;
@@ -127,84 +141,109 @@ bool BlockSatDispatcher::onInit()
 		    spot.first, topo.spot_id);
 	}
 
-	upward->routes = routes;
-	downward->routes = routes;
-	upward->spot_by_entity = spot_by_entity;
-	downward->spot_by_entity = spot_by_entity;
-	upward->regen_levels = regen_levels;
-	downward->regen_levels = regen_levels;
+	for (auto &&[dest, sat_id] : routes)
+	{
+		auto regen_level = regen_levels.at(dest);
+		LOG(log_init, LEVEL_DEBUG,
+		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
+			dest.spot_id, dest.dest, sat_id, regen_level);
+	}
+
+	upward.initDispatcher(spot_by_entity, routes, regen_levels);
+	downward.initDispatcher(spot_by_entity, routes, regen_levels);
 	return true;
 }
 
-BlockSatDispatcher::Upward::Upward(const std::string &name, SatDispatcherConfig config):
-	RtUpwardMuxDemux<IslComponentPair>(name),
+
+Rt::UpwardChannel<BlockSatDispatcher>::UpwardChannel(const std::string &name, SatDispatcherConfig config):
+	Channels::UpwardMuxDemux<UpwardChannel<BlockSatDispatcher>, IslComponentPair>{name},
 	entity_id{config.entity_id}
 {
 }
 
-bool BlockSatDispatcher::Upward::onEvent(const RtEvent *const event)
-{
-	if (event->getType() != EventType::Message)
-	{
-		LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",
-		    event->getName().c_str());
-		return false;
-	}
 
-	auto msg_event = static_cast<const MessageEvent *>(event);
-	switch (to_enum<InternalMessageType>(msg_event->getMessageType()))
+void Rt::UpwardChannel<BlockSatDispatcher>::initDispatcher(const SpotByEntity& spot_by_entity,
+                                                           const std::unordered_map<SpotComponentPair, tal_id_t> &routes,
+                                                           const std::unordered_map<SpotComponentPair, RegenLevel> &regen_levels)
+{
+	this->spot_by_entity = spot_by_entity;
+	this->routes = routes;
+	this->regen_levels = regen_levels;
+
+	for (auto &&[dest, sat_id] : this->routes)
+	{
+		auto regen_level = this->regen_levels.at(dest);
+		LOG(log_init, LEVEL_DEBUG,
+		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
+			dest.spot_id, dest.dest, sat_id, regen_level);
+	}
+}
+
+
+bool Rt::UpwardChannel<BlockSatDispatcher>::onEvent(const Event &event)
+{
+	LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BlockSatDispatcher>::onEvent(const MessageEvent &event)
+{
+	auto msg_type = event.getMessageType();
+	LOG(log_receive, LEVEL_DEBUG, "Message received (type: %d)", msg_type);
+	switch (to_enum<InternalMessageType>(msg_type))
 	{
 		// sent by SatCarrier
 		case InternalMessageType::unknown:
 		case InternalMessageType::sig:
 		case InternalMessageType::encap_data:
 		{
-			auto frame = static_cast<DvbFrame *>(msg_event->getData());
-			return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
+			return handleDvbFrame(event.getMessage<DvbFrame>());
 		}
 		// sent by Encap
 		case InternalMessageType::decap_data:
 		{
-			auto burst = static_cast<NetBurst *>(msg_event->getData());
-			return handleNetBurst(std::unique_ptr<NetBurst>(burst));
+			return handleNetBurst(event.getMessage<NetBurst>());
 		}
 		case InternalMessageType::link_up:
 		{
 			bool success = true;
-			T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
+			auto link_up_msg = event.getMessage<T_LINK_UP>();
 			for (auto&& [key, regen_level] : regen_levels)
 			{
-				T_LINK_UP *link_up_copy = new T_LINK_UP{*link_up_msg};
 				if (regen_level == RegenLevel::IP)
 				{
+					Ptr<T_LINK_UP> link_up_copy = make_ptr<T_LINK_UP>();
+					link_up_copy->group_id = link_up_msg->group_id;
+					link_up_copy->tal_id = link_up_msg->tal_id;
+
 					IslComponentPair link_up_key{
 						.connected_sat = routes.at(key),
 						.is_data_channel = true,
 					};
 					if (!this->enqueueMessage(link_up_key,
-					                          (void **)&link_up_copy,
-					                          sizeof(T_LINK_UP),
+					                          std::move(link_up_copy),
 					                          to_underlying(InternalMessageType::link_up)))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "cannot forward 'link up' message\n");
-						delete link_up_copy;
 						success = false;
 					}
 				}
 			}
-			delete link_up_msg;
 			return success;
 		}
 		default:
 			LOG(log_receive, LEVEL_ERROR,
 			    "Unexpected message type received: %d",
-			    msg_event->getMessageType());
+			    event.getMessageType());
 			return false;
 	}
 }
 
-bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
+
+bool Rt::UpwardChannel<BlockSatDispatcher>::handleDvbFrame(Ptr<DvbFrame> frame)
 {
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
@@ -216,13 +255,12 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	    spot_id, carrier_id, frame->getMessageType());
 
 	const Component dest = isGatewayCarrier(carrier_type) ? Component::terminal : Component::gateway;
-
-	const auto dest_sat_id_it = routes.find({spot_id, dest});
+	SpotComponentPair key{spot_id, dest};
+	const auto dest_sat_id_it = routes.find(key);
 	if (dest_sat_id_it == routes.end())
 	{
-		LOG(log_receive, LEVEL_ERROR,
-		    "No route found for %s in spot %d",
-		    dest == Component::gateway ? "GW" : "ST", spot_id);
+		auto name = getComponentName(dest);
+		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), spot_id);
 		return false;
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
@@ -242,10 +280,11 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	}
 }
 
-bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_burst)
+
+bool Rt::UpwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_burst)
 {
 	// Separate the packets by destination
-	std::unordered_map<SpotComponentPair, std::unique_ptr<NetBurst>> bursts{};
+	std::unordered_map<SpotComponentPair, Ptr<NetBurst>> bursts{};
 	for (auto &&pkt: *in_burst)
 	{
 		const auto dest_id = pkt->getDstTalId();
@@ -253,28 +292,30 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
-		Component dest;
-		if (src == Component::gateway)
+		Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+		if (dest == Component::unknown)
 		{
-			dest = Component::terminal;
-		}
-		else if (src == Component::terminal)
-		{
-			dest = Component::gateway;
+			if (dest_id == BROADCAST_TAL_ID)
+			{
+				for (auto &&route: routes)
+				{
+					Ptr<NetPacket> copy = make_ptr<NetPacket>(*pkt);
+					getNetBurstOrCreate(bursts, route.first)->push_back(std::move(copy));
+				}
+				pkt.reset();
+			}
+			else
+			{
+				LOG(log_receive, LEVEL_ERROR,
+				    "Invalid destination type for NetBurst (ID %d)",
+				    dest_id);
+				return false;
+			}
 		}
 		else
 		{
-			LOG(log_receive, LEVEL_ERROR, "The type of the src entity %d is %s", src_id, getComponentName(src).c_str());
-			return false;
+			getNetBurstOrCreate(bursts, SpotComponentPair{spot_id, dest})->push_back(std::move(pkt));
 		}
-
-		auto &burst = bursts[{spot_id, dest}];
-		if (burst == nullptr)
-		{
-			burst = std::unique_ptr<NetBurst>(new NetBurst{});
-		}
-		burst->push_back(std::move(pkt));
 	}
 
 	// Send all bursts to their respective destination
@@ -284,8 +325,8 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 		const auto dest_sat_id_it = routes.find(dest);
 		if (dest_sat_id_it == routes.end())
 		{
-			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-			    dest.dest == Component::gateway ? "GW" : "ST", dest.spot_id);
+			auto name = getComponentName(dest.dest);
+			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), dest.spot_id);
 			ok = false;
 			continue;
 		}
@@ -309,38 +350,84 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 	return ok;
 }
 
-BlockSatDispatcher::Downward::Downward(const std::string &name, SatDispatcherConfig config):
-	RtDownwardMuxDemux<RegenerativeSpotComponent>{name},
+
+bool Rt::UpwardChannel<BlockSatDispatcher>::sendToUpperBlock(IslComponentPair key,
+                                                             Ptr<void> msg,
+                                                             InternalMessageType msg_type)
+{
+	LOG(log_send, LEVEL_INFO, "Sending a message to the upper block");
+	if (!enqueueMessage(key, std::move(msg), to_underlying(msg_type)))
+	{
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the upper block");
+		return false;
+	}
+	return true;
+}
+
+
+bool Rt::UpwardChannel<BlockSatDispatcher>::sendToOppositeChannel(Ptr<void> msg, InternalMessageType msg_type)
+{
+	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
+	LOG(log_send, log_level, "Sending a message to the opposite channel");
+	if (!shareMessage(std::move(msg), to_underlying(msg_type)))
+	{
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
+		return false;
+	}
+	return true;
+}
+
+
+Rt::DownwardChannel<BlockSatDispatcher>::DownwardChannel(const std::string &name, SatDispatcherConfig config):
+	Channels::DownwardMuxDemux<DownwardChannel<BlockSatDispatcher>, RegenerativeSpotComponent>{name},
 	entity_id{config.entity_id}
 {
 }
 
-bool BlockSatDispatcher::Downward::onEvent(const RtEvent *const event)
+
+void Rt::DownwardChannel<BlockSatDispatcher>::initDispatcher(const SpotByEntity& spot_by_entity,
+                                                             const std::unordered_map<SpotComponentPair, tal_id_t> &routes,
+                                                             const std::unordered_map<SpotComponentPair, RegenLevel> &regen_levels)
 {
-	if (event->getType() != EventType::Message)
+	this->spot_by_entity = spot_by_entity;
+	this->routes = routes;
+	this->regen_levels = regen_levels;
+
+	for (auto &&[dest, sat_id] : this->routes)
 	{
-		LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",
-		    event->getName().c_str());
-		return false;
+		auto regen_level = this->regen_levels.at(dest);
+		LOG(log_init, LEVEL_DEBUG,
+		    "Route on spot %d to entity type %d will go through satellite %d with regen level %d",
+			dest.spot_id, dest.dest, sat_id, regen_level);
 	}
+}
 
-	auto msg_event = static_cast<const MessageEvent *>(event);
 
-	switch (to_enum<InternalMessageType>(msg_event->getMessageType()))
+bool Rt::DownwardChannel<BlockSatDispatcher>::onEvent(const Event &event)
+{
+	LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockSatDispatcher>::onEvent(const MessageEvent &event)
+{
+	auto msg_type = event.getMessageType();
+	LOG(log_receive, LEVEL_DEBUG, "Message received (type: %d)", msg_type);
+	switch (to_enum<InternalMessageType>(msg_type))
 	{
 		// sent by SatCarrier
 		case InternalMessageType::unknown:
 		case InternalMessageType::sig:
 		case InternalMessageType::encap_data:
 		{
-			auto frame = static_cast<DvbFrame *>(msg_event->getData());
-			return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
+			return handleDvbFrame(event.getMessage<DvbFrame>());
 		}
 		// sent by Encap
 		case InternalMessageType::decap_data:
 		{
-			auto burst = static_cast<NetBurst *>(msg_event->getData());
-			return handleNetBurst(std::unique_ptr<NetBurst>(burst));
+			return handleNetBurst(event.getMessage<NetBurst>());
 		}
 		case InternalMessageType::link_up:
 			// ignore
@@ -348,12 +435,13 @@ bool BlockSatDispatcher::Downward::onEvent(const RtEvent *const event)
 		default:
 			LOG(log_receive, LEVEL_ERROR,
 			    "Unexpected message type received: %d",
-			    msg_event->getMessageType());
+			    event.getMessageType());
 			return false;
 	}
 }
 
-bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
+
+bool Rt::DownwardChannel<BlockSatDispatcher>::handleDvbFrame(Ptr<DvbFrame> frame)
 {
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
@@ -368,11 +456,12 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 	                       ? std::make_tuple(Component::terminal, Component::gateway)
 	                       : std::make_tuple(Component::gateway, Component::terminal);
 
-	const auto dest_sat_id_it = routes.find({spot_id, dest});
+	SpotComponentPair key{spot_id, dest};
+	const auto dest_sat_id_it = routes.find(key);
 	if (dest_sat_id_it == routes.end())
 	{
-		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-		    dest == Component::gateway ? "GW" : "ST", spot_id);
+		auto name = getComponentName(dest);
+		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), spot_id);
 		return false;
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
@@ -388,7 +477,7 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 
 		// add one to the input carrier id to get the corresponding output carrier id
 		frame->setCarrierId(carrier_id + 1);
-		bool is_transparent = regen_levels.at({spot_id, dest}) == RegenLevel::Transparent
+		bool is_transparent = regen_levels.at(key) == RegenLevel::Transparent
 		                   && (is_data_carrier || regen_levels.at({spot_id, src}) == RegenLevel::Transparent);
 		return sendToLowerBlock({spot_id, dest, is_transparent}, std::move(frame), msg_type);
 	}
@@ -399,10 +488,11 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 	}
 }
 
-bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_burst)
+
+bool Rt::DownwardChannel<BlockSatDispatcher>::handleNetBurst(Ptr<NetBurst> in_burst)
 {
 	// Separate the packets by destination
-	std::unordered_map<SpotComponentPair, std::unique_ptr<NetBurst>> bursts{};
+	std::unordered_map<SpotComponentPair, Ptr<NetBurst>> bursts{};
 	for (auto &&pkt: *in_burst)
 	{
 		const auto dest_id = pkt->getDstTalId();
@@ -410,27 +500,43 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_b
 		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
-		Component dest;
-		if (src == Component::gateway)
+		if (dest_id == BROADCAST_TAL_ID)
 		{
-			dest = Component::terminal;
-		}
-		else if (src == Component::terminal)
-		{
-			dest = Component::gateway;
+			SpotComponentPair to_st{spot_id, Component::terminal};
+			SpotComponentPair to_gw{spot_id, Component::gateway};
+			bool forward_transparent = regen_levels.at(to_st) == RegenLevel::Transparent;
+			bool return_transparent = regen_levels.at(to_gw) == RegenLevel::Transparent;
+			if (forward_transparent)
+			{
+				if (return_transparent)
+				{
+					LOG(log_receive, LEVEL_ERROR, "Both directions are transparent in sat_dispatch, cannot handle NetBurst");
+					return false;
+				}
+				else
+				{
+					getNetBurstOrCreate(bursts, to_gw)->push_back(std::move(pkt));
+				}
+			}
+			else
+			{
+				if (return_transparent)
+				{
+					getNetBurstOrCreate(bursts, to_st)->push_back(std::move(pkt));
+				}
+				else
+				{
+					Ptr<NetPacket> copy = make_ptr<NetPacket>(*pkt);
+					getNetBurstOrCreate(bursts, to_gw)->push_back(std::move(copy));
+					getNetBurstOrCreate(bursts, to_st)->push_back(std::move(pkt));
+				}
+			}
 		}
 		else
 		{
-			LOG(log_receive, LEVEL_ERROR, "The type of the src entity %d is %s", src_id, getComponentName(src).c_str());
-			return false;
+			Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+			getNetBurstOrCreate(bursts, SpotComponentPair{spot_id, dest})->push_back(std::move(pkt));
 		}
-
-		auto &burst = bursts[{spot_id, dest}];
-		if (burst == nullptr) {
-			burst = std::unique_ptr<NetBurst>(new NetBurst{});
-		}
-		burst->push_back(std::move(pkt));
 	}
 
 	// Send all bursts to their respective destination
@@ -440,21 +546,54 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_b
 		const auto dest_sat_id_it = routes.find(dest);
 		if (dest_sat_id_it == routes.end())
 		{
-			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-			    dest.dest == Component::gateway ? "GW" : "ST", dest.spot_id);
+			auto name = getComponentName(dest.dest);
+			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d", name.c_str(), dest.spot_id);
 			ok = false;
 			continue;
 		}
 		const tal_id_t dest_sat_id = dest_sat_id_it->second;
 		if (dest_sat_id == entity_id || regen_levels.at(dest) == RegenLevel::IP)
 		{
-			ok &= sendToLowerBlock({dest.spot_id, dest.dest, false}, std::move(burst), InternalMessageType::decap_data);
+			ok &= sendToLowerBlock({dest.spot_id, dest.dest, false},
+			                       std::move(burst),
+			                       InternalMessageType::decap_data);
 		}
 		else
 		{
-			// send by ISL
-			ok &= sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+			// Assume the upward channel did the job of sharing with all recipients and
+			// the message we received is only for us; no need to send back using ISL.
+			// Which is a safe assumption for a 2-satellites constellation but might need
+			// some rework to support more satellites in the future.
 		}
 	}
 	return ok;
+}
+
+
+bool Rt::DownwardChannel<BlockSatDispatcher>::sendToLowerBlock(RegenerativeSpotComponent key,
+                                                               Ptr<void> msg,
+                                                               InternalMessageType msg_type)
+{
+	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
+	LOG(log_send, log_level, "Sending a message to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
+	if (!enqueueMessage(key, std::move(msg), to_underlying(msg_type)))
+	{
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the lower block (%s, spot %d)",
+		    key.dest == Component::gateway ? "GW" : "ST", key.spot_id);
+		return false;
+	}
+	return true;
+}
+
+
+bool Rt::DownwardChannel<BlockSatDispatcher>::sendToOppositeChannel(Ptr<void> msg, InternalMessageType msg_type)
+{
+	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
+	LOG(log_send, log_level, "Sending a message to the opposite channel");
+	if (!shareMessage(std::move(msg), to_underlying(msg_type)))
+	{
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
+		return false;
+	}
+	return true;
 }

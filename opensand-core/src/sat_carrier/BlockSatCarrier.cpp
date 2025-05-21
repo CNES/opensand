@@ -37,23 +37,19 @@
 #include "BlockSatCarrier.h"
 
 #include <opensand_rt/MessageEvent.h>
+#include <opensand_rt/NetSocketEvent.h>
 #include <opensand_output/Output.h>
 
 #include "DvbFrame.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
 
+
 /**
  * Constructor
  */
-BlockSatCarrier::BlockSatCarrier(const std::string &name,
-                                 struct sc_specific):
-	Block(name)
-{
-}
-
-BlockSatCarrier::Upward::Upward(const std::string &name, struct sc_specific specific):
-	RtUpward{name},
+Rt::UpwardChannel<BlockSatCarrier>::UpwardChannel(const std::string &name, sc_specific specific):
+	Channels::Upward<UpwardChannel<BlockSatCarrier>>{name},
 	ip_addr{std::move(specific.ip_addr)},
 	tal_id{specific.tal_id},
 	in_channel_set{specific.tal_id},
@@ -62,8 +58,9 @@ BlockSatCarrier::Upward::Upward(const std::string &name, struct sc_specific spec
 {
 }
 
-BlockSatCarrier::Downward::Downward(const std::string &name, struct sc_specific specific):
-	RtDownward{name},
+
+Rt::DownwardChannel<BlockSatCarrier>::DownwardChannel(const std::string &name, sc_specific specific):
+	Channels::Downward<DownwardChannel<BlockSatCarrier>>{name},
 	ip_addr{std::move(specific.ip_addr)},
 	tal_id{specific.tal_id},
 	out_channel_set{specific.tal_id},
@@ -72,110 +69,86 @@ BlockSatCarrier::Downward::Downward(const std::string &name, struct sc_specific 
 {
 }
 
-bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
+
+bool Rt::DownwardChannel<BlockSatCarrier>::onEvent(const Event& event)
 {
-	switch(event->getType())
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockSatCarrier>::onEvent(const MessageEvent& event)
+{
+	Rt::Ptr<DvbFrame> dvb_frame = event.getMessage<DvbFrame>();
+
+	LOG(this->log_receive, LEVEL_DEBUG,
+	    "%u-bytes %s message event received\n",
+	    dvb_frame->getMessageLength(),
+	    event.getName().c_str());
+
+	if(!this->out_channel_set.send(dvb_frame->getCarrierId(),
+	                               dvb_frame->getRawData(),
+	                               dvb_frame->getTotalLength()))
 	{
-		case EventType::Message:
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "error when sending data\n");
+	}
+	return true;
+}
+
+
+bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const Event &event)
+{
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "unknown event received %s\n", 
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
+{
+	LOG(this->log_receive, LEVEL_DEBUG, "FD event received\n");
+
+	// for UDP we need to retrieve potentially desynchronized
+	// datagrams => loop on receive function
+	UdpChannel::ReceiveStatus ret;
+	do
+	{
+		// Data to read in Sat_Carrier socket buffer
+		spot_id_t spot_id;
+		unsigned int carrier_id;
+		Ptr<Data> buf = make_ptr<Data>(nullptr);
+		ret = this->in_channel_set.receive(event, carrier_id, spot_id, buf);
+		if(ret == UdpChannel::ERROR)
 		{
-			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "failed to receive data on any "
+			    "input channel (code = %d)\n",
+			    ret);
+			return false;
+		}
+		else if (buf)
+		{
 			LOG(this->log_receive, LEVEL_DEBUG,
-			    "%u-bytes %s message event received\n",
-			    dvb_frame->getMessageLength(),
-			    event->getName().c_str());
+			    "%zu bytes of data received on carrier ID %u\n",
+			    buf->length(), carrier_id);
 
-			if(!this->out_channel_set.send(dvb_frame->getCarrierId(),
-			                               dvb_frame->getRawData(),
-			                               dvb_frame->getTotalLength()))
+			if(buf->length() > 0)
 			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "error when sending data\n");
+				this->onReceivePktFromCarrier(carrier_id, spot_id, std::move(buf));
 			}
-			delete dvb_frame;
 		}
-		break;
+	} while(ret == UdpChannel::STACKED);
 
-		default:
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
-			return false;
-	}
 	return true;
 }
 
-bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
+
+bool Rt::UpwardChannel<BlockSatCarrier>::onInit()
 {
-	bool status = true;
-
-	switch(event->getType())
-	{
-		case EventType::NetSocket:
-		{
-			// Data to read in Sat_Carrier socket buffer
-			size_t length;
-			unsigned char *buf = NULL;
-
-			unsigned int carrier_id;
-			spot_id_t spot_id;
-			int ret;
-
-			LOG(this->log_receive, LEVEL_DEBUG,
-			    "FD event received\n");
-
-			// for UDP we need to retrieve potentially desynchronized
-			// datagrams => loop on receive function
-			do
-			{
-				ret = this->in_channel_set.receive((NetSocketEvent *)event,
-				                                    carrier_id,
-				                                    spot_id,
-				                                    &buf, length);
-				if(ret < 0)
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "failed to receive data on any "
-					    "input channel (code = %zu)\n", length);
-					status = false;
-				}
-				else
-				{
-					LOG(this->log_receive, LEVEL_DEBUG,
-					    "%zu bytes of data received on carrier ID %u\n",
-					    length, carrier_id);
-
-					if(length > 0)
-					{
-						this->onReceivePktFromCarrier(carrier_id, spot_id,  
-						                              buf, length);
-					}
-				}
-			} while(ret > 0);
-		}
-		break;
-
-		default:
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s\n", 
-			    event->getName().c_str());
-			return false;
-	}
-
-	return status;
-}
-
-
-bool BlockSatCarrier::onInit(void)
-{
-	return true;
-}
-
-bool BlockSatCarrier::Upward::onInit(void)
-{
-	std::vector<UdpChannel *>::iterator it;
-	UdpChannel *channel;
-
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr, destination_host, spot_id))
 	{
@@ -186,17 +159,16 @@ bool BlockSatCarrier::Upward::onInit(void)
 
 	// ask the runtime to manage channel file descriptors
 	// (only for channels that accept input)
-	for(it = this->in_channel_set.begin(); it != this->in_channel_set.end(); it++)
+	for(auto &&channel : this->in_channel_set)
 	{
-		channel = *it;
-
 		if(channel->isInputOk() && channel->getChannelFd() != -1)
 		{
 			std::ostringstream name;
 
 			LOG(this->log_init, LEVEL_NOTICE,
 			    "Listen on fd %d for channel %d\n",
-			    channel->getChannelFd(), channel->getChannelID());
+			    channel->getChannelFd(),
+			    channel->getChannelID());
 			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),
@@ -206,7 +178,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 	return true;
 }
 
-bool BlockSatCarrier::Downward::onInit()
+bool Rt::DownwardChannel<BlockSatCarrier>::onInit()
 {
 	// initialize all channels from the configuration file
 	if(!this->out_channel_set.readOutConfig(this->ip_addr, destination_host, spot_id))
@@ -219,30 +191,24 @@ bool BlockSatCarrier::Downward::onInit()
 }
 
 
-void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
-                                                      spot_id_t spot_id,
-                                                      unsigned char *data,
-                                                      size_t length)
+void Rt::UpwardChannel<BlockSatCarrier>::onReceivePktFromCarrier(uint8_t carrier_id,
+                                                                 spot_id_t spot_id,
+																 Ptr<Data> data)
 {
-	DvbFrame *dvb_frame = new DvbFrame(data, length);
-	free(data);
+	Ptr<DvbFrame> dvb_frame = make_ptr<DvbFrame>(*data);
 
 	dvb_frame->setCarrierId(carrier_id);
 	dvb_frame->setSpot(spot_id);
 
-	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
+	if (!this->enqueueMessage(std::move(dvb_frame), to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send frame from carrier %u to upper layer\n",
 		    carrier_id);
-		goto release;
 	}
-
-	LOG(this->log_receive, LEVEL_DEBUG,
-	    "Message from carrier %u sent to upper layer\n", carrier_id);
-
-	return;
-
-release:
-	delete dvb_frame;
+	else
+	{
+		LOG(this->log_receive, LEVEL_DEBUG,
+		    "Message from carrier %u sent to upper layer\n", carrier_id);
+	}
 }

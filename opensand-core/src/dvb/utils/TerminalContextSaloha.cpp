@@ -33,16 +33,19 @@
  * @author  Julien Bernard / Viveris Technologies
  */
 
-#include "TerminalContextSaloha.h"
+
+#include <cmath>
 
 #include <opensand_output/Output.h>
+
+#include "TerminalContextSaloha.h"
 
 
 constexpr const saloha_pdu_id_t MAX_OLD_COUNTER = 0xFFFF;
 
 
-static bool sortSalohaPacketData(const std::unique_ptr<SlottedAlohaPacketData>& pkt1,
-                                 const std::unique_ptr<SlottedAlohaPacketData>& pkt2)
+static bool sortSalohaPacketData(const Rt::Ptr<SlottedAlohaPacketData>& pkt1,
+                                 const Rt::Ptr<SlottedAlohaPacketData>& pkt2)
 {
 	return pkt1->getSeq() < pkt2->getSeq();
 }
@@ -65,7 +68,7 @@ TerminalContextSaloha::~TerminalContextSaloha()
 
 // TODO this functions return complete PDU even if a previous one has not
 //      been received, this creates problems with MPEG (CC) and RoHC
-PropagateState TerminalContextSaloha::addPacket(std::unique_ptr<SlottedAlohaPacketData> packet,
+PropagateState TerminalContextSaloha::addPacket(Rt::Ptr<SlottedAlohaPacketData> packet,
                                                 saloha_packets_data_t &pdu)
 {
 	saloha_pdu_id_t pdu_id = packet->getId();

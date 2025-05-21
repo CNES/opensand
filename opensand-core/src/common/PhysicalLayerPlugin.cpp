@@ -33,16 +33,16 @@
  */
 
 #include "PhysicalLayerPlugin.h"
-#include "Data.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/Types.h>
 
 
 AttenuationModelPlugin::AttenuationModelPlugin():
 		OpenSandPlugin()
 {
-	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.init");
-	this->log_attenuation = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Attenuation");
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.init");
+	this->log_attenuation = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.Attenuation");
 }
 
 AttenuationModelPlugin::~AttenuationModelPlugin()
@@ -63,8 +63,8 @@ double AttenuationModelPlugin::getAttenuation() const
 MinimalConditionPlugin::MinimalConditionPlugin():
 		OpenSandPlugin()
 {
-	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
-	this->log_minimal = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.MinimalCondition");
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.Init");
+	this->log_minimal = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.MinimalCondition");
 }
 
 MinimalConditionPlugin::~MinimalConditionPlugin()
@@ -80,8 +80,8 @@ double MinimalConditionPlugin::getMinimalCN() const
 ErrorInsertionPlugin::ErrorInsertionPlugin():
 		OpenSandPlugin()
 {
-	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
-	this->log_error = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.ErrorInsertion");
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.Init");
+	this->log_error = Output::Get()->registerLog(LEVEL_WARNING, "Physical_Layer.ErrorInsertion");
 }
 
 ErrorInsertionPlugin::~ErrorInsertionPlugin()
@@ -91,8 +91,8 @@ ErrorInsertionPlugin::~ErrorInsertionPlugin()
 
 SatDelayPlugin::SatDelayPlugin():
 		OpenSandPlugin(),
-		delay(0),
-		refresh_period_ms(1000),
+		delay(time_ms_t::zero()),
+		refresh_period(1000),
 		delay_mutex()
 {
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "SatDelay.init");
@@ -117,5 +117,5 @@ void SatDelayPlugin::setSatDelay(time_ms_t delay)
 
 time_ms_t SatDelayPlugin::getRefreshPeriod() const
 {
-	return this->refresh_period_ms;
+	return this->refresh_period;
 }

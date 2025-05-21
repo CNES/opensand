@@ -40,19 +40,24 @@
 
 #include "SignalEvent.h"
 #include "Rt.h"
+#include "RtChannelBase.h"
+
+
+namespace Rt
+{
 
 
 SignalEvent::SignalEvent(const std::string &name,
                          sigset_t signal_mask,
                          uint8_t priority):
-	RtEvent{EventType::Signal, name, -1, priority},
+	Event{name, -1, priority},
 	mask{signal_mask},
-  sig_info{}
+	sig_info{}
 {
 	this->fd = signalfd(-1, &this->mask, 0);
 
 	// block the signal(s) so only our handler gets it
-	int ret = pthread_sigmask(SIG_BLOCK, &this->mask, NULL);
+	int ret = pthread_sigmask(SIG_BLOCK, &this->mask, nullptr);
 	if(ret != 0)
 	{
 		Rt::reportError("signal constructor", std::this_thread::get_id(),
@@ -60,7 +65,7 @@ SignalEvent::SignalEvent(const std::string &name,
 	}
 }
 
-bool SignalEvent::handle(void)
+bool SignalEvent::handle()
 {
 	// be careful, if you read signal here, it won't be accessible by
 	// any other thread catching it
@@ -69,9 +74,9 @@ bool SignalEvent::handle(void)
 	return true;
 }
 
-bool SignalEvent::readHandler(void)
+bool SignalEvent::readHandler()
 {
-  constexpr auto siginfo_size = sizeof(struct signalfd_siginfo);
+	constexpr auto siginfo_size = sizeof(struct signalfd_siginfo);
 
 	// signal structure size is constant
 	auto rlen = read(this->fd, &this->sig_info, siginfo_size);
@@ -84,3 +89,12 @@ bool SignalEvent::readHandler(void)
 
 	return true;
 }
+
+
+bool SignalEvent::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
+}
+
+
+};

@@ -56,7 +56,6 @@ class DamaCtrlRcs2: public DamaCtrl
 {
 public:
 	DamaCtrlRcs2(spot_id_t spot);
-	virtual ~DamaCtrlRcs2();
 
 	/**
 	 * @brief  Initializes internal data structure according to configuration file
@@ -66,13 +65,13 @@ public:
 	virtual bool init();
 
 	// Process DVB frames
-	virtual bool hereIsSAC(const Sac *sac);
+	bool hereIsSAC(Rt::Ptr<Sac> sac) override;
 
 	// Build allocation table
-	virtual bool buildTTP(Ttp *ttp);
+	bool buildTTP(Ttp &ttp) override;
 
 	// Apply a PEP command
-	virtual bool applyPepCommand(const PepRequest* request);
+	virtual bool applyPepCommand(std::unique_ptr<PepRequest> request);
 	
 	// Update the required FMTs
 	virtual void updateRequiredFmts();
@@ -81,10 +80,10 @@ public:
 	virtual bool updateWaveForms();
 
 protected:
-	UnitConverter *converter;
+	std::unique_ptr<UnitConverter> converter;
 
 	/// Create a terminal context
-	virtual bool createTerminal(TerminalContextDama **terminal,
+	virtual bool createTerminal(std::shared_ptr<TerminalContextDama> &terminal,
 	                            tal_id_t tal_id,
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
@@ -92,7 +91,7 @@ protected:
 	                            vol_kb_t max_vbdc_kb);
 
 	/// Remove a terminal context
-	virtual bool removeTerminal(TerminalContextDama **terminal);
+	virtual bool removeTerminal(std::shared_ptr<TerminalContextDama> &terminal);
 
 	/// Reset all terminals allocations
 	virtual bool resetTerminalsAllocations();

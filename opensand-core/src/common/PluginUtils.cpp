@@ -49,6 +49,7 @@
 #include <opensand_output/Output.h>
 
 
+extern const std::string PLUGIN_LIBDIR;
 const std::string PLUGIN_DIRECTORY{"/opensand/plugins/"};
 const std::string PLUGIN_FILE_END = ".so.0";
 
@@ -69,12 +70,13 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 		// Split using ':' separator
 		tokenize(lib_path, path, ":");
 	}
-	path.push_back("/usr/lib/");
-	path.push_back("/lib");
+	path.push_back(PLUGIN_LIBDIR);
 
 	for(auto& directory : path)
 	{
 		std::string dir = directory + PLUGIN_DIRECTORY;
+		
+
 		DIR *plugin_dir = opendir(dir.c_str());
 		if(!plugin_dir)
 		{
@@ -114,6 +116,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 				void *sym = dlsym(handle, "init");
 				if(!sym)
 				{
+
 					LOG(this->log_init, LEVEL_ERROR,
 					    "cannot find 'init' method in plugin %s "
 					    "(%s)\n", filename.c_str(), dlerror());
@@ -200,7 +203,11 @@ void PluginUtils::storePlugin(PluginConfigurationContainer &container, OpenSandP
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "load plugin %s\n",
 		    plugin_name.c_str());
-		container[plugin_name] = std::make_pair(plugin->configure, plugin->create);
+		container[plugin_name] = {
+			plugin->configure,
+			plugin->create,
+			nullptr,
+		};
 		this->handlers.push_back(handle);
 	}
 	else
@@ -210,18 +217,27 @@ void PluginUtils::storePlugin(PluginConfigurationContainer &container, OpenSandP
 }
 
 
+inline void releasePluginsContainer(PluginConfigurationContainer &container)
+{
+	for (auto &&[name, element] : container)
+	{
+		delete element.plugin;
+	}
+}
+
+
 void PluginUtils::releasePlugins()
 {
-	for(std::vector<OpenSandPlugin *>::iterator iter = this->plugins.begin();
-	    iter != this->plugins.end(); ++iter)
-	{
-		delete (*iter);
-	}
+	releasePluginsContainer(encapsulation);
+	releasePluginsContainer(lan_adaptation);
+	releasePluginsContainer(attenuation);
+	releasePluginsContainer(minimal);
+	releasePluginsContainer(error);
+	releasePluginsContainer(sat_delay);
 
-	for(std::vector<void *>::iterator iter = this->handlers.begin();
-	    iter != this->handlers.end(); ++iter)
+	for(auto &&handler : this->handlers)
 	{
-		dlclose(*iter);
+		dlclose(handler);
 	}
 }
 
@@ -231,29 +247,41 @@ void PluginUtils::releasePlugins()
  *
  * @param plugin_name  The name of the plugin to retrieve
  * @param container    The container where to look for the plugin
- * @param plugins      The instanciated plugins container
  * @param plugin       The plugin
  * @return true on success, false otherwise
  */
 template<class PluginType>
 bool getPlugin(const std::string &plugin_name,
                PluginConfigurationContainer &container,
-               std::vector<OpenSandPlugin *> &plugins,
                PluginType **plugin)
 {
-	fn_create create = container[plugin_name].second;
-	if(!create)
+	auto plugin_configuration = container.find(plugin_name);
+	if (plugin_configuration == container.end())
 	{
 		return false;
 	}
 
-	*plugin = dynamic_cast<PluginType *>(create());
+	PluginConfigurationElement &configuration = plugin_configuration->second;
+	if (configuration.plugin != nullptr)
+	{
+		//to manage virtual inheritance (used to avoid DDoD)
+		assert(dynamic_cast<PluginType *>(configuration.plugin) != nullptr);
+		*plugin = dynamic_cast<PluginType *>(configuration.plugin);
+		return true;
+	}
+
+	if(!configuration.create)
+	{
+		return false;
+	}
+
+	*plugin = dynamic_cast<PluginType *>(configuration.create());
 	if(!*plugin)
 	{
 		return false;
 	}
 
-	plugins.push_back(*plugin);
+	configuration.plugin = *plugin;
 	return true;
 }
 
@@ -261,14 +289,14 @@ bool getPlugin(const std::string &plugin_name,
 bool PluginUtils::getEncapsulationPlugin(std::string name,
 	                                     EncapPlugin **encapsulation)
 {
-	return getPlugin(name, this->encapsulation, this->plugins, encapsulation);
+	return getPlugin(name, this->encapsulation, encapsulation);
 };
 
 
 bool PluginUtils::getSatDelayPlugin(std::string name,
                                     SatDelayPlugin **sat_delay)
 {
-	return getPlugin(name, this->sat_delay, this->plugins, sat_delay);
+	return getPlugin(name, this->sat_delay, sat_delay);
 };
 
 
@@ -277,7 +305,7 @@ bool PluginUtils::getAttenuationPlugin(std::string name,
 {
 	if(name.size() > 0)
 	{
-		return getPlugin(name, this->attenuation, this->plugins, attenuation);
+		return getPlugin(name, this->attenuation, attenuation);
 	}
 
 	return true;
@@ -289,7 +317,7 @@ bool PluginUtils::getMinimalConditionPlugin(std::string name,
 {
 	if(name.size() > 0)
 	{
-		return getPlugin(name, this->minimal, this->plugins, minimal);
+		return getPlugin(name, this->minimal, minimal);
 	}
 
 	return true;
@@ -301,7 +329,7 @@ bool PluginUtils::getErrorInsertionPlugin(std::string name,
 {
 	if(name.size() > 0)
 	{
-		return getPlugin(name, this->error, this->plugins, error);
+		return getPlugin(name, this->error, error);
 	}
 
 	return true;
@@ -368,11 +396,21 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 	const char *param_id = parameter_id.c_str();
 	for(auto const &element : *container)
 	{
-		fn_configure configure = element.second.first;
-		if(!configure)
+		fn_configure configure = element.second.init;
+		if(configure)
 		{
-			continue;
+			configure(path, param_id);
 		}
-		configure(path, param_id);
 	}
+}
+
+std::vector<std::string> PluginUtils::getAllEncapsulationPlugins()
+{
+	std::vector<std::string> names;
+	names.reserve(encapsulation.size());
+	for (auto &&[name, element] : encapsulation)
+	{
+		names.push_back(name);
+	}
+	return names;
 }

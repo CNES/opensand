@@ -32,12 +32,13 @@
  */
 
 
-#include "DelayFifo.h"
-
-#include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <cstring>
+
+#include "DelayFifo.h"
+#include "NetContainer.h"
+#include "FifoElement.h"
 
 
 DelayFifo::DelayFifo(vol_pkt_t max_size_pkt):
@@ -47,6 +48,7 @@ DelayFifo::DelayFifo(vol_pkt_t max_size_pkt):
 {
 }
 
+
 /**
  * Destructor
  */
@@ -55,15 +57,17 @@ DelayFifo::~DelayFifo()
 	this->flush();
 }
 
+
 vol_pkt_t DelayFifo::getCurrentSize() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->queue.size();
 }
 
+
 bool DelayFifo::setMaxSize(vol_pkt_t max_size_pkt)
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	// check if current size is bigger than the new max value
 	if(this->queue.size() > max_size_pkt)
 		return false;
@@ -71,139 +75,163 @@ bool DelayFifo::setMaxSize(vol_pkt_t max_size_pkt)
 	return true;
 }
 
+
 vol_pkt_t DelayFifo::getMaxSize() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->max_size_pkt;
 }
 
-clock_t DelayFifo::getTickOut() const
+
+bool DelayFifo::push(Rt::Ptr<NetContainer> elem, time_ms_t duration)
 {
-	RtLock lock(this->fifo_mutex);
-	if(queue.size() > 0)
-	{
-		return this->queue.front()->getTickOut();
-	}
-	return 0;
-}
-
-std::vector<FifoElement *> DelayFifo::getQueue(void)
-{
-	return this->queue;
-}
-
-bool DelayFifo::push(FifoElement *elem)
-{
-	int pos;
-	RtLock lock(this->fifo_mutex);
-
-	if(this->queue.size() >= this->max_size_pkt)
-	{
-		return false;
-	}
-
-	pos = this->getTickOutPosition(elem->getTickOut());
-
-	// insert in correct position
-	if(pos >= 0)
-	{
-		this->queue.insert(this->queue.begin()+pos, elem);
-	}
-
-	return true;
-}
-
-bool DelayFifo::pushFront(FifoElement *elem)
-{
-	RtLock lock(this->fifo_mutex);
-
-	// insert in head of fifo
+	Rt::Lock lock(this->fifo_mutex);
 	if(this->queue.size() < this->max_size_pkt)
 	{
-		this->queue.insert(this->queue.begin(), elem);
+		auto end_date = std::chrono::high_resolution_clock::now() + duration;
+		this->queue.emplace(end_date, std::make_unique<FifoElement>(std::move(elem)));
 		return true;
 	}
 
 	return false;
-
 }
 
-bool DelayFifo::pushBack(FifoElement *elem)
-{
-	RtLock lock(this->fifo_mutex);
 
-	// insert in head of fifo
-	if(this->queue.size() < this->max_size_pkt)
+std::unique_ptr<FifoElement> DelayFifo::pop()
+{
+	Rt::Lock lock(this->fifo_mutex);
+
+	auto elem = this->queue.begin();
+	if (elem != this->queue.end())
 	{
-		this->queue.insert(this->queue.end(), elem);
-		return true;
+		std::unique_ptr<FifoElement> result = std::move(elem->second);
+		this->queue.erase(elem);
+		return result;
 	}
 
-	return false;
-
+	return {nullptr};
 }
-FifoElement *DelayFifo::pop()
-{
-	RtLock lock(this->fifo_mutex);
-	FifoElement *elem;
 
-	if(this->queue.size() <= 0)
-	{
-		return NULL;
-	}
-
-	elem = this->queue.front();
-
-	// remove the packet
-	this->queue.erase(this->queue.begin());
-
-	return elem;
-}
 
 void DelayFifo::flush()
 {
-	RtLock lock(this->fifo_mutex);
-	std::vector<FifoElement *>::iterator it;
-	for(it = this->queue.begin(); it != this->queue.end(); ++it)
-	{
-		delete *it;
-	}
-
+	Rt::Lock lock(this->fifo_mutex);
 	this->queue.clear();
 }
 
-int DelayFifo::getTickOutPosition(time_t time_out)
-{
-	time_t time_elem;
-	int pos = -1;
-	int start = 0;
-	int test = 0;
-	int end = this->queue.size() - 1;
 
-	// Implement a divide and conquer approach
-	// TODO: if this proves too consuming, implement one FIFO for
-	// each SPOT/GW, and always push_back (all elements will
-	// have the same delay, except for those with 0 delay)
-	while(end > start)
+DelayFifo::iterator DelayFifo::begin()
+{
+	return iterator(*this);
+}
+
+
+DelayFifo::sentinel DelayFifo::end()
+{
+	return sentinel();
+}
+
+
+DelayFifo::iterator_wrapper DelayFifo::wbegin()
+{
+	return iterator_wrapper(this->queue.begin());
+}
+
+
+DelayFifo::iterator_wrapper DelayFifo::wend()
+{
+	return iterator_wrapper(this->queue.end());
+}
+
+
+DelayFifo::iterator_wrapper DelayFifo::erase(DelayFifo::iterator_wrapper pos)
+{
+	return iterator_wrapper(this->queue.erase(pos.it));
+}
+
+
+DelayFifo::sentinel::sentinel():
+	end{std::chrono::high_resolution_clock::now()}
+{
+}
+
+
+bool DelayFifo::sentinel::isAfter(const DelayFifo::time_point_t& date) const
+{
+	return end > date;
+}
+
+
+bool DelayFifo::iterator::operator ==(const DelayFifo::sentinel& end) const
+{
+	if (this->m_fifo.getCurrentSize())
 	{
-		test = (end + start)/2;
-		time_elem = this->queue.at(test)->getTickOut();
-		if(time_elem > time_out)
-			end = test;
-		else
-			start = test + 1;
+		return !end.isAfter(this->getTickOut());
 	}
-	if(end == start)
+	return true;
+}
+
+
+bool DelayFifo::iterator::operator !=(const DelayFifo::sentinel& end) const
+{
+	if (this->m_fifo.getCurrentSize())
 	{
-		time_elem = this->queue.at(start)->getTickOut();
-		if(time_elem > time_out)
-			pos = start;
-		else
-			pos = start + 1;
+		return end.isAfter(this->getTickOut());
 	}
-	else if(end < 0)
-	{
-		pos = 0;
-	}
-	return pos;
+	return false;
+}
+
+
+DelayFifo::iterator::iterator(DelayFifo& fifo):
+	m_fifo{fifo}
+{
+}
+
+
+inline DelayFifo::time_point_t DelayFifo::iterator::getTickOut() const
+{
+	return m_fifo.queue.begin()->first;
+}
+
+
+DelayFifo::iterator::value_type DelayFifo::iterator::operator *()
+{
+	return m_fifo.pop();
+}
+
+
+DelayFifo::iterator& DelayFifo::iterator::operator ++()
+{
+	return *this;
+}
+
+
+DelayFifo::iterator_wrapper::iterator_wrapper(const DelayFifo::iterator_wrapper::wrapped_iterator& it):
+	it{it}
+{
+}
+
+
+std::unique_ptr<FifoElement>& DelayFifo::iterator_wrapper::operator *() const
+{
+	return it->second;
+}
+
+
+DelayFifo::iterator_wrapper& DelayFifo::iterator_wrapper::operator ++()
+{
+	++it;
+	return *this;
+}
+
+
+bool DelayFifo::iterator_wrapper::operator ==(const DelayFifo::iterator_wrapper& other) const
+{
+	return it == other.it;
+}
+
+
+bool DelayFifo::iterator_wrapper::operator !=(const DelayFifo::iterator_wrapper& other) const
+{
+	return it != other.it;
 }

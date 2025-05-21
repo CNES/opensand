@@ -34,25 +34,28 @@
  * @author   Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
+
+#include <opensand_output/Output.h>
+#include <opensand_rt/TimerEvent.h>
+#include <opensand_rt/MessageEvent.h>
+
 #include "BlockPhysicalLayer.h"
-#include "AttenuationHandler.h"
 
 #include "Plugin.h"
+#include "PhysicalLayerPlugin.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
 #include "OpenSandPlugin.h"
 #include "OpenSandModelConf.h"
 #include "NetContainer.h"
 
-#include <opensand_output/Output.h>
-#include <opensand_rt/MessageEvent.h>
-
 
 BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, PhyLayerConfig config):
-	Block(name),
+	Rt::Block<BlockPhysicalLayer, PhyLayerConfig>{name, config},
 	mac_id(config.mac_id)
 {
 }
+
 
 void BlockPhysicalLayer::generateConfiguration()
 {
@@ -66,10 +69,8 @@ void BlockPhysicalLayer::generateConfiguration()
 }
 
 
-bool BlockPhysicalLayer::onInit(void)
+bool BlockPhysicalLayer::onInit()
 {
-	uint8_t id;
-
 	std::string satdelay_name;
 	auto delay = OpenSandModelConf::Get()->getProfileData()->getComponent("physical_layer")->getComponent("delay");
 	if(!OpenSandModelConf::extractParameterData(delay->getParameter("delay_type"), satdelay_name))
@@ -88,48 +89,42 @@ bool BlockPhysicalLayer::onInit(void)
 		return false;
 	}
 	// Check if the plugin was found
-	if(this->satdelay == NULL)
+	if(this->satdelay == nullptr)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Satellite delay plugin conf was not found for"
-		    " terminal %s", this->mac_id);
+		    "Satellite delay plugin conf was not found for terminal %u",
+		    this->mac_id);
 		return false;
 	}
 	// init plugin
 	if(!this->satdelay->init())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot initialize sat delay plugin '%s'"
-		    " for terminal id %u ", satdelay_name.c_str(), id);
+		    "cannot initialize sat delay plugin '%s' for terminal id %u",
+		    satdelay_name, this->mac_id);
 		return false;
 	}
 
 	// share the plugin to channels
-	((Upward *)this->upward)->setSatDelay(this->satdelay);
-	((Downward *)this->downward)->setSatDelay(this->satdelay);
+	this->upward.setSatDelay(this->satdelay);
+	this->downward.setSatDelay(this->satdelay);
 
 	return true;
 }
 
-BlockPhysicalLayer::Upward::Upward(const std::string &name, PhyLayerConfig config):
-	GroundPhysicalChannel(config),
-	RtUpward(name)
+
+Rt::UpwardChannel<BlockPhysicalLayer>::UpwardChannel(const std::string &name, PhyLayerConfig config):
+	GroundPhysicalChannel{config},
+	Channels::Upward<UpwardChannel<BlockPhysicalLayer>>{name},
+	attenuation_hdl{this->log_channel}
 {
 }
 
-BlockPhysicalLayer::Upward::~Upward()
-{
-	if(this->attenuation_hdl)
-	{
-		delete this->attenuation_hdl;
-		this->attenuation_hdl = NULL;
-	}
-}
 
-bool BlockPhysicalLayer::Upward::onInit()
+bool Rt::UpwardChannel<BlockPhysicalLayer>::onInit()
 {
 	// Initialize parent class
-	if(!this->initGround(true, this, this->log_init))
+	if(!this->initGround(true, *this, this->log_init))
 	{
 		return false;
 	}
@@ -142,8 +137,7 @@ bool BlockPhysicalLayer::Upward::onInit()
 	this->probe_total_cn = Output::Get()->registerProbe<float>(prefix + "Phy.Total_cn", "dB", true, SAMPLE_LAST);
 
 	// Initialize the attenuation handler
-	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
-	if(!this->attenuation_hdl->initialize(this->log_init, prefix))
+	if(!this->attenuation_hdl.initialize(this->log_init, prefix))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Unable to initialize Attenuation Handler");
@@ -153,104 +147,104 @@ bool BlockPhysicalLayer::Upward::onInit()
 	return true;
 }
 
-bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
+
+bool Rt::UpwardChannel<BlockPhysicalLayer>::onEvent(const Event &event)
 {
-	switch(event->getType())
+	LOG(this->log_event, LEVEL_ERROR,
+	    "Unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BlockPhysicalLayer>::onEvent(const TimerEvent &event)
+{
+	if(event == this->fifo_timer)
 	{
-		case EventType::Message:
+		// Event handler for delay FIFO
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Delay FIFO timer expired");
+		if(!this->forwardReadyPackets())
 		{
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "Incoming DVB frame");
-			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-
-			// Ignore SAC messages if ST
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "Check the entity is a ST and DVB frame is SAC");
-			if(!OpenSandModelConf::Get()->isGw(this->mac_id) &&
-			   dvb_frame->getMessageType() == EmulatedMessageType::Sac)
-			{
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "The SAC is deleted because the entity is not a GW");
-				delete dvb_frame;
-				return true;
-			}
-
-			// Check a delay is applicable to the packet
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "Check the DVB frame has to be delayed");
-			if(IsDelayedFrame(dvb_frame->getMessageType()))
-			{
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "Push the DVB frame in delay FIFO");
-				return this->pushPacket((NetContainer *)dvb_frame);
-			}
-
-			// Forward packet
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "Forward the DVB frame");
-			if(!this->forwardPacket(dvb_frame))
-			{
-				LOG(this->log_event, LEVEL_ERROR,
-				    "DVB frame forwarding failed");
-				return false;
-			}
-		}
-		break;
-
-		case EventType::Timer:
-		{
-			if(*event == this->fifo_timer)
-			{
-				// Event handler for delay FIFO
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "Delay FIFO timer expired");
-				if(!this->forwardReadyPackets())
-				{
-					LOG(this->log_event, LEVEL_ERROR,
-					    "Delayed packets forwarding failed");
-					return false;
-				}
-
-			}
-			else if(*event == this->attenuation_update_timer)
-			{
-				// Event handler for Upward Channel state update
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "Attenuation update timer expired");
-				if(!this->updateAttenuation())
-				{
-					LOG(this->log_event, LEVEL_ERROR,
-					    "Attenuation update failed");
-					return false;
-				}
-			}
-			else
-			{
-				LOG(this->log_event, LEVEL_ERROR,
-				    "Unknown timer event received");
-				return false;
-			}
-		}
-		break;
-			
-		default:
 			LOG(this->log_event, LEVEL_ERROR,
-			    "Unknown event received %s",
-			    event->getName().c_str());
+			    "Delayed packets forwarding failed");
 			return false;
+		}
+
+	}
+	else if(event == this->attenuation_update_timer)
+	{
+		// Event handler for Upward Channel state update
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Attenuation update timer expired");
+		if(!this->updateAttenuation())
+		{
+			LOG(this->log_event, LEVEL_ERROR,
+			    "Attenuation update failed");
+			return false;
+		}
+	}
+	else
+	{
+		LOG(this->log_event, LEVEL_ERROR,
+		    "Unknown timer event received");
+		return false;
 	}
 
 	return true;
 }
 
-bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
+
+bool Rt::UpwardChannel<BlockPhysicalLayer>::onEvent(const MessageEvent &event)
+{
+	LOG(this->log_event, LEVEL_DEBUG, "Incoming DVB frame");
+	Ptr<DvbFrame> dvb_frame = event.getMessage<DvbFrame>();
+
+	// Ignore SAC messages if ST
+	LOG(this->log_event, LEVEL_DEBUG,
+	    "Check the entity is a ST and DVB frame is SAC");
+	if(!OpenSandModelConf::Get()->isGw(this->mac_id) &&
+	   dvb_frame->getMessageType() == EmulatedMessageType::Sac)
+	{
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "The SAC is deleted because the entity is not a GW");
+		return true;
+	}
+
+	// Check a delay is applicable to the packet
+	LOG(this->log_event, LEVEL_DEBUG,
+	    "Check the DVB frame has to be delayed");
+	if(IsDelayedFrame(dvb_frame->getMessageType()))
+	{
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Push the DVB frame in delay FIFO");
+		return this->pushPacket(std::move(dvb_frame));
+	}
+
+	// Forward packet
+	LOG(this->log_event, LEVEL_DEBUG,
+	    "Forward the DVB frame");
+	if(!this->forwardPacket(std::move(dvb_frame)))
+	{
+		LOG(this->log_event, LEVEL_ERROR,
+		    "DVB frame forwarding failed");
+		return false;
+	}
+
+	return true;
+}
+
+
+bool Rt::UpwardChannel<BlockPhysicalLayer>::forwardPacket(Ptr<DvbFrame> dvb_frame)
 {
 	if(IsCnCapableFrame(dvb_frame->getMessageType()))
 	{
 		// Set C/N to Dvb frame
-		dvb_frame->setCn(this->getCn(dvb_frame));
+		auto cn = this->getCn(*dvb_frame);
+		dvb_frame->setCn(cn);
 		LOG(this->log_event, LEVEL_DEBUG,
-		    "Set C/N to the DVB frame forwardPacket %f. Message type %d\n", this->getCn(dvb_frame), dvb_frame->getMessageType());
+		    "Set C/N to the DVB frame forwardPacket %f. Message type %d\n",
+		    cn, dvb_frame->getMessageType());
 
 		// Update probe
 		this->probe_total_cn->put(dvb_frame->getCn());
@@ -259,42 +253,45 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 	if(IsAttenuatedFrame(dvb_frame->getMessageType()))
 	{
 		// Process Attenuation
-		if(!this->attenuation_hdl->process(dvb_frame, dvb_frame->getCn()))
+		auto cn = dvb_frame->getCn();
+		if(!this->attenuation_hdl.process(*dvb_frame, cn))
 		{
 			LOG(this->log_event, LEVEL_ERROR,
 			    "Failed to get the attenuation");
-			delete dvb_frame;
 			return false;
 		}
 	}
 
 	// Send frame to upper layer
-	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
+	if (!this->enqueueMessage(std::move(dvb_frame), to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, 
 		    "Failed to send burst of packets to upper layer");
-		delete dvb_frame;
 		return false;
 	}
 	return true;
 }
 
-double BlockPhysicalLayer::Upward::getCn(DvbFrame *dvb_frame) const
+
+double Rt::UpwardChannel<BlockPhysicalLayer>::getCn(DvbFrame &dvb_frame) const
 {
-	return GroundPhysicalChannel::computeTotalCn(dvb_frame->getCn(), this->getCurrentCn());
+	//return GroundPhysicalChannel::computeTotalCn(dvb_frame.getCn(), this->getCurrentCn());
+	return this->computeTotalCn(dvb_frame.getCn());
 }
 
-BlockPhysicalLayer::Downward::Downward(const std::string &name, PhyLayerConfig config):
-	GroundPhysicalChannel(config),
-	RtDownward(name),
-	delay_update_timer(-1)
+
+Rt::DownwardChannel<BlockPhysicalLayer>::DownwardChannel(const std::string &name, PhyLayerConfig config):
+	GroundPhysicalChannel{config},
+	Channels::Downward<DownwardChannel<BlockPhysicalLayer>>{name},
+	delay_update_timer{-1}
 {
 }
 
-bool BlockPhysicalLayer::Downward::onInit()
+
+bool Rt::DownwardChannel<BlockPhysicalLayer>::onInit()
 {
 	// Initialize parent class
-	if(!this->initGround(false, this, this->log_init))
+	if(!this->initGround(false, *this, this->log_init))
 	{
 		return false;
 	}
@@ -305,7 +302,7 @@ bool BlockPhysicalLayer::Downward::onInit()
 
 	// Initialize the delay event
 	this->delay_update_timer = this->addTimerEvent("delay_timer",
-	                                               this->satdelay_model->getRefreshPeriod());
+	                                               ArgumentWrapper(this->satdelay_model->getRefreshPeriod()));
 
 	// Initialize the delay probe
 	this->probe_delay = Output::Get()->registerProbe<int>(prefix + "Phy.Delay", "ms", true, SAMPLE_LAST);
@@ -313,115 +310,114 @@ bool BlockPhysicalLayer::Downward::onInit()
 	return true;
 }
 
-bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
+
+bool Rt::DownwardChannel<BlockPhysicalLayer>::onEvent(const Event &event)
 {
-	switch(event->getType())
+	LOG(this->log_event, LEVEL_ERROR,
+	    "unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockPhysicalLayer>::onEvent(const TimerEvent &event)
+{
+	if(event == this->fifo_timer)
 	{
-		case EventType::Message:
+		// Event handler for delay FIFO
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Delay FIFO timer expired");
+		if(!this->forwardReadyPackets())
 		{
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "Incoming DVB frame");
-			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-
-			// Prepare packet
-			this->preparePacket(dvb_frame);
-
-			// Check a delay is applicable to the packet
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "Check the DVB frame has to be delayed");
-			if(IsDelayedFrame(dvb_frame->getMessageType()))
-			{
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "Push the DVB frame in delay FIFO");
-				return this->pushPacket((NetContainer *)dvb_frame);
-			}
-
-			// Forward packet
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "Forward the DVB frame");
-			if(!this->forwardPacket(dvb_frame))
-			{
-				LOG(this->log_event, LEVEL_ERROR,
-				    "The DVB frame forwarding failed");
-				return false;
-			}
-		}
-		break;
-
-		case EventType::Timer:
-		{
-			if(*event == this->fifo_timer)
-			{
-				// Event handler for delay FIFO
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "Delay FIFO timer expired");
-				if(!this->forwardReadyPackets())
-				{
-					LOG(this->log_event, LEVEL_ERROR,
-					    "Delayed packets forwarding failed");
-					return false;
-				}
-			}
-			else if(*event == this->attenuation_update_timer)
-			{
-				// Event handler for Upward Channel state update
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "Attenuation update timer expired");
-				if(!this->updateAttenuation())
-				{
-					LOG(this->log_event, LEVEL_ERROR,
-					    "Attenuation update failed");
-					return false;
-				}
-			}
-			else if(*event == this->delay_update_timer)
-			{
-				// Event handler for update satellite delay
-				LOG(this->log_event, LEVEL_DEBUG,
-				    "Delay update timer expired");
-				if(!this->updateDelay())
-				{
-					LOG(this->log_event, LEVEL_ERROR,
-					    "Satellite delay update failed");
-					return false;
-				}
-				// Send probes
-				Output::Get()->sendProbes();
-			}
-			else
-			{
-				LOG(this->log_event, LEVEL_ERROR,
-				    "unknown timer event received");
-				return false;
-			}
-		}
-		break;
-		
-		default:
 			LOG(this->log_event, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
+			    "Delayed packets forwarding failed");
 			return false;
+		}
+	}
+	else if(event == this->attenuation_update_timer)
+	{
+		// Event handler for Upward Channel state update
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Attenuation update timer expired");
+		if(!this->updateAttenuation())
+		{
+			LOG(this->log_event, LEVEL_ERROR,
+			    "Attenuation update failed");
+			return false;
+		}
+	}
+	else if(event == this->delay_update_timer)
+	{
+		// Event handler for update satellite delay
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Delay update timer expired");
+		if(!this->updateDelay())
+		{
+			LOG(this->log_event, LEVEL_ERROR,
+			    "Satellite delay update failed");
+			return false;
+		}
+		// Send probes
+		Output::Get()->sendProbes();
+	}
+	else
+	{
+		LOG(this->log_event, LEVEL_ERROR,
+		    "unknown timer event received");
+		return false;
 	}
 
 	return true;
 }
 
-void BlockPhysicalLayer::Downward::preparePacket(DvbFrame *dvb_frame)
+
+bool Rt::DownwardChannel<BlockPhysicalLayer>::onEvent(const MessageEvent &event)
 {
-	if(IsCnCapableFrame(dvb_frame->getMessageType()))
+	LOG(this->log_event, LEVEL_DEBUG,
+	    "Incoming DVB frame");
+	Ptr<DvbFrame> dvb_frame = event.getMessage<DvbFrame>();
+
+	// Prepare packet
+	this->preparePacket(*dvb_frame);
+
+	// Check a delay is applicable to the packet
+	LOG(this->log_event, LEVEL_DEBUG,
+	    "Check the DVB frame has to be delayed");
+	if(IsDelayedFrame(dvb_frame->getMessageType()))
+	{
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Push the DVB frame in delay FIFO");
+		return this->pushPacket(std::move(dvb_frame));
+	}
+
+	// Forward packet
+	LOG(this->log_event, LEVEL_DEBUG, "Forward the DVB frame");
+	if(!this->forwardPacket(std::move(dvb_frame)))
+	{
+		LOG(this->log_event, LEVEL_ERROR,
+		    "The DVB frame forwarding failed");
+		return false;
+	}
+
+	return true;
+}
+
+void Rt::DownwardChannel<BlockPhysicalLayer>::preparePacket(DvbFrame &dvb_frame)
+{
+	if(IsCnCapableFrame(dvb_frame.getMessageType()))
 	{
 		// Set C/N to Dvb frame
 		LOG(this->log_event, LEVEL_DEBUG,
-		    "Set C/N to the DVB frame preparePacket %f. Message type %d\n", this->getCurrentCn(), dvb_frame->getMessageType());
-		dvb_frame->setCn(this->getCurrentCn());
+		    "Set C/N to the DVB frame preparePacket %f. Message type %d\n",
+		    this->getCurrentCn(), dvb_frame.getMessageType());
+		dvb_frame.setCn(this->getCurrentCn());
 	}
 }
 
-bool BlockPhysicalLayer::Downward::updateDelay()
+
+bool Rt::DownwardChannel<BlockPhysicalLayer>::updateDelay()
 {
-	LOG(this->log_channel, LEVEL_DEBUG,
-		"Update delay");
+	LOG(this->log_channel, LEVEL_DEBUG, "Update delay");
 	if(!this->satdelay_model->updateSatDelay())
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
@@ -432,21 +428,20 @@ bool BlockPhysicalLayer::Downward::updateDelay()
 	time_ms_t delay = this->satdelay_model->getSatDelay();
 
 	LOG(this->log_channel, LEVEL_INFO,
-		"New delay: %u ms",
+		"New delay: %f ms",
 		delay);
-	this->probe_delay->put(delay);
+	this->probe_delay->put(std::chrono::duration_cast<std::chrono::duration<int, std::milli>>(delay).count());
 
 	return true;
 }
 
-bool BlockPhysicalLayer::Downward::forwardPacket(DvbFrame *dvb_frame)
+bool Rt::DownwardChannel<BlockPhysicalLayer>::forwardPacket(Ptr<DvbFrame> dvb_frame)
 {
 	// Send frame to upper layer
-	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
+	if (!this->enqueueMessage(std::move(dvb_frame), to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, 
 		    "Failed to send burst of packets to upper layer");
-		delete dvb_frame;
 		return false;
 	}
 	return true;	

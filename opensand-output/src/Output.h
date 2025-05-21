@@ -40,6 +40,7 @@
 #define _OUTPUT_H
 
 #include <map>
+#include <ostream>
 #include <vector>
 #include <memory>
 #include <string>
@@ -48,8 +49,6 @@
 #include "OutputLog.h"
 #include "OutputMutex.h"
 
-
-#define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
 
 #define DFLTLOG(level, fmt, args...) \
 	do \
@@ -70,6 +69,7 @@
 	while(0)
 
 
+/*
 #define DUMP(data, len) \
 	do \
 	{ \
@@ -82,6 +82,7 @@
 		Output::Get()->sendLog(LEVEL_ERROR, "%s", str.c_str()); \
 	} \
 	while(0)
+*/
 
 
 class OutputEvent;
@@ -133,20 +134,6 @@ class Output
 
 	/**
 	 * @brief Register a probe in the output library
-	 *        with variable arguments in name
-	 *
-	 * @param enabled   Whether the probe is enabled by default
-	 * @param type      The sample type
-	 * @param name      The probe full name (section.subsection.name) with variable arguments
-	 *
-	 * @return the probe object
-	 **/
-	template<typename T>
-	std::shared_ptr<Probe<T>> registerProbe(bool enabled, sample_type_t type, const char* msg_format, ...);
-		PRINTFLIKE(4, 5);
-
-	/**
-	 * @brief Register a probe in the output library
 	 *
 	 * @param name            The probe full name (section.subsection.name)
 	 * @param unit            The probe unit
@@ -159,21 +146,6 @@ class Output
 	std::shared_ptr<Probe<T>> registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type);
 
 	/**
-	 * @brief Register a probe in the output library
-	 *        with variable arguments in name
-	 *
-	 * @param unit      The probe unit
-	 * @param enabled   Whether the probe is enabled by default
-	 * @param type      The sample type
-	 * @param name      The probe full name (section.subsection.name) with variable arguments
-	 *
-	 * @return the probe object
-	 **/
-	template<typename T>
-	std::shared_ptr<Probe<T>> registerProbe(const std::string& unit, bool enabled, sample_type_t type, const char* msg_format, ...)
-		PRINTFLIKE(5, 6);
-
-	/**
 	 * @brief Register an event in the output library
 	 *
 	 * @param identifier   The event name
@@ -181,17 +153,6 @@ class Output
 	 * @return the event object
 	 **/
 	std::shared_ptr<OutputEvent> registerEvent(const std::string& identifier);
-
-	/**
-	 * @brief Register an event in the output library
-	 *        with variable arguments
-	 *
-	 * @param identifier   The event name with variable arguments
-	 *
-	 * @return the event object
-	 **/
-	std::shared_ptr<OutputEvent> registerEvent(const char* identifier, ...)
-		PRINTFLIKE(2, 3);
 
 	/**
 	 * @brief Register a log with the level Warning in the output library
@@ -202,18 +163,6 @@ class Output
 	 * @return the log object
 	 **/
 	std::shared_ptr<OutputLog> registerLog(log_level_t display_level, const std::string& name);
-
-	/**
-	 * @brief Register a log with the level Warning in the output library
-	 *
-	 * @param default_display_level  The default minimum display level for 
-	 *                               this log
-	 * @param name The log name
-	 *
-	 * @return the log object
-	 **/
-	std::shared_ptr<OutputLog> registerLog(log_level_t default_display_level, const char* name, ...)
-		PRINTFLIKE(3, 4);
 
 	/**
 	 * @brief Set the probe state
@@ -280,8 +229,8 @@ class Output
 	 * @param log_level   The log level to send
 	 * @param msg_format  The message format
 	 **/
-	void sendLog(log_level_t log_level, const char* msg_format, ...)
-		PRINTFLIKE(3, 4);
+	template<typename ... Args>
+	void sendLog(log_level_t log_level, char const * const msg_format, Args const & ... args);
 
 	/**
 	 * @brief Adjust the output log display level
@@ -296,6 +245,8 @@ class Output
 	 * @param levels    The log levels defined in configuration
 	 */
 	void setLevels(const std::map<std::string, log_level_t> &levels);
+
+	friend std::ostream& operator << (std::ostream& os, const Output& o);
 
  private:
 	Output();
@@ -316,33 +267,6 @@ class Output
 
 	std::shared_ptr<OutputDesiredLogLevel> desiredLogLevels;
 };
-
-
-template<typename T>
-std::shared_ptr<Probe<T>> Output::registerProbe(bool enabled, sample_type_t type, const char *name, ...)
-{
-	std::va_list args;
-	va_start(args, name);
-	std::string probeName = formatMessage(name, args);
-	va_end(args);
-
-	return registerProbe<T>(probeName, "", enabled, type);
-}
-
-
-template<typename T>
-std::shared_ptr<Probe<T>> Output::registerProbe(const std::string& unit,
-                                                bool enabled,
-                                                sample_type_t type,
-                                                const char *name, ...)
-{
-	std::va_list args;
-	va_start(args, name);
-	std::string probeName = formatMessage(name, args);
-	va_end(args);
-
-	return registerProbe<T>(probeName, unit, enabled, type);
-}
 
 
 template<typename T>
@@ -371,6 +295,13 @@ std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& name,
                                                      const std::string& unit,
                                                      bool enabled,
                                                      sample_type_t type);
+
+
+template<typename... Args>
+void Output::sendLog(log_level_t log_level, char const * const msg_format, Args const & ... args)
+{
+	defaultLog->sendLog(log_level, msg_format, args...);
+}
 
 
 #endif

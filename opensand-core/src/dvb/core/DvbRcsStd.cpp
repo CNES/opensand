@@ -34,14 +34,13 @@
  */
 
 
-#include "DvbRcsStd.h"
-
 #include <opensand_output/Output.h>
 
-#include <cassert>
+#include "DvbRcsStd.h"
+#include "NetBurst.h"
 
 
-DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
+DvbRcsStd::DvbRcsStd(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl),
 	has_fixed_length(true)
 {
@@ -49,14 +48,14 @@ DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
 }
 
 DvbRcsStd::DvbRcsStd(std::string type, bool has_fixed_length,
-		EncapPlugin::EncapPacketHandler *pkt_hdl):
+                     std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	has_fixed_length(has_fixed_length)
 {
 	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
-DvbRcs2Std::DvbRcs2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
+DvbRcs2Std::DvbRcs2Std(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
 	DvbRcsStd("DVB-RCS2", false, pkt_hdl)
 {
 }
@@ -66,12 +65,12 @@ DvbRcsStd::~DvbRcsStd()
 }
 
 
-bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
+bool DvbRcsStd::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
                            tal_id_t,
-                           NetBurst **burst)
+                           Rt::Ptr<NetBurst> &burst)
 {
 
-	std::vector<std::unique_ptr<NetPacket>> decap_packets;
+	std::vector<Rt::Ptr<NetPacket>> decap_packets;
 	bool partial_decap = false;
 
 	// sanity check
@@ -79,7 +78,6 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "invalid frame received\n");
-		delete dvb_frame;
 		return false;
 	}
 
@@ -87,7 +85,6 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "packet handler is NULL\n");
-		delete dvb_frame;
 		return false;
 	}
 
@@ -96,13 +93,10 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "the message received is not a DVB burst\n");
-		delete dvb_frame;
 		return false;
 	}
 
-	DvbRcsFrame *dvb_rcs_frame_ptr = *dvb_frame;
-	std::unique_ptr<DvbRcsFrame> dvb_rcs_frame{dvb_rcs_frame_ptr};
-
+	auto dvb_rcs_frame = dvb_frame_upcast<DvbRcsFrame>(std::move(dvb_frame));
 	if(dvb_rcs_frame->isCorrupted())
 	{
 		// corrupted, nothing more to do
@@ -150,7 +144,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	try
 	{
 		// create an empty burst of encapsulation packets
-		*burst = new NetBurst();
+		burst = Rt::make_ptr<NetBurst>();
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -167,7 +161,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		    "%s packet (%zu bytes) added to burst\n",
 		    this->packet_handler->getName().c_str(),
 		    packet->getTotalLength());
-		(*burst)->add(std::move(packet));
+		burst->add(std::move(packet));
 	}
 
 	return true;

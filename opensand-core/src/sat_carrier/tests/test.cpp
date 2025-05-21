@@ -91,7 +91,6 @@ int main(int argc, char **argv)
 	const char *progname = argv[0];
 	std::string ip_addr;
 
-	Block *block_sat_carrier;
 	std::vector<std::string> conf_files;
 
 	int is_failure = 1;
@@ -112,25 +111,27 @@ int main(int argc, char **argv)
 	// Load configuration files content
 	if(!Conf->readInfrastructure("test_topology.conf"))
 	{
-		fprintf(stderr, "%s: cannot load configuration files, quit\n",
-		        progname);
+		fprintf(stderr, "%s: cannot load configuration files, quit\n", progname);
 		goto quit;
 	}
 
-	block_sat_carrier = Rt::createBlock<TestSatCarriers>("TestSatCarriers", specific);
-	if(!block_sat_carrier)
+	try
+	{
+		Rt::Rt::createBlock<TestSatCarriers>("TestSatCarriers", specific);
+	}
+	catch (const std::bad_alloc&)
 	{
 		fprintf(stderr, "%s: cannot create the SatCarrier block\n", progname);
 		goto quit;
 	}
 
 	// make the SAT alive
-	if(!Rt::init())
+	if(!Rt::Rt::init())
 	{
 		goto quit;
 	}
 
-	if(!Rt::run())
+	if(!Rt::Rt::run())
 	{
 		fprintf(stderr, "cannot run process loop\n");
 	}

@@ -38,6 +38,8 @@
 #define LAN_ADAPTATION_CONTEXT_H
 
 
+#include <memory>
+
 #include "OpenSandCore.h"
 #include "StackPlugin.h"
 
@@ -84,15 +86,15 @@ public:
 		/* the following functions should not be called */
 		std::size_t getMinLength() const override;
 
-		bool encapNextPacket(std::unique_ptr<NetPacket> packet,
+		bool encapNextPacket(Rt::Ptr<NetPacket> packet,
 		                     std::size_t remaining_length,
 		                     bool new_burst,
-		                     std::unique_ptr<NetPacket> &encap_packet,
-		                     std::unique_ptr<NetPacket> &remaining_packet) override;
+		                     Rt::Ptr<NetPacket> &encap_packet,
+		                     Rt::Ptr<NetPacket> &remaining_packet) override;
 
-		bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
+		bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
 		                            bool &partial_decap,
-		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                            std::vector<Rt::Ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packets_count) override;
 	};
 
@@ -116,7 +118,7 @@ public:
 		 * @param class_list       A list of service classes
 		 * @return true on success, false otherwise
 		 */
-		virtual bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
+		virtual bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch);
 
 		/**
 		 * @brief Get the bytes of LAN header for TUN/TAP interface
@@ -125,7 +127,7 @@ public:
 		 * @param packet The current packet
 		 * @return     The byte indicated by pos
 		 */
-		virtual char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet) = 0;
+		virtual char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet) = 0;
 
 		/**
 		 * @brief check if the packet should be read/written on TAP or TUN interface
@@ -134,7 +136,7 @@ public:
 		 */
 		virtual bool handleTap() = 0;
 
-		bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl);
+		bool setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl) override;
 
 		virtual bool init();
 
@@ -146,7 +148,7 @@ public:
 		tal_id_t tal_id;
 
 		/// The SARP table
-		PacketSwitch *packet_switch;
+		std::shared_ptr<PacketSwitch> packet_switch;
 	};
 
 	LanAdaptationPlugin(NET_PROTO ether_type);
@@ -158,9 +160,9 @@ public:
 	 *
 	 * @return the context
 	 */
-	inline LanAdaptationContext *getContext() const
+	inline std::shared_ptr<LanAdaptationContext> getContext() const
 	{
-		return static_cast<LanAdaptationContext *>(this->context);
+		return std::static_pointer_cast<LanAdaptationContext>(this->context);
 	};
 
 	/**
@@ -168,13 +170,13 @@ public:
 	 *
 	 * @return the packet handler
 	 */
-	inline LanAdaptationPacketHandler *getPacketHandler() const
+	inline std::shared_ptr<LanAdaptationPacketHandler> getPacketHandler() const
 	{
-		return static_cast<LanAdaptationPacketHandler *>(this->packet_handler);
+		return std::static_pointer_cast<LanAdaptationPacketHandler>(this->packet_handler);
 	};
 };
 
-typedef std::vector<LanAdaptationPlugin::LanAdaptationContext *> lan_contexts_t;
+typedef std::vector<std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext>> lan_contexts_t;
 
 
 #ifdef CREATE

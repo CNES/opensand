@@ -35,33 +35,42 @@
 #include "RtFifo.h"
 
 
-RtChannel::RtChannel(const std::string &name, const std::string &type):
-	RtChannelBase{name, type},
+namespace Rt
+{
+
+
+Channel::Channel(const std::string &name, const std::string &type):
+	ChannelBase{name, type},
 	previous_fifo{nullptr},
 	next_fifo{nullptr}
 {
 }
 
 
-bool RtChannel::initPreviousFifo()
+bool Channel::initPreviousFifo()
 {
   return this->initSingleFifo(this->previous_fifo);
 }
 
 
-bool RtChannel::enqueueMessage(void **data, size_t size, uint8_t type)
+bool Channel::enqueueMessage(Ptr<void> data, uint8_t type)
 {
-	return this->pushMessage(this->next_fifo, data, size, type);
+	Message m{std::move(data)};
+	m.type = type;
+	return this->pushMessage(this->next_fifo, std::move(m));
 }
 
 
-void RtChannel::setPreviousFifo(std::shared_ptr<RtFifo> &fifo)
+void Channel::setPreviousFifo(std::shared_ptr<Fifo> &fifo)
 {
 	this->previous_fifo = fifo;
-};
+}
 
 
-void RtChannel::setNextFifo(std::shared_ptr<RtFifo> &fifo)
+void Channel::setNextFifo(std::shared_ptr<Fifo> &fifo)
 {
 	this->next_fifo = fifo;
+}
+
+
 };

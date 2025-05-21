@@ -90,9 +90,9 @@ bool Plugin::getSatDelayPlugin(std::string name,
 }
 
 
-void Plugin::getAllEncapsulationPlugins(PluginConfigurationContainer &encapsulation)
+std::vector<std::string> Plugin::getAllEncapsulationPlugins()
 {
-	return utils.getAllEncapsulationPlugins(encapsulation);
+	return utils.getAllEncapsulationPlugins();
 }
 
 

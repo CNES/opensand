@@ -33,14 +33,20 @@
  *
  */
 
-#include "RandomSimulator.h"
 
+#include <sys/times.h>
 #include <errno.h>
+
+#include <opensand_output/Output.h>
+
+#include "RandomSimulator.h"
+#include "Sac.h"
+#include "Logon.h"
 
 
 RandomSimulator::RandomSimulator(spot_id_t spot_id,
                                  tal_id_t mac_id,
-                                 FILE** evt_file,
+                                 std::ostream* &evt_file,
                                  int simu_st,
                                  int simu_rt,
                                  int simu_max_rbdc,
@@ -64,15 +70,11 @@ RandomSimulator::RandomSimulator(spot_id_t spot_id,
 	    this->simu_st, this->simu_rt, this->simu_max_rbdc,
 	    this->simu_max_vbdc, this->simu_cr,
 	    this->simu_interval);
-	srandom(times(NULL));
-}
-
-RandomSimulator::~RandomSimulator()
-{
+	srandom(times(nullptr));
 }
 
 
-bool RandomSimulator::simulation(std::list<DvbFrame *>* msgs,
+bool RandomSimulator::simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
                                  time_sf_t UNUSED(super_frame_counter))
 {
 	static bool initialized = false;
@@ -87,10 +89,10 @@ bool RandomSimulator::simulation(std::list<DvbFrame *>* msgs,
 		for(i = 0; i < this->simu_st; i++)
 		{
 			tal_id_t tal_id = sim_tal_id + i;
-			LogonRequest *logon_req = new LogonRequest(tal_id, this->simu_rt,
-			                                          this->simu_max_rbdc,
-			                                          this->simu_max_vbdc);
-			msgs->push_back((DvbFrame*)logon_req);
+			auto logon_req = Rt::make_ptr<LogonRequest>(tal_id, this->simu_rt,
+			                                            this->simu_max_rbdc,
+			                                            this->simu_max_vbdc);
+			msgs.push_back(dvb_frame_downcast(std::move(logon_req)));
 
 		}
 		initialized = true;
@@ -99,7 +101,7 @@ bool RandomSimulator::simulation(std::list<DvbFrame *>* msgs,
 	for(i = 0; i < this->simu_st; i++)
 	{
 		uint32_t val;
-		Sac *sac = new Sac(sim_tal_id + i);
+		auto sac = Rt::make_ptr<Sac>(sim_tal_id + i);
 
 		if(this->simu_interval)
 		{
@@ -112,14 +114,14 @@ bool RandomSimulator::simulation(std::list<DvbFrame *>* msgs,
 	    }
 		sac->addRequest(0, ReturnAccessType::dama_rbdc, val);
 		sac->setAcm(0xffff);
-		msgs->push_back((DvbFrame*)sac);
+		msgs.push_back(dvb_frame_downcast(std::move(sac)));
 	}
 
 	return true;
 }
 
 
-bool RandomSimulator::stopSimulation(void)
+bool RandomSimulator::stopSimulation()
 {
 	return true;
 }

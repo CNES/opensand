@@ -29,8 +29,8 @@
  * @file Types.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Mathias ETTINGER / <mathias.ettinger@viveris.fr>
  * @brief  Types for opensand-rt
- *
  */
 
 
@@ -40,32 +40,85 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Ptr.h"
 
 
 constexpr std::size_t MAX_SOCK_SIZE{9000};
 
 
-/// opensand-rt event types
-enum EventType
+namespace Rt
 {
-	NetSocket,   ///< Event of type NetSocket
-	Timer,       ///< Event of type Timer
-	Message,     ///< Event of type Message
-	Signal,      ///< Event of type Signal
-	File,        ///< Event of type File
-	TcpListen,   ///< Event of type TcpListen
-};
 
 
 using event_id_t = int32_t;
 
 
-struct rt_msg_t
+struct Message
 {
-	void *data;
-	size_t length;
+	Message(std::nullptr_t):
+		type{},
+		data{nullptr, [](void*){}}
+	{
+	}
+	template<class T> Message(T* ptr);
+	template<class T> Message(Ptr<T>&& ptr);
+	template<class T> Message& operator =(Ptr<T>&& ptr);
+
+	Message(Message&& m):
+		type{std::move(m.type)},
+		data{std::move(m.data)}
+	{
+	};
+
+	Message& operator =(Message&& m)
+	{
+		this->data = std::move(m.data);
+		this->type = std::move(m.type);
+		return *this;
+	};
+
+	template<class T> Ptr<T> release();
+	inline operator bool() const { return data != nullptr; };
+
 	uint8_t type;
+
+ protected:
+	Ptr<void> data;
 };
+
+
+template<class T>
+Message::Message(T* ptr):
+	type{},
+	data{make_ptr(ptr)}
+{
+}
+
+
+template<class T>
+Message::Message(Ptr<T>&& ptr):
+	type{},
+	data{std::move(ptr)}
+{
+}
+
+
+template<class T>
+Message& Message::operator =(Ptr<T>&& ptr)
+{
+	this->data = std::move(ptr);
+	return *this;
+}
+
+
+template<class T>
+Ptr<T> Message::release()
+{
+	return {static_cast<T*>(this->data.release()), std::move(this->data.get_deleter())};
+}
+
+
+};  // namespace Rt
 
 
 #endif

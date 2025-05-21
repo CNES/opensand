@@ -90,7 +90,7 @@ void File::generateConfiguration(const std::string &parent_path,
 
 bool File::init(time_ms_t refresh_period_ms, std::string link_path)
 {
-	this->refresh_period_ms = refresh_period_ms;
+	this->refresh_period = refresh_period_ms;
 
 	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
 	std::string filename;
@@ -198,8 +198,8 @@ bool File::updateAttenuationModel()
 
 	LOG(this->log_attenuation, LEVEL_INFO,
 	    "Updating attenuation scenario: current time: %u "
-	    "(step: %u)\n", this->current_time,
-	    this->refresh_period_ms / 1000);
+	    "(step: %f)\n", this->current_time,
+	    std::chrono::duration_cast<std::chrono::duration<double>>(this->refresh_period).count());
 
 	// Look for the next entry whose key is equal or greater than 'current_time'
 	attenuation_it = this->attenuation.lower_bound(this->current_time);

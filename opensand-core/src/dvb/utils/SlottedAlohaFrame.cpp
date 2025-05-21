@@ -49,7 +49,7 @@ SlottedAlohaFrame::SlottedAlohaFrame(const unsigned char *data, size_t length):
 }
 
 
-SlottedAlohaFrame::SlottedAlohaFrame(const Data &data):
+SlottedAlohaFrame::SlottedAlohaFrame(const Rt::Data &data):
 	DvbFrameTpl<T_DVB_SALOHA>(data)
 {
 	this->name = "Slotted Aloha frame";
@@ -58,7 +58,7 @@ SlottedAlohaFrame::SlottedAlohaFrame(const Data &data):
 }
 
 
-SlottedAlohaFrame::SlottedAlohaFrame(const Data &data, size_t length):
+SlottedAlohaFrame::SlottedAlohaFrame(const Rt::Data &data, size_t length):
 	DvbFrameTpl<T_DVB_SALOHA>(data, length)
 {
 	this->name = "Slotted Aloha frame";
@@ -96,14 +96,14 @@ SlottedAlohaFrame::~SlottedAlohaFrame()
 {
 }
 
-bool SlottedAlohaFrame::addPacket(NetPacket *packet)
+bool SlottedAlohaFrame::addPacket(const NetPacket &packet)
 {
 	bool is_added;
 	
 	is_added = DvbFrameTpl<T_DVB_SALOHA>::addPacket(packet);
 	if(is_added)
 	{
-		this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
+		this->setMessageLength(this->getMessageLength() + packet.getTotalLength());
 		this->frame()->data_length = htons(this->num_packets);
 	}
 
@@ -121,7 +121,7 @@ void SlottedAlohaFrame::empty()
 	this->frame()->data_length = 0; // no encapsulation packet at the beginning
 }
 
-uint16_t SlottedAlohaFrame::getDataLength(void) const
+uint16_t SlottedAlohaFrame::getDataLength() const
 {
 	return ntohs(this->frame()->data_length);
 }

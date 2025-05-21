@@ -42,7 +42,9 @@
 #include <unordered_set>
 #include <unordered_map>
 
+
 class BlockSatDispatcher;
+
 
 /**
  * @class EntitySat
@@ -54,7 +56,7 @@ public:
 	/**
 	 * Build an entity satellite process
 	 */
-	EntitySat(tal_id_t instance_id);
+	EntitySat(tal_id_t instance_id, bool check_mode);
 
 protected:
 	/**
@@ -84,7 +86,7 @@ protected:
 
 private:
 	template <typename Dvb>
-	bool createStack(BlockSatDispatcher *block_sat_dispatch,
+	bool createStack(BlockSatDispatcher &block_sat_dispatch,
 	                 spot_id_t spot_id,
 	                 Component destination,
 	                 RegenLevel forward_regen_level,
@@ -96,7 +98,6 @@ private:
 	std::unordered_set<tal_id_t> getIslEntities(const std::unordered_map<spot_id_t, SpotTopology> &spot_topo) const;
 
 	std::string ip_address;
-	tal_id_t instance_id;
 	std::vector<IslConfig> isl_config;
 	bool isl_enabled;
 };

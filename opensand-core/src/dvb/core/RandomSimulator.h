@@ -44,27 +44,26 @@ class RandomSimulator: public RequestSimulator
 public:
 	RandomSimulator(spot_id_t spot_id,
 	                tal_id_t mac_id,
-	                FILE** evt_file,
+	                std::ostream* &evt_file,
 	                int simu_st,
 	                int simu_rt,
 	                int simu_max_rbdc,
 	                int simu_max_vbdc,
 	                int simu_cr,
 	                int simu_interval);
-	~RandomSimulator();
 
 	/**
 	 * Simulate event based on random generation
 	 * @return true on success, false otherwise
 	 */
-	bool simulation(std::list<DvbFrame *>* msgs,
+	bool simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
 	                time_sf_t super_frame_counter);
 
 	/**
 	 * Stop simulation
 	 * @return true on success, false otherwise
 	 */ 
-	bool stopSimulation(void);
+	bool stopSimulation();
 };
 
 #endif

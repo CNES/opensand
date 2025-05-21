@@ -37,6 +37,7 @@
 #define _BASE_PROBE_H
 
 #include <string>
+#include <cstdint>
 
 
 /**

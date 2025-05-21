@@ -121,11 +121,9 @@ public:
 	/**
 	 * @brief get the encapsulation plugins list
 	 *
-	 * @param name           The name of the encapsulation plugin
-	 * @param encapsulation  The encapsulation plugin
-	 * @return true on success, false otherwise
+	 * @return a vector containing the names of all known encapsulation plugins
 	 */
-	static void getAllEncapsulationPlugins(PluginConfigurationContainer &encapsulation);
+	static std::vector<std::string> getAllEncapsulationPlugins();
 
 	static void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
 	                                         PluginType plugin_type,

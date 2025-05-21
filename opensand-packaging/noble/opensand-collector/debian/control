@@ -1,0 +1,15 @@
+Source: opensand-collector
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper-compat (= 13)
+Section: misc
+
+Package: opensand-collector
+Section: misc
+Architecture: any
+Pre-Depends: openjdk-8-jdk
+Depends: ${misc:Depends}, logstash, influxdb, elasticsearch, kibana, chronograf
+Provides: opensand-env-plane
+Conflicts: opensand-env-plane
+Replaces: opensand-env-plane
+Description: Statistics and events collector for OpenSAND

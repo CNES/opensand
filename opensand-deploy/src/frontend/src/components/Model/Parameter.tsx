@@ -1,6 +1,6 @@
 import React from 'react';
 import {useParams} from 'react-router-dom';
-import type {FormikProps} from 'formik';
+import {useField} from 'formik';
 
 import Checkbox from '@mui/material/Checkbox';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -8,38 +8,29 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 
-import {styled} from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/HighlightOff';
 import EditIcon from '@mui/icons-material/Edit';
 import HelpIcon from '@mui/icons-material/Help';
 
 import {forceEntityInXML} from '../../api';
 import {useSelector, useDispatch} from '../../redux';
-import type {IActions} from '../../utils/actions';
-import {useTimer} from '../../utils/hooks';
+import type {IXsdAction} from '../../utils/actions';
 import {getXsdName} from '../../xsd';
 import type {Parameter as ParameterType} from '../../xsd';
 
 
-const FlexBox = styled('div')(({ theme }) => ({
-    display: "flex",
-    marginBottom: theme.spacing(1),
-}));
-
-
 const BooleanParam: React.FC<BaseProps> = (props) => {
-    const {parameter, readOnly, name, form: {handleChange, setFieldValue, handleBlur, submitForm}, autosave} = props;
+    const {parameter, readOnly, name} = props;
+    const [{value, onChange, onBlur},, {setValue}] = useField<string>(name);
 
-    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        handleChange(event);
-        setFieldValue(name, String(event.target.checked));
-        if (autosave) {
-            submitForm();
-        }
-    }, [handleChange, name, setFieldValue, submitForm, autosave]);
+    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(event);
+        setValue(String(event.target.checked));
+    }, [onChange, setValue]);
 
     const help = parameter.description === "" ? null : (
         <Tooltip title={parameter.description} placement="top">
@@ -50,44 +41,35 @@ const BooleanParam: React.FC<BaseProps> = (props) => {
     const checkbox = (
         <Checkbox
             name={name}
-            checked={parameter.value === "true"}
-            onChange={myHandleChange}
-            onBlur={handleBlur}
+            checked={value === "true"}
+            onChange={handleChange}
+            onBlur={onBlur}
             disabled={readOnly}
         />
     );
 
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <FormControlLabel control={checkbox} label={parameter.name} />
             {help}
-        </FlexBox>
+        </Stack>
     );
 };
 
 
 const NumberParam: React.FC<NumberProps> = (props) => {
-    const {parameter, readOnly, min, max, step, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
+    const {parameter, readOnly, min, max, step, name} = props;
+    const [{value, onChange, onBlur}] = useField<string>(name);
 
-    const timer = useTimer(1500);
-
-    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        handleChange(event);
-        if (autosave) {
-            timer(submitForm);
-        }
-    }, [timer, handleChange, submitForm, autosave]);
-
-    // label={ parameter.name + " (" + parameter.type + ")" } ???
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 variant="outlined"
                 name={name}
                 label={parameter.name}
-                value={parameter.value}
-                onChange={myHandleChange}
-                onBlur={handleBlur}
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
                 fullWidth
                 disabled={readOnly}
                 type="number"
@@ -103,36 +85,29 @@ const NumberParam: React.FC<NumberProps> = (props) => {
                     inputProps: {min, max, step},
                 }}
             />
-        </FlexBox>
+        </Stack>
     );
 };
 
 
-const StringParam: React.FC<BaseProps> = (props) => {
-    const {parameter, readOnly, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
+const StringParam: React.FC<StringProps> = (props) => {
+    const {parameter, readOnly, lengthLimit, name} = props;
+    const [{value, onChange, onBlur}] = useField<string>(name);
 
-    const timer = useTimer(1500);
-
-    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        handleChange(event);
-        if (autosave) {
-            timer(submitForm);
-        }
-    }, [timer, handleChange, submitForm, autosave]);
-
-    // label={ parameter.name + " (" + parameter.type + ")" } ???
+    const inputProps = lengthLimit ? {pattern: "?".repeat(lengthLimit)} : undefined;
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 variant="outlined"
                 name={name}
                 label={parameter.name}
-                value={parameter.value}
-                onChange={myHandleChange}
-                onBlur={handleBlur}
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
                 fullWidth
                 autoFocus
                 disabled={readOnly}
+                inputProps={inputProps}
                 InputProps={{
                     endAdornment: <InputAdornment position="end">
                         { parameter.unit }
@@ -144,20 +119,14 @@ const StringParam: React.FC<BaseProps> = (props) => {
                     </InputAdornment>,
                 }}
             />
-        </FlexBox>
+        </Stack>
     );
 };
 
 
 const EnumParam: React.FC<EnumProps> = (props) => {
-    const {parameter, readOnly, enumeration, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
-
-    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        handleChange(event);
-        if (autosave) {
-            submitForm();
-        }
-    }, [handleChange, submitForm, autosave]);
+    const {parameter, readOnly, enumeration, name} = props;
+    const [{value, onChange, onBlur}] = useField<string>(name);
 
     const header = React.useMemo(() => <em>Please select a {parameter.name}</em>, [parameter.name]);
 
@@ -178,15 +147,15 @@ const EnumParam: React.FC<EnumProps> = (props) => {
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 select
                 fullWidth
                 name={name}
-                label={parameter.value ? parameter.name : null}
-                value={parameter.value}
-                onChange={myHandleChange}
-                onBlur={handleBlur}
+                label={value ? parameter.name : null}
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
                 disabled={readOnly}
                 SelectProps={{
                     displayEmpty: true,
@@ -196,14 +165,14 @@ const EnumParam: React.FC<EnumProps> = (props) => {
                 {choices}
             </TextField>
             {help}
-        </FlexBox>
+        </Stack>
     );
 };
 
 
-const XsdParameter: React.FC<XsdProps> = (props) => {
-    const {parameter, readOnly, entity, actions, name, form: {handleChange, handleBlur, setFieldValue, submitForm}, autosave} = props;
-    const {onEdit, onRemove} = actions.$;
+export const XsdParameter: React.FC<XsdProps> = (props) => {
+    const {parameter, readOnly, entity, actions: {onEdit, onRemove}, name} = props;
+    const [{value, onChange, onBlur},, {setValue}] = useField<string>(name);
 
     const loading = useSelector((state) => state.model.status);
     const templates = useSelector((state) => state.form.templates);
@@ -216,8 +185,8 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
     const parameter_key = React.useMemo(() => parameter.id.substr(0, parameter.id.indexOf("__template")), [parameter.id]);
     const xsd = React.useMemo(() => getXsdName(parameter_key, entity?.type), [parameter_key, entity]);
 
-    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        handleChange(event);
+    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(event);
         const value = event.target.value || "";
 
         if (value !== "") {
@@ -245,19 +214,12 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
         } else {
             onRemove && onRemove(entity?.name, parameter_key);
         }
-
-        if (autosave) {
-            submitForm();
-        }
-    }, [dispatch, url.name, parameter_key, xsd, entity, onEdit, onRemove, handleChange, submitForm, autosave]);
+    }, [dispatch, url.name, parameter_key, xsd, entity, onEdit, onRemove, onChange]);
 
     const handleClear = React.useCallback(() => {
-        setFieldValue(name, "");
+        setValue("");
         onRemove && onRemove(entity?.name, parameter_key);
-        if (autosave) {
-            submitForm();
-        }
-    }, [setFieldValue, name, parameter_key, entity, onRemove, submitForm, autosave]);
+    }, [setValue, parameter_key, entity, onRemove]);
 
     const handleEdit = React.useCallback(() => {
         onEdit && onEdit(entity, parameter_key, xsd);
@@ -279,7 +241,7 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
             {templatesNames.length ? "Please select a template for the" : "This entity does not require a"} {parameter.name}
         </em>
     ), [templatesNames.length, parameter.name]);
-    const hasValue = React.useMemo(() => parameter.value && parameter.value !== "", [parameter.value]);
+    const hasValue = React.useMemo(() => value && value !== "", [value]);
 
     const renderValue = React.useCallback((selected: any) => {
         if (selected == null || selected === "") {
@@ -293,15 +255,15 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
     return (
-        <FlexBox>
+        <Stack direction="row" mb={1}>
             <TextField
                 select
                 fullWidth
                 name={name}
                 label={hasValue ? parameter.name : null}
-                value={templatesNames.length ? parameter.value : ""}
-                onChange={myHandleChange}
-                onBlur={handleBlur}
+                value={templatesNames.length ? value : ""}
+                onChange={handleChange}
+                onBlur={onBlur}
                 disabled={readOnly || !templatesNames.length}
                 SelectProps={{
                     displayEmpty: true,
@@ -331,31 +293,18 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
             >
                 {choices}
             </TextField>
-        </FlexBox>
+        </Stack>
     );
 };
 
 
 const Parameter: React.FC<Props> = (props) => {
-    const {parameter, readOnly, entity, actions, prefix, ...rest} = props;
+    const {parameter, readOnly, prefix, ...rest} = props;
 
     const model = useSelector((state) => state.model.model);
 
     const isReadOnly = readOnly || parameter.readOnly;
     const name = prefix + ".value";
-
-    if (parameter.id.endsWith("__template")) {
-        return (
-            <XsdParameter
-                parameter={parameter}
-                readOnly={isReadOnly}
-                actions={actions}
-                entity={entity}
-                name={name}
-                {...rest}
-            />
-        );
-    }
 
     const enumeration = model?.environment?.enums?.find(e => e.id === parameter.type);
     if (enumeration != null) {
@@ -400,6 +349,18 @@ const Parameter: React.FC<Props> = (props) => {
                 <NumberParam
                     parameter={parameter}
                     readOnly={isReadOnly}
+                    min={-128}
+                    max={127}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
+        case "ubyte":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
                     min={0}
                     max={255}
                     step={1}
@@ -419,6 +380,18 @@ const Parameter: React.FC<Props> = (props) => {
                     {...rest}
                 />
             );
+        case "ushort":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    min={0}
+                    max={65535}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
         case "int":
             return (
                 <NumberParam
@@ -426,6 +399,19 @@ const Parameter: React.FC<Props> = (props) => {
                     readOnly={isReadOnly}
                     min={-2147483648}
                     max={2147483647}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
+        case "uint":
+        case "size":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    min={0}
+                    max={4294967295}
                     step={1}
                     name={name}
                     {...rest}
@@ -443,8 +429,29 @@ const Parameter: React.FC<Props> = (props) => {
                     {...rest}
                 />
             );
-        case "string":
+        case "ulong":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    min={0}
+                    max={Number.MAX_SAFE_INTEGER}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
         case "char":
+            return (
+                <StringParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    lengthLimit={1}
+                    name={name}
+                    {...rest}
+                />
+            );
+        case "string":
         default:
             return (
                 <StringParam
@@ -462,15 +469,16 @@ interface BaseProps {
     parameter: ParameterType;
     readOnly?: boolean;
     name: string;
-    form: FormikProps<any>;
-    autosave: boolean;
 }
 
 
 interface Props extends Omit<BaseProps, "name"> {
-    entity?: {name: string; type: string;};
     prefix: string;
-    actions: IActions;
+}
+
+
+interface StringProps extends BaseProps {
+    lengthLimit?: number;
 }
 
 
@@ -488,7 +496,7 @@ interface EnumProps extends BaseProps {
 
 interface XsdProps extends BaseProps {
     entity?: {name: string; type: string;};
-    actions: IActions;
+    actions: IXsdAction;
 }
 
 

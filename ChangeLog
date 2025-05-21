@@ -1,3 +1,36 @@
+2025-05-21 opensand-8.0.0
+
+   * Reworked opensand-deploy frontend to try and make it more intuitive
+   * Added GSE plugin in Rust (wrapping https://github.com/viveris/dvb_gse_rust)
+   * Fixed packets routing in regenerative satellite
+   * Fixed ISLs
+   * Fixed SCPC
+   * Fixed memory leaks due to plugins management
+   * Use better default values for configuration
+   * Simplified build process
+
+2023-09-11 opensand-7.0.1
+
+   * Added liboutput dump in a new 'check' mode
+   * Fix carrier capacity computation when determining the amount of carriers for each category.
+
+2023-07-25 opensand-7.0.0
+
+   * Rework memory model in the opensand-rt library
+       * No more bare pointers + length: using unique_ptr with custom deleter instead (a.k.a. Rt::Ptr)
+       * No more explicit types on Rt::Event: using virtual dispatch instead to select the appropriate onEvent in each channel
+       * Better handling of the stop signals leading to proper destruction and resources collection on channels and blocks
+   * Fix asymetric messages not going down properly through encap and dvb blocks
+   * Get SCPC encap stack on par with forward and return link encap stack
+   * Merge Encap and DVB blocks
+   * Add new base types in libconf
+   * Update XML files to new conf format in opensand_cli
+
+2023-06-05 opensand-6.1.2
+
+   * Fix lan_adaptation initialization
+   * Fix compilation issues with G++ 13
+
 2022-03-13 opensand-6.1.1
 
    * Fix SCPC (again)

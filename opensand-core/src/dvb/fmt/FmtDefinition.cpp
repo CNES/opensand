@@ -33,11 +33,15 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
+
+#include <cmath>
+
+#include <opensand_output/Output.h>
+
 #include "FmtDefinition.h"
 #include "ModulationTypes.h"
 #include "CodingTypes.h"
 
-#include <opensand_output/Output.h>
 
 /**
  * @brief Create a FMT definition
@@ -212,7 +216,7 @@ vol_sym_t FmtDefinition::getBurstLength() const
 /**
  * @brief Convert a value in symbol for the FMT definition
  *
- * @param val_sym  the value in symbols (per ...)
+ * @param vol_kbits  the value in kbits (per ...)
  * @return    the value converted in kbits (per ...)
  */
 vol_sym_t FmtDefinition::kbitsToSym(vol_kb_t vol_kb) const
@@ -225,7 +229,7 @@ vol_sym_t FmtDefinition::kbitsToSym(vol_kb_t vol_kb) const
 /**
  * @brief Convert a value in kbits for the FMT definition
  *
- * @param val_kbits  the value in kbits (per ...)
+ * @param vol_sym  the value in symbols (per ...)
  * @return    the value converted in symbol (per ...)
  */
 vol_kb_t FmtDefinition::symToKbits(vol_sym_t vol_sym) const

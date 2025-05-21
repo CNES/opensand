@@ -33,6 +33,8 @@
  * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
+#include <cstdint>
+
 #include "BaseProbe.h"
 
 

@@ -46,20 +46,20 @@
 
 SlottedAloha::SlottedAloha():
 	sf_per_saframe(),
-	frame_duration_ms(),
+	frame_duration(0),
 	is_parent_init(false),
-	pkt_hdl(NULL)
+	pkt_hdl(nullptr)
 {
 	this->log_saloha = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.init");
 }
 
 
-bool SlottedAloha::initParent(time_ms_t frame_duration_ms,
-                              EncapPlugin::EncapPacketHandler *const pkt_hdl)
+bool SlottedAloha::initParent(time_us_t frame_duration,
+                              std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl)
 {
-	srand(time(NULL));
-	this->frame_duration_ms = frame_duration_ms;
+	srand(time(nullptr));
+	this->frame_duration = frame_duration;
 	this->pkt_hdl = pkt_hdl;
 
 	if(!OpenSandModelConf::Get()->getSuperframePerSlottedAlohaFrame(this->sf_per_saframe))

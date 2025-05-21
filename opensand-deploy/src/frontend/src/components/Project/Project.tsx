@@ -1,22 +1,20 @@
 import React from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
 import {Formik} from 'formik';
-import type {FormikProps, FormikHelpers} from 'formik';
+import type {FormikHelpers} from 'formik';
 
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
-import SpacedButton from '../common/SpacedButton';
-import RootComponent from '../Model/RootComponent';
+import AutoSave from './AutoSave';
 import DeployEntityDialog from './DeployEntityDialog';
-import EntityAction from './EntityAction';
 import NewEntityDialog from './NewEntityDialog';
 import PingDialog from './PingDialog';
 import PingResultDialog from './PingResultDialog';
+import ProjectForm from './ProjectForm';
 import LaunchEntitiesButton from './LaunchEntitiesButton';
-// import StatusEntitiesButton from './StatusEntitiesButton';
 import StopEntitiesButton from './StopEntitiesButton';
 
 import {
@@ -31,9 +29,14 @@ import {newError} from '../../redux/error';
 import {clearTemplates} from '../../redux/form';
 import {clearModel} from '../../redux/model';
 import {openSshDialog, runSshCommand} from '../../redux/ssh';
-import {combineActions} from '../../utils/actions';
 import type {MutatorCallback} from '../../utils/actions';
-import {getXsdName, isComponentElement, isListElement, isParameterElement, newItem} from '../../xsd';
+import {
+    getXsdName,
+    isComponentElement,
+    isListElement,
+    isParameterElement,
+    newItem,
+} from '../../xsd';
 import type {Component, Parameter, List} from '../../xsd';
 
 
@@ -108,7 +111,11 @@ const Project: React.FC<Props> = (props) => {
     const [handleNewEntityCreate, setNewEntityCreate] = React.useState<((entity: string, entityType: string) => void) | undefined>(undefined);
     const [pingDestination, setPingDestination] = React.useState<string | null>(null);
 
-    const handleOpen = React.useCallback((root: Component, mutator: MutatorCallback, submitForm: SaveCallback) => {
+    const handleOpen = React.useCallback((mutator: MutatorCallback, submitForm: SaveCallback) => {
+        if (!model) {
+            return;
+        }
+
         setNewEntityCreate(() => (entity: string, entityType: string) => {
             const addNewEntity = (l: List) => {
                 let hasError = false;
@@ -145,10 +152,10 @@ const Project: React.FC<Props> = (props) => {
                     return newEntity;
                 }
             };
-            applyOnMachinesAndEntities(root, (l: List, p: string) => mutator(l, p, addNewEntity));
+            applyOnMachinesAndEntities(model.root, (l: List, p: string) => mutator(l, p, addNewEntity));
             submitForm();
         });
-    }, [dispatch]);
+    }, [dispatch, model]);
 
     const handleClose = React.useCallback(() => {
         setNewEntityCreate(undefined);
@@ -161,9 +168,11 @@ const Project: React.FC<Props> = (props) => {
         helpers.setSubmitting(false);
     }, [dispatch, name]);
 
-    const handleDeleteEntity = React.useCallback((root: Component, mutator: (l: List, path: string) => void) => {
-        applyOnMachinesAndEntities(root, mutator);
-    }, []);
+    const handleDeleteEntity = React.useCallback((mutator: (l: List, path: string) => void) => {
+        if (model) {
+            applyOnMachinesAndEntities(model.root, mutator);
+        }
+    }, [model]);
 
     const handleSelect = React.useCallback((entity: IEntity | undefined, key: string, xsd: string, xml?: string) => {
         const query: {xsd: string; xml: string;} | {xsd: string;} = xml ? {xsd, xml} : {xsd};
@@ -181,7 +190,7 @@ const Project: React.FC<Props> = (props) => {
     const handleDownload = React.useCallback((entity?: string) => {
         const form = document.createElement("form") as HTMLFormElement;
         form.method = "post";
-        form.action = "/api/project/" + name + (entity == null ? "" : "/" + entity);
+        form.action = "/api/project/" + name + (entity == null ? "" : "/entity/" + entity);
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);
@@ -192,17 +201,6 @@ const Project: React.FC<Props> = (props) => {
             action: () => setPingDestination(destination),
         }));
     }, [dispatch]);
-
-    const displayAction = React.useCallback((index: number) => {
-        const entity = findMachines(model?.root)?.elements[index];
-        return (
-            <EntityAction
-                project={name}
-                entity={entity}
-                onDownload={handleDownload}
-            />
-        );
-    }, [model, name, handleDownload]);
 
     const [entityName, entityType]: [Parameter | undefined, Parameter | undefined] = React.useMemo(() => {
         const entity: [Parameter | undefined, Parameter | undefined] = [undefined, undefined];
@@ -218,14 +216,6 @@ const Project: React.FC<Props> = (props) => {
 
         return entity;
     }, [model]);
-
-    const actions = React.useMemo(() => combineActions([
-        {path: ['platform', 'machines'], actions: {onCreate: handleOpen, onDelete: handleDeleteEntity}},
-        {path: ['platform', 'machines', 'item'], actions: {onAction: displayAction}},
-        {path: ['configuration', 'topology__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
-        {path: ['configuration', 'entities', 'item', 'profile__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
-        {path: ['configuration', 'entities', 'item', 'infrastructure__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
-    ]), [handleOpen, handleDeleteEntity, handleDelete, handleSelect, displayAction]);
 
     React.useEffect(() => {
         if (name) {
@@ -251,6 +241,11 @@ const Project: React.FC<Props> = (props) => {
         }
     }, [dispatch, name, source, pingDestination]);
 
+    const machines = findMachines(model?.root);
+    const entities = findEntities(model?.root);
+    const machinesActions = {onCreate: handleOpen, onDelete: handleDeleteEntity};
+    const templatesActions = {onEdit: handleSelect, onRemove: handleDelete};
+
     return (
         <React.Fragment>
             <Toolbar>
@@ -258,23 +253,74 @@ const Project: React.FC<Props> = (props) => {
                 <Typography variant="h6">{name}</Typography>
             </Toolbar>
             {model != null && (
-                <Formik enableReinitialize initialValues={model.root} onSubmit={handleSubmit}>
-                    {(formik: FormikProps<Component>) => (
-                        <RootComponent form={formik} actions={actions} xsd="project.xsd" autosave />
-                    )}
+                <Formik enableReinitialize validateOnChange={false} initialValues={model.root} onSubmit={handleSubmit}>
+                    {() => {
+                        if (!machines) {
+                            return (
+                                <Typography variant="h1">
+                                    Issue in project: machines is not a list element.
+                                </Typography>
+                            );
+                        }
+                        if (!entities) {
+                            return (
+                                <Typography variant="h1">
+                                    Issue in project: entities is not a list element.
+                                </Typography>
+                            );
+                        }
+
+                        const errors = machines.elements.map((machine, idx) => {
+                            const entity = entities.elements[idx];
+                            const name = machine.elements.find((e) => e.element.id === "entity_name");
+                            const eName = entity?.elements?.find((e) => e.element.id === "entity_name");
+                            if (!isParameterElement(name) || !isParameterElement(eName) || name.element.value !== eName.element.value) {
+                                return true;
+                            }
+                            const type = machine.elements.find((e) => e.element.id === "entity_type");
+                            const eType = entity?.elements?.find((e) => e.element.id === "entity_type");
+                            if (!isParameterElement(type) || !isParameterElement(eType) || type.element.value !== eType.element.value) {
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (errors.filter((b: boolean) => b).length) {
+                            return (
+                                <Typography>
+                                    Issue in project: name or type mismatch between
+                                    machine and entity at the same position.
+                                </Typography>
+                            );
+                        }
+
+                        return (
+                            <>
+                                <AutoSave root={model.root} />
+                                <ProjectForm
+                                    projectName={name!}
+                                    root={model.root}
+                                    machines={machines}
+                                    entities={entities}
+                                    onDownload={handleDownload}
+                                    machinesActions={machinesActions}
+                                    templatesActions={templatesActions}
+                                />
+                            </>
+                        );
+                    }}
                 </Formik>
             )}
             {model != null && (<>
-                <Box textAlign="center" marginTop="3em" marginBottom="3px">
+                <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} mt={1} mb={3}>
                     <LaunchEntitiesButton project={model.root} />
                     <StopEntitiesButton project={model.root} />
-                    <SpacedButton
+                    <Button
                         color="secondary"
                         variant="contained"
                         onClick={() => dispatch(openSshDialog())}
                     >
                         Configure SSH Credentials
-                    </SpacedButton>
+                    </Button>
                     <Button
                         color="secondary"
                         variant="contained"
@@ -282,7 +328,7 @@ const Project: React.FC<Props> = (props) => {
                     >
                         Download Project Configuration
                     </Button>
-                </Box>
+                </Stack>
                 <DeployEntityDialog />
                 <PingDialog onValidate={handlePing} />
                 <PingResultDialog />

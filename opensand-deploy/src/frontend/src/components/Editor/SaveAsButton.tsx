@@ -1,11 +1,9 @@
 import React from 'react';
-import type {FormikProps} from 'formik';
+import {useFormikContext} from 'formik';
 
 import Button from '@mui/material/Button';
 
-import {styled} from '@mui/material/styles';
-
-import SingleFieldDialog from '../common//SingleFieldDialog';
+import SingleFieldDialog from '../common/SingleFieldDialog';
 
 import {updateXML} from '../../api';
 import {useDispatch} from '../../redux';
@@ -13,13 +11,9 @@ import {useOpen, useFormSubmit} from '../../utils/hooks';
 import type {Component} from '../../xsd';
 
 
-export const SpacedButton = styled(Button, {name: "SpacedButton", slot: "Wrapper"})(({ theme }) => ({
-    marginRight: theme.spacing(2),
-}));
-
-
 const SaveAsButton: React.FC<Props> = (props) => {
-    const {project, xsd, form: {values, setSubmitting, isSubmitting}} = props;
+    const {project, xsd} = props;
+    const {values, setSubmitting, isSubmitting} = useFormikContext<Component>();
 
     const dispatch = useDispatch();
     const onSubmitted = useFormSubmit();
@@ -36,14 +30,14 @@ const SaveAsButton: React.FC<Props> = (props) => {
 
     return (
         <React.Fragment>
-            <SpacedButton
+            <Button
                 disabled={xsd == null || isSubmitting}
                 color="secondary"
                 variant="contained"
                 onClick={handleOpen}
             >
                 Save As Template
-            </SpacedButton>
+            </Button>
             <SingleFieldDialog
                 open={open}
                 title="Save Template"
@@ -61,7 +55,6 @@ const SaveAsButton: React.FC<Props> = (props) => {
 interface Props {
     project: string;
     xsd: string;
-    form: FormikProps<Component>;
 }
 
 

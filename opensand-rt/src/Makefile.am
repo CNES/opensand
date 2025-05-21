@@ -35,6 +35,8 @@ libopensand_rt_la_h = \
 	RtChannelDemux.h \
 	RtChannel.h \
 	RtMutex.h \
+	Data.h \
+	Ptr.h \
 	Types.h \
 	Block.h \
 	BlockManager.h \

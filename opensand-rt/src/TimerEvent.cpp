@@ -36,6 +36,11 @@
 #include <sys/timerfd.h>
 
 #include "TimerEvent.h"
+#include "RtChannelBase.h"
+
+
+namespace Rt
+{
 
 
 TimerEvent::TimerEvent(const std::string &name,
@@ -43,7 +48,7 @@ TimerEvent::TimerEvent(const std::string &name,
                        bool auto_rearm,
                        bool start,
                        uint8_t priority):
-	RtEvent{EventType::Timer, name, -1, priority},
+	Event{name, -1, priority},
 	duration_ms{timer_duration_ms},
 	enabled{start},
 	auto_rearm{auto_rearm}
@@ -57,7 +62,7 @@ TimerEvent::TimerEvent(const std::string &name,
 }
 
 
-void TimerEvent::start(void)
+void TimerEvent::start()
 {
 	itimerspec timer_value;
 	this->enabled = true;
@@ -85,7 +90,7 @@ void TimerEvent::start(void)
 }
 
 
-void TimerEvent::raise(void)
+void TimerEvent::raise()
 {
 	itimerspec timer_value;
 
@@ -102,7 +107,7 @@ void TimerEvent::raise(void)
 }
 
 
-void TimerEvent::disable(void)
+void TimerEvent::disable()
 {
 	itimerspec timer_value;
 	this->enabled = false;
@@ -118,7 +123,7 @@ void TimerEvent::disable(void)
 }
 
 
-bool TimerEvent::handle(void)
+bool TimerEvent::handle()
 {
 	// auto rearm ? if so rearm
 	if(this->auto_rearm)
@@ -138,3 +143,12 @@ void TimerEvent::setDuration(double new_duration)
 {
 	this->duration_ms = new_duration;
 }
+
+
+bool TimerEvent::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
+}
+
+
+};

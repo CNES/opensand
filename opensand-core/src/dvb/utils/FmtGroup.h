@@ -65,7 +65,7 @@ private:
 	std::list<fmt_id_t> num_fmt_ids;
 
 	/** The table of MODCOD definitions */
-	const FmtDefinitionTable *modcod_def;
+	const FmtDefinitionTable &modcod_def;
 
 protected:
 	// Output log
@@ -81,7 +81,7 @@ public:
 	 */
 	FmtGroup(unsigned int group_id,
 	         std::string ids,
-	         const FmtDefinitionTable *modcod_def);
+	         const FmtDefinitionTable &modcod_def);
 
 	/**
 	 * @brief Get the nearest supported value in the group
@@ -106,7 +106,7 @@ public:
 	 *
 	 * @return the MODCOD definitions
 	 */
-	const FmtDefinitionTable *getModcodDefinitions() const;
+	const FmtDefinitionTable &getModcodDefinitions() const;
 
 	/**
 	 * @brief  Get the highest Fmt id
@@ -206,8 +206,7 @@ private:
 };
 
 
-
-typedef std::map<fmt_id_t, FmtGroup *> fmt_groups_t;
+typedef std::map<fmt_id_t, std::shared_ptr<FmtGroup>> fmt_groups_t;
 
 
 #endif

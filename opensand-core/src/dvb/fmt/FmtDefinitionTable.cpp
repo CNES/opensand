@@ -50,6 +50,7 @@
 
 
 // Returns false if the string contains any non-whitespace characters
+/*
 inline bool isSpace(std::string str)
 {
 	std::string::iterator it = str.begin();
@@ -63,6 +64,7 @@ inline bool isSpace(std::string str)
 	}
 	return true;
 }
+*/
 
 /**
  * @brief Create a table of FMT definitions
@@ -84,16 +86,18 @@ FmtDefinitionTable::~FmtDefinitionTable()
 }
 
 
-bool FmtDefinitionTable::add(FmtDefinition *fmt_def)
+bool FmtDefinitionTable::add(std::unique_ptr<FmtDefinition> fmt_def)
 {
+	auto id = fmt_def->getId();
+
 	// check that the table does not already own a FMT definition
 	// with the same identifier
-	if(fmt_def == NULL || this->doFmtIdExist(fmt_def->getId()))
+	if (!fmt_def || this->doFmtIdExist(id))
 	{
 		return false;
 	}
 
-	this->definitions[fmt_def->getId()] = fmt_def;
+	this->definitions.emplace(id, std::move(fmt_def));
 	return true;
 }
 
@@ -105,112 +109,118 @@ bool FmtDefinitionTable::doFmtIdExist(fmt_id_t id) const
 
 void FmtDefinitionTable::clear()
 {
-	// delete all stored FMT definitions
-	for (auto&& fmt_definition : this->definitions)
-	{
-		delete fmt_definition.second;
-	}
-
 	// now clear the map itself
 	this->definitions.clear();
 }
 
 
-std::map<fmt_id_t, FmtDefinition* > FmtDefinitionTable::getDefinitions(void) const
+/*
+std::map<fmt_id_t, std::unique_ptr<FmtDefinition>> FmtDefinitionTable::getDefinitions() const
 {
 	return this->definitions;
 }
+*/
 
 
 unsigned int FmtDefinitionTable::getModulationEfficiency(fmt_id_t id) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(!def)
+	try
+	{
+		return this->getDefinition(id).getModulationEfficiency();
+	}
+	catch (const std::range_error&)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find modulation efficiency from FMT definition ID %u\n", id);
 		return ModulationTypes::getDefaultEfficiency();
 	}
-	return def->getModulationEfficiency();
 }
 
 
 float FmtDefinitionTable::getCodingRate(fmt_id_t id) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(!def)
+	try
+	{
+		return this->getDefinition(id).getCodingRate();
+	}
+	catch (const std::range_error&)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find coding rate from FMT definition ID %u\n", id);
 		return CodingTypes::getDefaultRate();
 	}
-	return def->getCodingRate();
 }
 
 
 float FmtDefinitionTable::getSpectralEfficiency(fmt_id_t id) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(!def)
+	try
+	{
+		return this->getDefinition(id).getSpectralEfficiency();
+	}
+	catch (const std::range_error&)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find spectral efficiency from FMT definition ID %u\n", id);
 		return 0.0;
 	}
-	return def->getSpectralEfficiency();
 }
 
 
 double FmtDefinitionTable::getRequiredEsN0(fmt_id_t id) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(!def)
+	try
+	{
+		return this->getDefinition(id).getRequiredEsN0();
+	}
+	catch (const std::range_error&)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find required Es/N0 from FMT definition ID %u\n", id);
 		return 0.0;
 	}
-	return def->getRequiredEsN0();
 }
 
 bool FmtDefinitionTable::hasBurstLength(fmt_id_t id) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(!def)
+	try
+	{
+		return this->getDefinition(id).hasBurstLength();
+	}
+	catch (const std::range_error&)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find burst length presence status from FMT definition ID %u\n", id);
 		return false;
 	}
-	return def->hasBurstLength();
 }
 
 vol_sym_t FmtDefinitionTable::getBurstLength(fmt_id_t id) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(!def)
+	try
+	{
+		return this->getDefinition(id).getBurstLength();
+	}
+	catch (const std::range_error&)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find burst length from FMT definition ID %u\n", id);
 		return 0;
 	}
-	return def->getBurstLength();
 }
 
 fmt_id_t FmtDefinitionTable::getRequiredModcod(double cni) const
 {
 	fmt_id_t modcod_id = 0;
-	double current_cni;
 	double previous_cni = 0.0;
 	if(this->definitions.begin() != this->definitions.end())
 	{
 		previous_cni = this->definitions.begin()->second->getRequiredEsN0();
 	}
-	fmt_def_table_pos_t it;
 
-	for(it = this->definitions.begin(); it != this->definitions.end(); it++)
+	for(auto &&[current_modcod_id, current_definition]: this->definitions)
 	{
-		current_cni = (*it).second->getRequiredEsN0();
+		double current_cni = current_definition->getRequiredEsN0();
 		if(current_cni > cni)
 		{
 			// not supported
@@ -221,7 +231,7 @@ fmt_id_t FmtDefinitionTable::getRequiredModcod(double cni) const
 		if(current_cni >= previous_cni)
 		{
 			previous_cni = current_cni;
-			modcod_id = (*it).first;
+			modcod_id = current_modcod_id;
 		}
 	}
 	if(modcod_id <= 0)
@@ -233,35 +243,27 @@ fmt_id_t FmtDefinitionTable::getRequiredModcod(double cni) const
 }
 
 
-FmtDefinition *FmtDefinitionTable::getDefinition(fmt_id_t id) const
+FmtDefinition &FmtDefinitionTable::getDefinition(fmt_id_t id) const
 {
-	fmt_def_table_pos_t it;
-	FmtDefinition *def = NULL;
-
-	it = this->definitions.find(id);
+	auto it = this->definitions.find(id);
 	if(it != this->definitions.end())
 	{
-		def = it->second;
+		return *(it->second);
 	}
 
-	return def;
+	throw std::range_error("Id not found in definition table");
 }
 
 fmt_id_t FmtDefinitionTable::getMinId() const
 {
-	fmt_def_table_pos_t it = this->definitions.begin();
-	fmt_id_t id;
-	if(this->definitions.size() <= 0)
+	fmt_id_t id = this->definitions.size() ? this->definitions.begin()->first : 0;
+
+	for (auto &&it: this->definitions)
 	{
-		return 0;	
-	}
-	id = (*it).first;
-	++it;
-	for(; it != this->definitions.end(); ++it)
-	{
-		if((*it).first < id)
+		auto current_id = it.first;
+		if (current_id < id)
 		{
-			id = (*it).first;
+			id = current_id;
 		}
 	}
 	return id;
@@ -269,56 +271,50 @@ fmt_id_t FmtDefinitionTable::getMinId() const
 
 fmt_id_t FmtDefinitionTable::getMaxId() const
 {
-	fmt_def_table_pos_t it = this->definitions.begin();
-	fmt_id_t id;
-	if(this->definitions.size() <= 0)
+	fmt_id_t id = this->definitions.size() ? this->definitions.begin()->first : 0;
+
+	for (auto &&it: this->definitions)
 	{
-		return 0;	
-	}
-	id = (*it).first;
-	++it;
-	for(; it != this->definitions.end(); ++it)
-	{
-		if((*it).first > id)
+		auto current_id = it.first;
+		if (current_id > id)
 		{
-			id = (*it).first;
+			id = current_id;
 		}
 	}
 	return id;
 }
 
-vol_kb_t FmtDefinitionTable::symToKbits(fmt_id_t id,
-                                        vol_sym_t vol_sym) const
+vol_kb_t FmtDefinitionTable::symToKbits(fmt_id_t id, vol_sym_t vol_sym) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(def == nullptr)
+	try
+	{
+		return this->getDefinition(id).symToKbits(vol_sym);
+	}
+	catch (const std::range_error&)
 	{
 		return 0;
 	}
-	return def->symToKbits(vol_sym);
 }
 
 
-vol_sym_t FmtDefinitionTable::kbitsToSym(fmt_id_t id,
-                                         vol_kb_t vol_kb) const
+vol_sym_t FmtDefinitionTable::kbitsToSym(fmt_id_t id, vol_kb_t vol_kb) const
 {
-	FmtDefinition *def = this->getDefinition(id);
-	if(def == NULL)
+	try
+	{
+		return this->getDefinition(id).kbitsToSym(vol_kb);
+	}
+	catch (const std::range_error&)
 	{
 		return 0;
 	}
-	return def->kbitsToSym(vol_kb);
 }
 
 
-void FmtDefinitionTable::print(void) const
+void FmtDefinitionTable::print() const
 {
-	fmt_def_table_pos_t it;
-
-	for(it = this->definitions.begin();
-	    it != this->definitions.end(); it++)
+	for (auto &&it: this->definitions)
 	{
-		it->second->print();
+		it.second->print();
 	}
 
 	if(this->definitions.begin() == this->definitions.end())

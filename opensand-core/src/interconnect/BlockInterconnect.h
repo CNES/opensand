@@ -35,125 +35,131 @@
 #ifndef BlockInterconnect_H
 #define BlockInterconnect_H
 
-#include "InterconnectChannel.h"
+#include <list>
 
-#include <opensand_output/Output.h>
-#include <opensand_rt/Rt.h>
+#include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannel.h>
 
-#include <list>
-#include <signal.h>
-#include <unistd.h>
+#include "OpenSandCore.h"
+#include "InterconnectChannel.h"
+
+
+class Output;
+
 
 struct InterconnectConfig
 {
 	std::string interconnect_addr; // Interconnect interface IP address
-	uint32_t delay;
+	time_ms_t delay;
 	std::size_t isl_index;
 };
+
+
+template<>
+class Rt::UpwardChannel<class BlockInterconnectDownward>: public Channels::Upward<UpwardChannel<BlockInterconnectDownward>>, public InterconnectChannelReceiver
+{
+ public:
+	UpwardChannel(const std::string &name, const InterconnectConfig &config);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const NetSocketEvent& event) override;
+
+ private:
+	std::size_t isl_index;
+};
+
+
+template<>
+class Rt::DownwardChannel<class BlockInterconnectDownward>: public Channels::Downward<DownwardChannel<BlockInterconnectDownward>>, public InterconnectChannelSender
+{
+ public:
+	DownwardChannel(const std::string &name, const InterconnectConfig &config);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const TimerEvent& event) override;
+	bool onEvent(const MessageEvent& event) override;
+
+ private:
+	event_id_t delay_timer;
+	std::size_t isl_index;
+};
+
 
 /**
  * @class BlockInterconnectDownward
  * @brief This block implements an interconnection block facing downwards.
  */
-class BlockInterconnectDownward: public Block
+class BlockInterconnectDownward: public Rt::Block<BlockInterconnectDownward, const InterconnectConfig&>
 {
-public:
-	/**
-	 * @brief The interconnect block, placed below
-	 *
-	 * @param name      The block name
-	 * @param specific  Specific block parameters
-	 */
-	BlockInterconnectDownward(const std::string &name,
-	                          const InterconnectConfig &config);
+ public:
+	using Rt::Block<BlockInterconnectDownward, const InterconnectConfig&>::Block;
 
-	class Upward: public RtUpward, public InterconnectChannelReceiver
-	{
-	public:
-		Upward(const std::string &name, const InterconnectConfig &config);
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	private:
-		std::size_t isl_index;
-	};
-
-	class Downward: public RtDownward, public InterconnectChannelSender
-	{
-	public:
-		Downward(const std::string &name, const InterconnectConfig &config);
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	private:
-		event_id_t delay_timer;
-		uint32_t polling_rate;
-		std::size_t isl_index;
-	};
-
-protected:
+ protected:
 	// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 
-	/// event handlers
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
-
 	// initialization method
-	bool onInit();
+	bool onInit() override;
 };
+
+
+template<>
+class Rt::UpwardChannel<class BlockInterconnectUpward>: public Channels::Upward<UpwardChannel<BlockInterconnectUpward>>, public InterconnectChannelSender
+{
+ public:
+	UpwardChannel(const std::string &name, const InterconnectConfig &config);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const TimerEvent &event) override;
+	bool onEvent(const MessageEvent &event) override;
+
+ private:
+	event_id_t delay_timer;
+	std::size_t isl_index;
+};
+
+
+template<>
+class Rt::DownwardChannel<class BlockInterconnectUpward>: public Channels::Downward<DownwardChannel<BlockInterconnectUpward>>, public InterconnectChannelReceiver
+{
+ public:
+	DownwardChannel(const std::string &name, const InterconnectConfig &config);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const NetSocketEvent &event) override;
+
+ private:
+	std::size_t isl_index;
+};
+
 
 /**
  * @class BlockInterconnectUpward
  * @brief This bloc implements an interconnection block facing upwards
  */
-class BlockInterconnectUpward: public Block
+class BlockInterconnectUpward: public Rt::Block<BlockInterconnectUpward, const InterconnectConfig &>
 {
 public:
-	/**
-	 * @brief The interconnect block, placed below
-	 *
-	 * @param name      The block name
-	 * @param specific  Specific block parameters
-	 */
-	BlockInterconnectUpward(const std::string &name,
-	                        const InterconnectConfig &config);
-
-	class Upward: public RtUpward, public InterconnectChannelSender
-	{
-	public:
-		Upward(const std::string &name, const InterconnectConfig &config);
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	private:
-		event_id_t delay_timer;
-		uint32_t polling_rate;
-		std::size_t isl_index;
-	};
-
-	class Downward: public RtDownward, public InterconnectChannelReceiver
-	{
-	public:
-		Downward(const std::string &name, const InterconnectConfig &config);
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	private:
-		std::size_t isl_index;
-	};
+	using Rt::Block<BlockInterconnectUpward, const InterconnectConfig &>::Block;
 
 protected:
 	// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 
-	/// event handlers
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
-
 	// initialization method
-	bool onInit();
+	bool onInit() override;
 };
 
 #endif

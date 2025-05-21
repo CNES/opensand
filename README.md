@@ -16,7 +16,7 @@ Visit us at [opensand.org](https://www.opensand.org/).
 
  * [Installation Manual](README.md#installation-manual)
  * [Compilation Manual](opensand-packaging/README.md)
- * [Command-line User Manual](opensand-network/opensand_cli/README.md)
+ * [Command-line User Manual](opensand-network/README.md)
  * [Web-interface User Manual](opensand-deploy/README.md)
 
 # Installation Manual
@@ -49,7 +49,7 @@ computers are connected to it.
 
 ### Operating System
 
-The testbed was tested using Ubuntu 20.04 LTS, but it should work on every Linux distribution
+The testbed was tested using Ubuntu 22.04 LTS, but it should work on every Linux distribution
 or Unix-like system provided that the required dependencies are installed. However, if you
 are not on a Debian-based system, you may need to [compile OpenSAND](opensand-packaging/README.md)
 yourself.
@@ -69,13 +69,20 @@ In order to install the packages using `apt`, the repository must be added to it
 Start by adding the GPG key for the Net4Sat repository:
 
 ```
-curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/net4sat.gpg >/dev/null
+sudo mkdir /etc/apt/keyrings
+curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo dd of=/etc/apt/keyrings/net4sat.gpg
 ```
 
 Then add the repository and link it to the aforementionned GPG key:
 
 ```
-echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/ jammy stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
+cat << EOF | sudo tee /etc/apt/sources.list.d/github.net4sat.sources
+Types: deb
+URIs: https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/
+Suites: jammy
+Components: stable
+Signed-By: /etc/apt/keyrings/net4sat.gpg
+EOF
 ```
 
 An apt sources update is necessary after adding the repository:

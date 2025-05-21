@@ -33,10 +33,14 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+
+#include <sstream>
+
 #include "SpotUpward.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
+#include "Sac.h"
 #include "Logon.h"
 #include "PhysicStd.h"
 #include "NetBurst.h"
@@ -45,15 +49,15 @@
 #include "UnitConverterFixedSymbolLength.h"
 #include "OpenSandModelConf.h"
 
-
 #include <opensand_output/OutputEvent.h>
 
 
 SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,
-                       StFmtSimuList *input_sts,
-                       StFmtSimuList *output_sts):
-	DvbChannel{},
+                       StackPlugin *upper_encap,
+                       std::shared_ptr<StFmtSimuList> input_sts,
+                       std::shared_ptr<StFmtSimuList> output_sts):
+	DvbChannel{upper_encap, [spot_id](){std::stringstream stream; stream << "gw" << spot_id << ".upward"; return stream.str();}()},
 	DvbFmt{},
 	spot_id{spot_id},
 	mac_id{mac_id},
@@ -74,20 +78,12 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
 	this->output_sts = output_sts;
 }
 
+
 SpotUpward::~SpotUpward()
 {
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
-	    it != this->ret_fmt_groups.end(); ++it)
-	{
-		delete (*it).second;
-	}
-
-	delete this->reception_std;
-	delete this->reception_std_scpc;
-	delete this->saloha;
+	this->ret_fmt_groups.clear();
 }
+
 
 void SpotUpward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
@@ -95,7 +91,7 @@ void SpotUpward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParamet
 }
 
 
-bool SpotUpward::onInit(void)
+bool SpotUpward::onInit()
 {
 	if(!this->initModcodDefinitionTypes())
 	{
@@ -138,7 +134,7 @@ bool SpotUpward::onInit(void)
 	}
 
 	// synchronized with SoF
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
+	this->initStatsTimer(this->ret_up_frame_duration);
 
 	if(!this->initOutput())
 	{
@@ -161,18 +157,17 @@ bool SpotUpward::onInit(void)
 	return true;
 
 error_mode:
-	delete this->reception_std;
+	this->reception_std = nullptr;
 	return false;
 
 }
 
 
-bool SpotUpward::initSlottedAloha(void)
+bool SpotUpward::initSlottedAloha()
 {
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
-	TerminalCategorySaloha *sa_default_category;
-	UnitConverter *converter;
+	std::shared_ptr<TerminalCategorySaloha> sa_default_category;
 	vol_sym_t length_sym = 0;
 
 	auto Conf = OpenSandModelConf::Get();
@@ -199,11 +194,11 @@ bool SpotUpward::initSlottedAloha(void)
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           "return up frequency plan",
 	                                           AccessType::ALOHA,
-	                                           this->ret_up_frame_duration_ms,
+	                                           this->ret_up_frame_duration,
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
-	                                           &sa_default_category,
+	                                           sa_default_category,
 	                                           this->ret_fmt_groups))
 	{
 		return false;
@@ -249,8 +244,12 @@ bool SpotUpward::initSlottedAloha(void)
 	// end TODO
 
 	// Create the Slotted ALoha part
-	this->saloha = new SlottedAlohaNcc();
-	if(!this->saloha)
+	std::unique_ptr<SlottedAlohaNcc> saloha;
+	try
+	{
+		saloha = std::make_unique<SlottedAlohaNcc>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to create Slotted Aloha\n");
@@ -261,58 +260,49 @@ bool SpotUpward::initSlottedAloha(void)
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->ret_up_frame_duration_ms,
-	                             // pkt_hdl is the up_ret one because transparent sat
-	                             this->pkt_hdl))
+	if(!saloha->initParent(this->ret_up_frame_duration,
+	                       // pkt_hdl is the up_ret one because transparent sat
+	                       this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Slotted Aloha NCC Initialization failed.\n");
-		goto release_saloha;
+		return false;
 	}
 
 	if(!Conf->getRcs2BurstLength(length_sym))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot get 'RCS2 Burst Length' value");
-		goto release_saloha;
+		return false;
 	}
-	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
-	                                               0,
-	                                               length_sym
-	                                              );
+	UnitConverterFixedSymbolLength converter{this->ret_up_frame_duration, 0, length_sym};
 
-	if(!this->saloha->init(sa_categories,
-	                       sa_terminal_affectation,
-	                       sa_default_category,
-	                       this->spot_id,
-	                       converter))
+	if(!saloha->init(sa_categories,
+	                 sa_terminal_affectation,
+	                 sa_default_category,
+	                 this->spot_id,
+	                 converter))
 	{
-		delete converter;
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the Slotted Aloha NCC\n");
-		goto release_saloha;
+		return false;
 	}
-	delete converter;
 
+	this->saloha = std::move(saloha);
 	return true;
-
-release_saloha:
-	delete this->saloha;
-	return false;
 }
 
 
-bool SpotUpward::initModcodSimu(void)
+bool SpotUpward::initModcodSimu()
 {
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
-	                            &this->rcs_modcod_def,
+	                            this->rcs_modcod_def,
 	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -324,51 +314,24 @@ bool SpotUpward::initModcodSimu(void)
 }
 
 
-bool SpotUpward::initMode(void)
+bool SpotUpward::initMode()
 {
 	// initialize the reception standard
 	// depending on the satellite type
-	this->reception_std = new DvbRcs2Std(this->pkt_hdl);
+	this->reception_std = std::make_unique<DvbRcs2Std>(this->pkt_hdl);
 
 	// If available SCPC carriers, a new packet handler is created at NCC
 	// to received BBFrames and to be able to deencapsulate GSE packets.
 	if(this->checkIfScpc())
 	{
-		EncapPlugin::EncapPacketHandler *fwd_pkt_hdl;
-		std::vector<std::string> scpc_encap;
-
-		// check that the forward encapsulation scheme is GSE
-		// (this should be automatically set by the manager)
-		if(!this->initPktHdl(EncapSchemeList::FORWARD_DOWN,
-		                     &fwd_pkt_hdl))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "failed to get forward packet handler\n");
-			return false;
-		}
-		if (!OpenSandModelConf::Get()->getScpcEncapStack(scpc_encap) ||
-			scpc_encap.size() <= 0)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "failed to get SCPC encapsulation names\n");
-			return false;
-		}
-		if(fwd_pkt_hdl->getName() != scpc_encap[0])
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Forward packet handler is not %s while there is SCPC channels\n",
-			    scpc_encap[0].c_str());
-			return false;
-		}
-
-		if(!this->initScpcPktHdl(&this->scpc_pkt_hdl))
+		if(!this->initPktHdl(EncapSchemeList::RETURN_SCPC, this->scpc_pkt_hdl, this->scpc_ctx))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get packet handler for receiving GSE packets\n");
 			return false;
 		}
 
-		this->reception_std_scpc = new DvbScpcStd(this->scpc_pkt_hdl);
+		this->reception_std_scpc = std::make_unique<DvbScpcStd>(this->scpc_pkt_hdl);
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "NCC is aware that there are SCPC carriers available \n");
 	}
@@ -384,7 +347,7 @@ bool SpotUpward::initMode(void)
 }
 
 
-bool SpotUpward::initAcmLoopMargin(void)
+bool SpotUpward::initAcmLoopMargin()
 {
 	double ret_acm_margin_db;
 	double fwd_acm_margin_db;
@@ -411,7 +374,7 @@ bool SpotUpward::initAcmLoopMargin(void)
 }
 
 
-bool SpotUpward::initOutput(void)
+bool SpotUpward::initOutput()
 {
 	auto output = Output::Get();
 
@@ -420,14 +383,11 @@ bool SpotUpward::initOutput(void)
 	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 
 	// Events
-	this->event_logon_req = output->registerEvent("Spot_%d.DVB.logon_request",
-	                                              this->spot_id);
+	this->event_logon_req = output->registerEvent(Format("Spot_%d.DVB.logon_request", this->spot_id));
 
 	if(this->saloha)
 	{
-		this->log_saloha = output->registerLog(LEVEL_WARNING,
-		                                       "Spot_%d.Dvb.SlottedAloha",
-		                                       this->spot_id);
+		this->log_saloha = output->registerLog(LEVEL_WARNING, Format("Spot_%d.Dvb.SlottedAloha", this->spot_id));
 	}
 
 	// Output probes and stats
@@ -443,7 +403,7 @@ bool SpotUpward::checkIfScpc()
 {
 	TerminalCategories<TerminalCategoryDama> scpc_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
-	TerminalCategoryDama *default_category;
+	std::shared_ptr<TerminalCategoryDama> default_category;
 	fmt_groups_t ret_fmt_groups;
 
 	OpenSandModelConf::spot current_spot;
@@ -459,22 +419,15 @@ bool SpotUpward::checkIfScpc()
 	                                         "return up frequency plan",
 	                                         AccessType::SCPC,
 	                                         // used for checking, no need to get a relevant value
-	                                         5,
+	                                         time_ms_t(5),
 	                                         // we need S2 modcod definitions
 	                                         this->s2_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
-	                                         &default_category,
+	                                         default_category,
 	                                         ret_fmt_groups))
 	{
 		return false;
-	}
-
-	// clear unused fmt_group
-	for(fmt_groups_t::iterator it = ret_fmt_groups.begin();
-	    it != ret_fmt_groups.end(); ++it)
-	{
-		delete (*it).second;
 	}
 
 	if(scpc_categories.size() == 0)
@@ -484,26 +437,30 @@ bool SpotUpward::checkIfScpc()
 		return false;
 	}
 
-	// clear unused category
-	for(TerminalCategories<TerminalCategoryDama>::iterator it = scpc_categories.begin();
-	    it != scpc_categories.end(); ++it)
-	{
-		delete (*it).second;
-	}
-
 	return true;
 }
 
 
-bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
+void SpotUpward::setFilterTalId(tal_id_t filter)
+{
+	this->DvbChannel::setFilterTalId(filter);
+
+	for (auto &&context: this->scpc_ctx)
+	{
+		context->setFilterTalId(filter);
+	}
+}
+
+
+bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 {
 	EmulatedMessageType msg_type = frame->getMessageType();
 	bool corrupted = frame->isCorrupted();
-	PhysicStd *std = this->reception_std;
+	bool isScpc = false;
+	PhysicStd *std = this->reception_std.get();
 
 	if(msg_type == EmulatedMessageType::BbFrame)
 	{
-		// decode the first packet in frame to be able to get source terminal ID
 		if(!this->reception_std_scpc)
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
@@ -511,22 +468,22 @@ bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 			    frame->getCarrierId());
 			return false;
 		}
-		std = this->reception_std_scpc;
+		std = this->reception_std_scpc.get();
+		isScpc = true;
 	}
-	// TODO factorize if SCPC modcod handling is the same as for regenerative case
 	// Update stats
 	this->l2_from_sat_bytes += frame->getPayloadLength();
 
-	if(!std->onRcvFrame(frame, this->mac_id, burst))
+	if(!std->onRcvFrame(std::move(frame), this->mac_id, burst))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle DVB frame or BB frame\n");
 		return false;
 	}
-	NetBurst *pkt_burst = *burst;
-	if(pkt_burst)
+
+	if(burst)
 	{
-		for (auto&& packet : *pkt_burst)
+		for (auto&& packet : *burst)
 		{
 			tal_id_t tal_id = packet->getSrcTalId();
 			auto it_scpc = std::find(this->is_tal_scpc.begin(),
@@ -544,6 +501,7 @@ bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 					    "error when trying to read header extensions\n");
 					return false;
 				}
+
 				if(opaque != 0)
 				{
 					// This is the C/N0 value evaluated by the Terminal
@@ -561,27 +519,63 @@ bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 	//      will be reworked
 	if(std->getType() == "DVB-S2")
 	{
-		DvbS2Std *s2_std = (DvbS2Std *)std;
+		auto received_modcod = this->reception_std_scpc->getReceivedModcod();
 		if(!corrupted)
 		{
-			this->probe_received_modcod->put(s2_std->getReceivedModcod());
+			this->probe_received_modcod->put(received_modcod);
 			this->probe_rejected_modcod->put(0);
 		}
 		else
 		{
-			this->probe_rejected_modcod->put(s2_std->getReceivedModcod());
+			this->probe_rejected_modcod->put(received_modcod);
 			this->probe_received_modcod->put(0);
 		}
 	}
 
+	// check burst validity
+	if(!burst)
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "burst is not valid\n");
+		return false;
+	}
+
+	auto nb_bursts = burst->size();
+	LOG(this->log_receive_channel, LEVEL_INFO,
+	    "message contains a burst of %d %s packet(s)\n",
+	    nb_bursts, burst->name());
+
+	auto &contexts = isScpc ? this->scpc_ctx : this->ctx;
+
+	// iterate on all the deencapsulation contexts to get the ip packets
+	for(auto&& context : contexts)
+	{
+		burst = context->deencapsulate(std::move(burst));
+		if(!burst)
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "deencapsulation failed in %s context\n",
+			    context->getName());
+			return false;
+		}
+		auto burst_size = burst->size();
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "%d %s packet => %zu %s packet(s)\n",
+		    nb_bursts, context->getName(),
+		    burst_size, burst->name());
+		nb_bursts = burst_size;
+	}
+
+	LOG(this->log_receive_channel, LEVEL_INFO,
+	    "burst of deencapsulated packets sent to the upper layer\n");
 	return true;
 }
 
 
-void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
+void SpotUpward::handleFrameCni(DvbFrame& dvb_frame)
 {
-	double curr_cni = dvb_frame->getCn();
-	EmulatedMessageType msg_type = dvb_frame->getMessageType();
+	double curr_cni = dvb_frame.getCn();
+	EmulatedMessageType msg_type = dvb_frame.getMessageType();
 	tal_id_t tal_id;
 
 	switch(msg_type)
@@ -589,8 +583,8 @@ void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
 		// Cannot check frame type because of currupted frame
 		case EmulatedMessageType::Sac:
 		{
-			Sac *sac = (Sac *)dvb_frame;
-			tal_id = sac->getTerminalId();
+			Sac& sac = dvb_frame_upcast<Sac>(dvb_frame);
+			tal_id = sac.getTerminalId();
 			if(!tal_id)
 			{
 				LOG(this->log_receive_channel, LEVEL_ERROR,
@@ -604,11 +598,10 @@ void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
 		case EmulatedMessageType::DvbBurst:
 		{
 			// transparent case : update return modcod for terminal
-			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+			DvbRcsFrame& frame = dvb_frame_upcast<DvbRcsFrame>(dvb_frame);
 			// decode the first packet in frame to be able to
 			// get source terminal ID
-			if(!this->pkt_hdl->getSrc(frame->getPayload(),
-			                          tal_id))
+			if(!this->pkt_hdl->getSrc(frame.getPayload(), tal_id))
 			{
 				LOG(this->log_receive_channel, LEVEL_ERROR,
 				    "unable to read source terminal ID in"
@@ -621,11 +614,10 @@ void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
 		case EmulatedMessageType::BbFrame:
 		{
 			// SCPC
-			BBFrame *frame = dvb_frame->operator BBFrame*();
+			BBFrame& frame = dvb_frame_upcast<BBFrame>(dvb_frame);
 			// decode the first packet in frame to be able to
 			// get source terminal ID
-			if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(),
-			                               tal_id))
+			if(!this->scpc_pkt_hdl->getSrc(frame.getPayload(), tal_id))
 			{
 				LOG(this->log_receive_channel, LEVEL_ERROR,
 				    "unable to read source terminal ID in"
@@ -644,12 +636,10 @@ void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
 }
 
 
-bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
+bool SpotUpward::onRcvLogonReq(DvbFrame& dvb_frame)
 {
-	//TODO find why dynamic cast fail here !?
-//	LogonRequest *logon_req = dynamic_cast<LogonRequest *>(dvb_frame);
-	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
-	uint16_t mac = logon_req->getMac();
+	LogonRequest& logon_req = dvb_frame_upcast<LogonRequest>(dvb_frame);
+	uint16_t mac = logon_req.getMac();
 
 	LOG(this->log_receive_channel, LEVEL_INFO,
 	    "Logon request from ST%u on spot %u\n", mac, this->spot_id);
@@ -661,7 +651,6 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "a ST wants to register with the MAC ID of the NCC "
 		    "(%d), reject its request!\n", mac);
-		delete dvb_frame;
 		return false;
 	}
 
@@ -680,7 +669,7 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 		}
 	}
 
-	if(logon_req->getIsScpc())
+	if(logon_req.getIsScpc())
 	{
 		this->is_tal_scpc.push_back(mac);
 		// handle ST for FMT simulation
@@ -695,6 +684,9 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 				return false;
 			}
 		}
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "Registered ST%u on spot %u as an SCPC terminal",
+		    mac, this->spot_id);
 	}
 	else
 	{
@@ -710,6 +702,9 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 				return false;
 			}
 		}
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "Registered ST%u on spot %u as a regular terminal",
+		    mac, this->spot_id);
 	}
 
 	// Inform SlottedAloha
@@ -734,7 +729,7 @@ void SpotUpward::updateStats(void)
 		return;
 	}
 	this->probe_gw_l2_from_sat->put(
-		this->l2_from_sat_bytes * 8.0 / this->stats_period_ms);
+		time_ms_t(this->l2_from_sat_bytes * 8) / this->stats_period_ms);
 	this->l2_from_sat_bytes = 0;
 
 	// Send probes
@@ -742,9 +737,9 @@ void SpotUpward::updateStats(void)
 }
 
 
-bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
-                                std::list<DvbFrame *>* &ack_frames,
-                                NetBurst **sa_burst)
+bool SpotUpward::scheduleSaloha(Rt::Ptr<DvbFrame> dvb_frame,
+                                Rt::Ptr<std::list<Rt::Ptr<DvbFrame>>> &ack_frames,
+                                Rt::Ptr<NetBurst> &sa_burst)
 {
 	if(!this->saloha)
 	{
@@ -754,8 +749,7 @@ bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
 	if (dvb_frame)
 	{
 		uint16_t sfn;
-		Sof *sof = (Sof *)dvb_frame;
-
+		auto sof = dvb_frame_upcast<Sof>(std::move(dvb_frame));
 		sfn = sof->getSuperFrameNumber();
 
 		// increase the superframe number and reset
@@ -771,15 +765,13 @@ bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
 		}
 	}
 
-	ack_frames = new std::list<DvbFrame *>();
+	ack_frames = Rt::make_ptr<std::list<Rt::Ptr<DvbFrame>>>();
 	if(!this->saloha->schedule(sa_burst,
 	                           *ack_frames,
 	                           this->super_frame_counter))
 	{
 		LOG(this->log_saloha, LEVEL_ERROR,
 		    "failed to schedule Slotted Aloha\n");
-		delete dvb_frame;
-		delete ack_frames;
 		return false;
 	}
 
@@ -787,12 +779,12 @@ bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
 }
 
 
-bool SpotUpward::handleSlottedAlohaFrame(DvbFrame *frame)
+bool SpotUpward::handleSlottedAlohaFrame(Rt::Ptr<DvbFrame> frame)
 {
 	// Update stats
 	this->l2_from_sat_bytes += frame->getPayloadLength();
 
-	if(!this->saloha->onRcvFrame(frame))
+	if(!this->saloha->onRcvFrame(std::move(frame)))
 	{
 		LOG(this->log_saloha, LEVEL_ERROR,
 		    "failed to handle Slotted Aloha frame\n");
@@ -802,13 +794,13 @@ bool SpotUpward::handleSlottedAlohaFrame(DvbFrame *frame)
 }
 
 
-bool SpotUpward::handleSac(const DvbFrame *dvb_frame)
+bool SpotUpward::handleSac(DvbFrame &dvb_frame)
 {
-	Sac *sac = (Sac *)dvb_frame;
+	Sac& sac = dvb_frame_upcast<Sac>(dvb_frame);
 
 	// transparent : the C/N0 of forward link
-	double cni = sac->getCni();
-	tal_id_t tal_id = sac->getTerminalId();
+	double cni = sac.getCni();
+	tal_id_t tal_id = sac.getTerminalId();
 	this->setRequiredCniOutput(tal_id, cni);
 	LOG(this->log_receive_channel, LEVEL_INFO,
 	    "handle received SAC from terminal %u with cni %f\n",

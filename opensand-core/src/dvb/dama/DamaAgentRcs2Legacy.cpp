@@ -34,15 +34,15 @@
  */
 
 
-#include "DamaAgentRcs2Legacy.h"
-
-#include <opensand_output/Output.h>
-
 #include <algorithm>
 #include <cmath>
 
+#include <opensand_output/Output.h>
 
-DamaAgentRcs2Legacy::DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modcod_def):
+#include "DamaAgentRcs2Legacy.h"
+
+
+DamaAgentRcs2Legacy::DamaAgentRcs2Legacy(const FmtDefinitionTable &ret_modcod_def):
 	DamaAgentRcs2(ret_modcod_def),
 	vbdc_credit_kb(0)
 {
@@ -58,7 +58,6 @@ rate_kbps_t DamaAgentRcs2Legacy::computeRbdcRequest()
 	vol_b_t rbdc_length_b;
 	vol_b_t rbdc_pkt_arrival_b;
 	rate_kbps_t rbdc_req_in_previous_msl_kbps;
-	double req_kbps = 0.0;
 
 	/* get data length of outstanding packets in RBDC related MAC FIFOs */
 	rbdc_length_b = this->getMacBufferLength(ReturnAccessType::dama_rbdc);
@@ -76,23 +75,22 @@ rate_kbps_t DamaAgentRcs2Legacy::computeRbdcRequest()
 
 	// TODO original algo was rbdc_length - rbdc_arrivals but
 	//      this does not work for first packet and I don't understand comment !
-	//req_kbps = (int)((rbdc_length_b - rbdc_pkt_arrival_b) -
-	req_kbps = (int)(rbdc_length_b -
-	                 (this->rbdc_timer_sf * this->frame_duration_ms *
-	                  rbdc_req_in_previous_msl_kbps)) /
-	           (int)(this->frame_duration_ms * this->msl_sf);
-	req_kbps = ceil(req_kbps);
+	rate_kbps_t req_kbps = 0;
+	auto granted = this->rbdc_timer_sf * rbdc_req_in_previous_msl_kbps * this->frame_duration;
+	auto rbdc_length = time_ms_t(rbdc_length_b);
+	if (granted < rbdc_length)
+	{
+		req_kbps = (rbdc_length - granted) / (this->msl_sf * this->frame_duration);
+	}
 	/* compute rate need: estimation of the need of bandwith for traffic  */
 	if(this->rbdc_timer_sf != 0)
 	{
-		/* kbps = bpms */
-		rbdc_request_kbps = (int)ceil(rbdc_pkt_arrival_b /
-		                    (this->rbdc_timer_sf * this->frame_duration_ms)) +
-		                    std::max(0, (int)req_kbps);
+		/* kb/s = b/ms */
+		rbdc_request_kbps = (time_ms_t(rbdc_pkt_arrival_b) / (this->rbdc_timer_sf * this->frame_duration)) + req_kbps;
 	}
 	else
 	{
-		rbdc_request_kbps = std::max(0, (int)req_kbps);
+		rbdc_request_kbps = req_kbps;
 	}
 
 	LOG(this->log_request, LEVEL_DEBUG,
@@ -141,7 +139,7 @@ vol_kb_t DamaAgentRcs2Legacy::computeVbdcRequest()
 	    vbdc_need_kb, this->vbdc_credit_kb);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
-	vbdc_request_kb = std::max(0, (vbdc_need_kb - this->vbdc_credit_kb));
+	vbdc_request_kb = std::max(0U, (vbdc_need_kb - this->vbdc_credit_kb));
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "SF#%u: theoretical VBDC request = %u kbits",
 	    this->current_superframe_sf,

@@ -51,7 +51,7 @@ public:
 	/**
 	 * Build an entity satellite terminal process
 	 */
-	EntitySt(tal_id_t instance_id);
+	EntitySt(tal_id_t instance_id, bool check_mode);
 
 	/**
 	 * Destroy an entity satellite terminal process

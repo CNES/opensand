@@ -38,8 +38,8 @@
 #include <algorithm>
 
 
-Evc::Evc(const MacAddress *mac_src,
-         const MacAddress *mac_dst,
+Evc::Evc(const MacAddress &mac_src,
+         const MacAddress &mac_dst,
          uint16_t q_tci,
          uint16_t ad_tci,
          NET_PROTO ether_type):
@@ -51,18 +51,13 @@ Evc::Evc(const MacAddress *mac_src,
 {
 }
 
-Evc::~Evc()
-{
-	delete this->mac_src;
-	delete this->mac_dst;
-}
 
-const MacAddress *Evc::getMacSrc() const
+const MacAddress &Evc::getMacSrc() const
 {
 	return this->mac_src;
 }
 
-const MacAddress *Evc::getMacDst() const
+const MacAddress &Evc::getMacDst() const
 {
 	return this->mac_dst;
 }
@@ -88,14 +83,14 @@ NET_PROTO Evc::getEtherType() const
 	return this->ether_type;
 }
 
-bool Evc::matches(const MacAddress *mac_src,
-                  const MacAddress *mac_dst,
+bool Evc::matches(const MacAddress &mac_src,
+                  const MacAddress &mac_dst,
                   uint16_t q_tci,
                   uint16_t ad_tci,
                   NET_PROTO ether_type) const
 {
-	if(!this->mac_src->matches(mac_src) ||
-	   !this->mac_dst->matches(mac_dst) ||
+	if(!this->mac_src.matches(mac_src) ||
+	   !this->mac_dst.matches(mac_dst) ||
 	   this->q_tci != q_tci ||
 	   this->ad_tci != ad_tci ||
 	   this->ether_type != ether_type)
@@ -105,12 +100,12 @@ bool Evc::matches(const MacAddress *mac_src,
 	return true;
 }
 
-bool Evc::matches(const MacAddress *mac_src,
-                  const MacAddress *mac_dst,
+bool Evc::matches(const MacAddress &mac_src,
+                  const MacAddress &mac_dst,
                   NET_PROTO ether_type) const
 {
-	if(!this->mac_src->matches(mac_src) ||
-	   !this->mac_dst->matches(mac_dst) ||
+	if(!this->mac_src.matches(mac_src) ||
+	   !this->mac_dst.matches(mac_dst) ||
 	   this->ether_type != ether_type)
 	{
 		return false;
@@ -118,13 +113,13 @@ bool Evc::matches(const MacAddress *mac_src,
 	return true;
 }
 
-bool Evc::matches(const MacAddress *mac_src,
-                  const MacAddress *mac_dst,
+bool Evc::matches(const MacAddress &mac_src,
+                  const MacAddress &mac_dst,
                   uint16_t q_tci,
                   NET_PROTO ether_type) const
 {
-	if(!this->mac_src->matches(mac_src) ||
-	   !this->mac_dst->matches(mac_dst) ||
+	if(!this->mac_src.matches(mac_src) ||
+	   !this->mac_dst.matches(mac_dst) ||
 	   this->q_tci != q_tci ||
 	   this->ether_type != ether_type)
 	{

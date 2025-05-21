@@ -39,7 +39,7 @@
 
 #include "sat_carrier_channel_set.h"
 
-#include <opensand_rt/Rt.h>
+#include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannel.h>
 
 
@@ -49,79 +49,77 @@ struct sc_specific
 	std::string ip_addr;      ///< the IP address for emulation
 };
 
+
+template<>
+class Rt::UpwardChannel<class TestSatCarriers>: public Channels::Upward<UpwardChannel<TestSatCarriers>>
+{
+ public:
+	UpwardChannel(const std::string& name, sc_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const FileEvent& event) override;
+	bool onEvent(const NetSocketEvent& event) override;
+
+	/**
+	 * @brief Set the network socket file descriptor
+	 *
+	 * @param fd  The socket file descriptor
+	 */
+	void setFd(int fd);
+
+ private:
+	/// List of input channels
+	sat_carrier_channel_set in_channel_set;
+	/// the IP address for emulation newtork
+	std::string ip_addr;
+};
+
+
+template<>
+class Rt::DownwardChannel<class TestSatCarriers>: public Channels::Downward<DownwardChannel<TestSatCarriers>>
+{
+ public:
+	DownwardChannel(const std::string& name, sc_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
+
+	/**
+	 * @brief Set the network socket file descriptor
+	 *
+	 * @param fd  The socket file descriptor
+	 */
+	void setFd(int fd);
+
+ private:
+	/// List of output channels
+	sat_carrier_channel_set out_channel_set;
+	/// the IP address for emulation newtork
+	std::string ip_addr;
+	/// The tun output file descriptor
+	int fd;
+};
+
+
 /**
  * @class TestSatCarriers
  * @brief This bloc implements a satellite carrier emulation
  */
-class TestSatCarriers: public Block
+class TestSatCarriers: public Rt::Block<TestSatCarriers, sc_specific>
 {
-public:
-	/**
-	 * @brief The satellite carrier block
-	 */
-	TestSatCarriers(const std::string &name,
-	                struct sc_specific UNUSED(specific));
+ public:
+	using Rt::Block<TestSatCarriers, sc_specific>::Block;
 
-	~TestSatCarriers();
-
-	class Upward: public RtUpward
-	{
-	public:
-		Upward(const std::string &name, struct sc_specific specific):
-			RtUpward(name),
-			in_channel_set(specific.tal_id),
-			ip_addr(specific.ip_addr)
-		{};
-
-
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-		/**
-		 * @brief Set the network socket file descriptor
-		 *
-		 * @param fd  The socket file descriptor
-		 */
-		void setFd(int fd);
-
-	private:
-		/// List of input channels
-		sat_carrier_channel_set in_channel_set;
-		/// the IP address for emulation newtork
-		std::string ip_addr;
-	};
-
-	class Downward: public RtDownward
-	{
-	public:
-		Downward(const std::string &name, struct sc_specific specific):
-			RtDownward(name),
-			out_channel_set(specific.tal_id),
-			ip_addr(specific.ip_addr)
-		{};
-
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-		/**
-		 * @brief Set the network socket file descriptor
-		 *
-		 * @param fd  The socket file descriptor
-		 */
-		void setFd(int fd);
-
-	private:
-		/// List of output channels
-		sat_carrier_channel_set out_channel_set;
-		/// the IP address for emulation newtork
-		std::string ip_addr;
-		/// The tun output file descriptor
-		int fd;
-	};
-
-protected:
+ protected:
 	// initialization method
-	bool onInit();
+	bool onInit() override;
 };
+
 
 #endif

@@ -37,14 +37,13 @@
  */
 
 
-
-#include "ScpcScheduling.h"
-#include "FifoElement.h"
-
-#include <OpenSandModelConf.h>
 #include <opensand_output/Output.h>
 
-#include <cassert>
+#include "ScpcScheduling.h"
+#include "DvbFifo.h"
+#include "FifoElement.h"
+#include "OpenSandModelConf.h"
+#include "Except.h"
 
 
 /**
@@ -88,15 +87,15 @@ static size_t getPayloadSize(std::string coding_rate)
 
 
 // TODO try to factorize with S2Scheduling
-ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
-                               EncapPlugin::EncapPacketHandler *packet_handler,
-                               const fifos_t &fifos,
-                               const StFmtSimuList *const simu_sts,
-                               FmtDefinitionTable *const scpc_modcod_def,
-                               const TerminalCategoryDama *const category,
+ScpcScheduling::ScpcScheduling(time_us_t scpc_timer,
+                               std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+                               std::shared_ptr<fifos_t> fifos,
+                               std::shared_ptr<const StFmtSimuList> simu_sts,
+                               const FmtDefinitionTable &scpc_modcod_def,
+                               std::shared_ptr<TerminalCategoryDama> category,
                                tal_id_t gw_id):
 	Scheduling(packet_handler, fifos, simu_sts),
-	scpc_timer_ms(scpc_timer_ms),
+	scpc_timer(scpc_timer),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
@@ -130,12 +129,12 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	{
 		std::vector<std::shared_ptr<Probe<int>>> remain_probes;
 		std::vector<std::shared_ptr<Probe<int>>> avail_probes;
-		unsigned int carriers_id = carriers->getCarriersId();
+		unsigned int carriers_id = carriers.getCarriersId();
 
-		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
-		                             carriers->getCarriersNumber();
+		vol_sym_t carrier_size_sym = carriers.getTotalCapacity() /
+		                             carriers.getCarriersNumber();
 
-		for(auto&& fmt_id : carriers->getFmtIds())
+		for(auto&& fmt_id : carriers.getFmtIds())
 		{
 			vol_sym_t size;
 			// check that the BBFrame maximum size is smaller than the carrier size
@@ -159,7 +158,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 				    "with MODCOD %u (%u symbols) is greater than the carrier "
 				    "size %u. This MODCOD will not work.\n",
 				    this->category->getLabel().c_str(),
-				    carriers->getCarriersId(), fmt_id,
+				    carriers.getCarriersId(), fmt_id,
 				    size, carrier_size_sym);
 			}
 		}
@@ -183,40 +182,31 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 
 ScpcScheduling::~ScpcScheduling()
 {
-	for (auto&& bb_frame : this->incomplete_bb_frames_ordered)
-	{
-		delete bb_frame;
-	}
-	for (auto&& bb_frame : this->pending_bbframes)
-	{
-		delete bb_frame;
-	}
-	
-	delete this->category;
+	this->incomplete_bb_frames.clear();
+	this->pending_bbframes.clear();
 }
 
 
 bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
-                              clock_t current_time,
-                              std::list<DvbFrame *> *complete_dvb_frames,
+                              std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                               uint32_t &remaining_allocation)
 {
-	auto carriers_group = this->category->getCarriersGroups();
 	vol_sym_t init_capacity_sym;
 	int total_capa = 0;
 
+	auto &carriers_group = this->category->getCarriersGroups();
 	for(auto&& carriers : carriers_group)
 	{
 		unsigned int capacity_sym = 0;
 
 		// initialize carriers capacity, remaining capacity should be 0
 		// as we use previous capacity to keep track of unused capacity here
-		init_capacity_sym = carriers->getTotalCapacity() +
-		                    carriers->getRemainingCapacity();
-		carriers->setRemainingCapacity(init_capacity_sym);
+		init_capacity_sym = carriers.getTotalCapacity() +
+		                    carriers.getRemainingCapacity();
+		carriers.setRemainingCapacity(init_capacity_sym);
 		total_capa += init_capacity_sym;
 
-		for(auto&& fifo_it : this->dvb_fifos)
+		for(auto&& fifo_it : *(this->dvb_fifos))
 		{
 			// check if the FIFO can emit on this carriers group
 			// SCPC
@@ -224,12 +214,11 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 			    "SF#%u: Can send data from fifo %s on carriers group "
 			    "%u in category %s\n",
 			    current_superframe_sf,
-			    fifo_it.second->getName().c_str(), carriers->getCarriersId(),
+			    fifo_it.second->getName().c_str(), carriers.getCarriersId(),
 			    this->category->getLabel().c_str());
 
-			if(!this->scheduleEncapPackets(fifo_it.second,
+			if(!this->scheduleEncapPackets(*(fifo_it.second),
 			                               current_superframe_sf,
-			                               current_time,
 			                               complete_dvb_frames,
 			                               carriers))
 			{
@@ -239,222 +228,123 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 
 		// try to fill the BBFrames list with the remaining
 		// incomplete BBFrames
-		capacity_sym = carriers->getRemainingCapacity();
-		std::list<BBFrame *>::iterator it;
-		for(it = this->incomplete_bb_frames_ordered.begin();
+		capacity_sym = carriers.getRemainingCapacity();
+		for(auto it = this->incomplete_bb_frames_ordered.begin();
 		    it != this->incomplete_bb_frames_ordered.end();
 		    it = this->incomplete_bb_frames_ordered.erase(it))
 		{
-			int ret; 
 			if(capacity_sym <= 0)
 			{
 				break;
 			}
 
-			ret = this->addCompleteBBFrame(complete_dvb_frames, *it,
-			                               current_superframe_sf,
-			                               capacity_sym);
-			if(ret == status_error)
+			auto& current_bbframe = this->incomplete_bb_frames.at(*it);
+			sched_status ret = this->addCompleteBBFrame(complete_dvb_frames,
+			                                            current_bbframe,
+			                                            current_superframe_sf,
+			                                            capacity_sym);
+			if(ret == sched_status::error)
 			{
 				return false;
 			}
-			else if(ret == status_ok)
+			else if(ret == sched_status::ok)
 			{
-				fmt_id_t modcod = (*it)->getModcodId();
-
-				this->incomplete_bb_frames.erase(modcod);
+				this->incomplete_bb_frames.erase(*it);
 				// incomplete ordered erased in loop
 			}
-			else if(ret == status_full)
+			else if(ret == sched_status::full)
 			{
 				time_sf_t next_sf = current_superframe_sf + 1;
 				// we keep the remaining capacity that won't be used for
 				// next frame
-				carriers->setPreviousCapacity(std::min(capacity_sym, init_capacity_sym), next_sf);
+				carriers.setPreviousCapacity(std::min(capacity_sym, init_capacity_sym), next_sf);
 				break;
 			}
 		}
 		// update remaining capacity for statistics
-		carriers->setRemainingCapacity(std::min(capacity_sym,
-		                                             init_capacity_sym));
+		carriers.setRemainingCapacity(std::min(capacity_sym, init_capacity_sym));
 	}
 	this->probe_scpc_total_capacity->put(total_capa);
-	this->probe_scpc_bbframe_nbr->put(complete_dvb_frames->size());
+	this->probe_scpc_bbframe_nbr->put(complete_dvb_frames.size());
 
 	for(auto&& carriers : carriers_group)
 	{
-		unsigned int carriers_id = carriers->getCarriersId();
+		unsigned int carriers_id = carriers.getCarriersId();
 		unsigned int id = 0;
 
-		unsigned int remain = carriers->getRemainingCapacity();
-		unsigned int avail = carriers->getTotalCapacity();
+		unsigned int remain = carriers.getRemainingCapacity();
+		unsigned int avail = carriers.getTotalCapacity();
 		// keep total remaining capacity (for stats)
 		remaining_allocation += remain;
 
 		// get remain in Kbits/s instead of symbols if possible
-		if(carriers->getFmtIds().size() == 1)
+		if(carriers.getFmtIds().size() == 1)
 		{
-			remain = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(),
-			                                 remain);
-			avail = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(),
-			                               avail);
+			remain = this->scpc_modcod_def.symToKbits(carriers.getFmtIds().front(), remain);
+			avail = this->scpc_modcod_def.symToKbits(carriers.getFmtIds().front(), avail);
 			// we get kbits per frame, convert in kbits/s
-			remain = remain * 1000 / this->scpc_timer_ms;
-			avail = avail * 1000 / this->scpc_timer_ms;
+			remain = std::chrono::seconds{remain} / this->scpc_timer;
+			avail = std::chrono::seconds{avail} / this->scpc_timer;
 		}
 
 		this->probe_scpc_available_capacity[carriers_id][id]->put(avail);
 		this->probe_scpc_remaining_capacity[carriers_id][id]->put(remain);
 		id++;
 		// reset remaining capacity
-		carriers->setRemainingCapacity(0);
+		carriers.setRemainingCapacity(0);
 	}
 	this->probe_scpc_total_remaining_capacity->put(remaining_allocation);
 
 	return true;
 }
 
-bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
-                                          const time_sf_t current_superframe_sf,
-                                          clock_t current_time,
-                                          std::list<DvbFrame *> *complete_dvb_frames,
-                                          CarriersGroupDama *carriers)
+
+sched_status ScpcScheduling::schedulePacket(const time_sf_t current_superframe_sf,
+                                            unsigned int &sent_packets,
+                                            vol_sym_t &capacity_sym,
+                                            CarriersGroupDama &carriers,
+                                            std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+                                            Rt::Ptr<NetPacket> encap_packet)
 {
-	int ret;
-	unsigned int sent_packets = 0;
-	FifoElement *elem;
-	long max_to_send;
-	BBFrame *current_bbframe;
-	std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();
-	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
-	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
-	vol_sym_t init_capa = capacity_sym;
-	capacity_sym += previous_sym;
-
-	// retrieve the number of packets waiting for retransmission
-	max_to_send = fifo->getCurrentSize();
-	LOG(this->log_scheduling, LEVEL_INFO,
-	    "SF#%u: ScpcScheduling::scheduleEncapPackets: "
-	    "max_to_send is %u, this->pending_bbframes.size() = %u\n",
-	    current_superframe_sf,
-	    max_to_send, this->pending_bbframes.size());
-	if (max_to_send <= 0 && this->pending_bbframes.size() == 0)
+	while (encap_packet)
 	{
-		// reset previous capacity
-		carriers->setPreviousCapacity(0, 0);
-		// set the remaining capacity for incomplete frames scheduling
-		carriers->setRemainingCapacity(capacity_sym);
-		return true;
-	}
-
-	LOG(this->log_scheduling, LEVEL_INFO,
-	    "SF#%u: Scheduling FIFO %s, carriers group %u, "
-	    "capacity is %u symbols (+ %u previous)\n",
-	    current_superframe_sf,
-	    fifo->getName().c_str(), carriers->getCarriersId(),
-	    capacity_sym, previous_sym);
-
-	// first add the pending complete BBFrame in the complete BBframes list
-	// we add previous remaining capacity here because if a BBFrame was
-	// not send before, previous_capacity contains the remaining capacity at the
-	// end of the previous frame
-	this->schedulePending(supported_modcods, current_superframe_sf,
-	                      complete_dvb_frames, capacity_sym);
-	// reset previous capacity
-	carriers->setPreviousCapacity(0, 0);
-
-	// all the previous capacity was not consumed, remove it as we are not on
-	// pending frames anymore of if there is no incomplete frame
-	// (we consider incomplete frames can use previous capacity)
-	if(this->incomplete_bb_frames.size() == 0)
-	{
-		capacity_sym = std::min(init_capa, capacity_sym);
-	}
-
-	// stop if there is nothing to send
-	if(max_to_send <= 0)
-	{
-		// set the remaining capacity for incomplete frames scheduling
-		carriers->setRemainingCapacity(capacity_sym);
-		return true;
-	}
-
-	// there are really packets to send
-	LOG(this->log_scheduling, LEVEL_INFO,
-	    "SF#%u: send at most %ld encapsulation packets "
-	    "for %s fifo\n", current_superframe_sf,
-	    max_to_send, fifo->getName().c_str());
-
-	// now build BB frames with packets extracted from the MAC FIFO
-	while(fifo->getCurrentSize() > 0)
-	{
-		std::unique_ptr<NetPacket> encap_packet;
-		std::unique_ptr<NetPacket> data;
-		std::unique_ptr<NetPacket> remaining_data;
-
-		// simulate the satellite delay
-		if(fifo->getTickOut() > current_time)
-		{
-			LOG(this->log_scheduling, LEVEL_INFO,
-			    "SF#%u: packet is not scheduled for the "
-			    "moment, break\n", current_superframe_sf); 
-			    // this is the first MAC FIFO element that is not ready yet,
-			    // there is no more work to do, break now
-			    break;
-		}
-
-		elem = fifo->pop();
-
-		encap_packet = elem->getElem<NetPacket>();
-		// retrieve the encapsulation packet
-		if(!encap_packet)
-		{
-			LOG(this->log_scheduling, LEVEL_ERROR,
-			    "SF#%u: invalid packet #%u in MAC FIFO "
-			    "element\n", current_superframe_sf,
-			    sent_packets + 1);
-			delete elem;
-			return false;
-		}
-
-
-		if(!this->getIncompleteBBFrame(carriers, current_superframe_sf,
-		                               &current_bbframe))
+		std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator current_bbframe_it;
+		if(!this->prepareIncompleteBBFrame(carriers, current_superframe_sf, current_bbframe_it))
 		{
 			// cannot initialize incomplete BB Frame
-			delete elem;
-			return false;
+			return sched_status::error;
 		}
-		else if(!current_bbframe)
+		else if(current_bbframe_it == this->incomplete_bb_frames.end())
 		{
-			// cannot get modcod for the ST delete the element
-			delete elem;
-			continue;
+			// cannot get modcod for the ST delete the element and continue
+			return sched_status::ok;
 		}
+
+		fmt_id_t modcod = current_bbframe_it->first;
+		Rt::Ptr<BBFrame>& current_bbframe = current_bbframe_it->second;
 
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Got the BBFrame for packet #%u, "
 		    "there is now %zu complete BBFrames and %zu "
 		    "incomplete\n", current_superframe_sf,
-		    sent_packets + 1, complete_dvb_frames->size(),
+		    sent_packets + 1, complete_dvb_frames.size(),
 		    this->incomplete_bb_frames.size());
 
 		// Encapsulate packet
 		auto encap_packet_total_length = encap_packet->getTotalLength();
-		ret = this->packet_handler->encapNextPacket(std::move(encap_packet),
-		                                            current_bbframe->getFreeSpace(),
-		                                            current_bbframe->getPacketsCount() == 0,
-		                                            data, remaining_data);
-		if(!ret)
+		Rt::Ptr<NetPacket> data = Rt::make_ptr<NetPacket>(nullptr);
+		if(!this->packet_handler->encapNextPacket(std::move(encap_packet),
+		                                          current_bbframe->getFreeSpace(),
+		                                          current_bbframe->getPacketsCount() == 0,
+		                                          data, this->remaining_data))
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
 			    "SF#%u: error while processing packet "
 			    "#%u\n", current_superframe_sf,
 			    sent_packets + 1);
-			delete elem;
 		}
 
-		bool partial_encap = remaining_data != nullptr;
+		bool partial_encap = this->remaining_data != nullptr;
 		if(!data && !partial_encap)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
@@ -462,13 +352,13 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			    "implementation, assert or skip packet #%u\n",
 			    current_superframe_sf,
 			    sent_packets + 1);
-			assert(0);
-			delete elem;
+			throw BadPrecondition("getChunk function returned neither data nor partial"
+			                      "_data in ScpcScheduling::scheduleEncapPackets");
 		}
 		if(data)
 		{
 			// Add data
-			if(!current_bbframe->addPacket(data.get()))
+			if(!current_bbframe->addPacket(*data))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to add encapsulation "
@@ -479,8 +369,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 				    current_bbframe->getModcodId(),
 				    data->getTotalLength(),
 				    current_bbframe->getFreeSpace());
-				delete elem;
-				return false;
+				return sched_status::error;
 			}
 
 			if(partial_encap)
@@ -503,55 +392,158 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			    this->packet_handler->getName().c_str(),
 			    encap_packet_total_length);
 		}
-		if(partial_encap)
-		{
-			// Re-insert packet
-			elem->setElem(std::move(remaining_data));
-			fifo->pushFront(elem);
-		}
-		else
-		{
-			// Delete packet	
-			delete elem;
-		}
 
 		// the BBFrame has been completed or the next packet is too long
 		// add the BBFrame in the list of complete BBFrames and decrease
 		// duration credit
 		if(current_bbframe->getFreeSpace() <= 0 || partial_encap)
 		{
-			ret = this->addCompleteBBFrame(complete_dvb_frames,
-			                               current_bbframe,
-			                               current_superframe_sf,
-			                               capacity_sym);
-			if(ret == status_error)
+			sched_status ret = this->addCompleteBBFrame(complete_dvb_frames,
+			                                            current_bbframe,
+			                                            current_superframe_sf,
+			                                            capacity_sym);
+			if(ret == sched_status::error)
 			{
-				return false;
+				return ret;
 			}
 			else
 			{
-				fmt_id_t modcod = current_bbframe->getModcodId();
-
-				this->incomplete_bb_frames_ordered.remove(current_bbframe);
+				Rt::Ptr<BBFrame> pending_bbframe = std::move(current_bbframe);
+				this->incomplete_bb_frames_ordered.remove(modcod);
 				this->incomplete_bb_frames.erase(modcod);
-				if(ret == status_full)
+				if(ret == sched_status::full)
 				{
 					time_sf_t next_sf = current_superframe_sf + 1;
-					// we keep the remaining capacity that won't be used for
-					// next frame
-					carriers->setPreviousCapacity(capacity_sym,
-					                              next_sf);
+					// we keep the remaining capacity that won't be used for next frame
+					carriers.setPreviousCapacity(capacity_sym, next_sf);
 					capacity_sym = 0;
-					this->pending_bbframes.push_back(current_bbframe);
-					break;
+					this->pending_bbframes.push_back(std::move(pending_bbframe));
+					return ret;
 				}
+			}
+		}
+
+		if(partial_encap)
+		{
+			encap_packet = std::move(this->remaining_data);
+		}
+	}
+
+	return sched_status::ok;
+}
+
+
+bool ScpcScheduling::scheduleEncapPackets(DvbFifo &fifo,
+                                          const time_sf_t current_superframe_sf,
+                                          std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
+                                          CarriersGroupDama &carriers)
+{
+	unsigned int sent_packets = 0;
+	long max_to_send;
+	std::list<fmt_id_t> supported_modcods = carriers.getFmtIds();
+	vol_sym_t capacity_sym = carriers.getRemainingCapacity();
+	vol_sym_t previous_sym = carriers.getPreviousCapacity(current_superframe_sf);
+	vol_sym_t init_capa = capacity_sym;
+	capacity_sym += previous_sym;
+
+	// retrieve the number of packets waiting for retransmission
+	max_to_send = fifo.getCurrentSize();
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: ScpcScheduling::scheduleEncapPackets: "
+	    "max_to_send is %u, this->pending_bbframes.size() = %u\n",
+	    current_superframe_sf,
+	    max_to_send, this->pending_bbframes.size());
+	if (max_to_send <= 0 && this->pending_bbframes.size() == 0)
+	{
+		// reset previous capacity
+		carriers.setPreviousCapacity(0, 0);
+		// set the remaining capacity for incomplete frames scheduling
+		carriers.setRemainingCapacity(capacity_sym);
+		return true;
+	}
+
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: Scheduling FIFO %s, carriers group %u, "
+	    "capacity is %u symbols (+ %u previous)\n",
+	    current_superframe_sf,
+	    fifo.getName().c_str(), carriers.getCarriersId(),
+	    capacity_sym, previous_sym);
+
+	// first add the pending complete BBFrame in the complete BBframes list
+	// we add previous remaining capacity here because if a BBFrame was
+	// not send before, previous_capacity contains the remaining capacity at the
+	// end of the previous frame
+	this->schedulePending(supported_modcods, current_superframe_sf,
+	                      complete_dvb_frames, capacity_sym);
+	// reset previous capacity
+	carriers.setPreviousCapacity(0, 0);
+
+	// all the previous capacity was not consumed, remove it as we are not on
+	// pending frames anymore of if there is no incomplete frame
+	// (we consider incomplete frames can use previous capacity)
+	if(this->incomplete_bb_frames.size() == 0)
+	{
+		capacity_sym = std::min(init_capa, capacity_sym);
+	}
+
+	// stop if there is nothing to send
+	if(max_to_send <= 0)
+	{
+		// set the remaining capacity for incomplete frames scheduling
+		carriers.setRemainingCapacity(capacity_sym);
+		return true;
+	}
+
+	// there are really packets to send
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: send at most %ld encapsulation packets "
+	    "for %s fifo\n", current_superframe_sf,
+	    max_to_send, fifo.getName());
+
+	// now build BB frames with packets extracted from the MAC FIFO
+	if (sched_status::error == schedulePacket(current_superframe_sf,
+                                              sent_packets,
+                                              capacity_sym,
+                                              carriers,
+                                              complete_dvb_frames,
+                                              std::move(this->remaining_data)))
+	{
+		return false;
+	}
+
+	for (auto &&elem : fifo)
+	{
+		// retrieve the encapsulation packet
+		Rt::Ptr<NetPacket> encap_packet = elem->releaseElem<NetPacket>();
+		if (!encap_packet)
+		{
+			LOG(this->log_scheduling, LEVEL_ERROR,
+			    "SF#%u: invalid packet #%u in MAC FIFO "
+			    "element\n", current_superframe_sf,
+			    sent_packets + 1);
+		}
+		else
+		{
+			auto ret = schedulePacket(current_superframe_sf,
+                                      sent_packets,
+                                      capacity_sym,
+                                      carriers,
+                                      complete_dvb_frames,
+                                      std::move(encap_packet));
+			if (ret == sched_status::error)
+			{
+				return false;
+			}
+			else if (ret == sched_status::full)
+			{
+				break;
 			}
 		}
 	}
 
 	if(sent_packets != 0)
 	{
-		unsigned int cpt_frame = complete_dvb_frames->size();
+		unsigned int cpt_frame = complete_dvb_frames.size();
 
 		LOG(this->log_scheduling, LEVEL_INFO,
 		    "SF#%u: %u %s been scheduled and %u BB %s "
@@ -562,26 +554,29 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 		    (cpt_frame > 1) ? "frames were" : "frame was");
 	}
 	// update remaining capacity for incomplete frames scheduling
-	carriers->setRemainingCapacity(capacity_sym);
+	carriers.setRemainingCapacity(capacity_sym);
 
 	return true;
 }
 
 
-bool ScpcScheduling::createIncompleteBBFrame(BBFrame **bbframe,
+bool ScpcScheduling::createIncompleteBBFrame(Rt::Ptr<BBFrame> &bbframe,
                                              const time_sf_t current_superframe_sf,
                                              fmt_id_t modcod_id)
 {
 	// if there is no incomplete BB frame create a new one
 	size_t bbframe_size_bytes;
 
-	*bbframe = new BBFrame();
-	if(bbframe == NULL)
+	try
+	{
+		bbframe = Rt::make_ptr<BBFrame>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: failed to create an incomplete BB frame\n",
 		    current_superframe_sf);
-		goto error;
+		return false;
 	}
 
 	if(!this->packet_handler)
@@ -589,11 +584,11 @@ bool ScpcScheduling::createIncompleteBBFrame(BBFrame **bbframe,
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: packet handler is NULL\n",
 		    current_superframe_sf);
-		goto error;
+		return false;
 	}
 
 	// set the MODCOD ID of the BB frame
-	(*bbframe)->setModcodId(modcod_id);
+	bbframe->setModcodId(modcod_id);
 	this->probe_sent_modcod->put(modcod_id);
 
 	// get the payload size
@@ -606,12 +601,9 @@ bool ScpcScheduling::createIncompleteBBFrame(BBFrame **bbframe,
 	    modcod_id, bbframe_size_bytes);
 
 	// set the size of the BB frame
-	(*bbframe)->setMaxSize(bbframe_size_bytes);
+	bbframe->setMaxSize(bbframe_size_bytes);
 
 	return true;
-
-error:
-	return false;
 }
 
 bool ScpcScheduling::getBBFrameSizeSym(size_t bbframe_size_bytes,
@@ -621,14 +613,14 @@ bool ScpcScheduling::getBBFrameSizeSym(size_t bbframe_size_bytes,
 {
 	float spectral_efficiency;
 
-	if(!this->scpc_modcod_def->doFmtIdExist(modcod_id))
+	if(!this->scpc_modcod_def.doFmtIdExist(modcod_id))
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: failed to found the definition of MODCOD ID %u\n",
 		    current_superframe_sf, modcod_id);
 		goto error;
 	}
-	spectral_efficiency = this->scpc_modcod_def->getSpectralEfficiency(modcod_id);
+	spectral_efficiency = this->scpc_modcod_def.getSpectralEfficiency(modcod_id);
 
 	// duration is calculated over the complete BBFrame size, the BBFrame data
 	// size represents the payload without coding
@@ -646,8 +638,12 @@ error:
 unsigned int ScpcScheduling::getBBFrameSizeBytes(fmt_id_t modcod_id)
 {
 	// get the payload size
-	FmtDefinition *fmt_def = this->scpc_modcod_def->getDefinition(modcod_id);
-	if(fmt_def == NULL)
+	try
+	{
+		FmtDefinition &fmt_def = this->scpc_modcod_def.getDefinition(modcod_id);
+		return getPayloadSize(fmt_def.getCoding());
+	}
+	catch (const std::range_error&)
 	{
 		// TODO: remove default value. Calling methods should check that return
 		// value is OK.
@@ -657,31 +653,27 @@ unsigned int ScpcScheduling::getBBFrameSizeBytes(fmt_id_t modcod_id)
 				modcod_id, bbframe_size);
 		return bbframe_size;
 	}
-	return getPayloadSize(fmt_def->getCoding());
 }
 
 
-
-
-bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
-                                          const time_sf_t current_superframe_sf,
-                                          BBFrame **bbframe)
+bool ScpcScheduling::prepareIncompleteBBFrame(CarriersGroupDama &carriers,
+                                              const time_sf_t current_superframe_sf,
+                                              std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator &it)
 {
-	*bbframe = nullptr;
 	auto desired_modcod = this->getCurrentModcodId(this->gw_id);
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "Simulated MODCOD for GW = %u\n", desired_modcod);
 
 	// get best modcod ID according to carrier
-	auto modcod_id = carriers->getNearestFmtId(desired_modcod);
+	auto modcod_id = carriers.getNearestFmtId(desired_modcod);
 	if(modcod_id == 0)
 	{
 		LOG(this->log_scheduling, LEVEL_WARNING,
 		    "SF#%u: cannot serve Gateway with any modcod (desired %u) "
 		    "on carrier %u\n", current_superframe_sf, desired_modcod,
-		    carriers->getCarriersId());
+		    carriers.getCarriersId());
 
-		modcod_id = scpc_modcod_def->getMinId();
+		modcod_id = scpc_modcod_def.getMinId();
 	}
 
 	LOG(this->log_scheduling, LEVEL_DEBUG,
@@ -689,13 +681,12 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 	    current_superframe_sf, modcod_id);
 
 	// find if the BBFrame exists
-	auto bbframes = this->incomplete_bb_frames.find(modcod_id);
-	if(bbframes != this->incomplete_bb_frames.end() && bbframes->second != nullptr)
+	it = this->incomplete_bb_frames.find(modcod_id);
+	if(it != this->incomplete_bb_frames.end() && it->second != nullptr)
 	{
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Found a BBFrame for MODCOD %u\n",
 		    current_superframe_sf, modcod_id);
-		*bbframe = bbframes->second;
 	}
 	// no BBFrame for this MOCDCOD create a new one
 	else
@@ -704,23 +695,24 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		    "SF#%u: Create a new BBFrame for MODCOD %u\n",
 		    current_superframe_sf, modcod_id);
 		// if there is no incomplete BB frame create a new one
+		Rt::Ptr<BBFrame> bbframe = Rt::make_ptr<BBFrame>(nullptr);
 		if(!this->createIncompleteBBFrame(bbframe, current_superframe_sf, modcod_id))
 		{
 			return false;
 		}
 		// add the BBFrame in the map and list
-		this->incomplete_bb_frames[modcod_id] = *bbframe;
-		this->incomplete_bb_frames_ordered.push_back(*bbframe);
+		it = this->incomplete_bb_frames.emplace(modcod_id, std::move(bbframe)).first;
+		this->incomplete_bb_frames_ordered.push_back(modcod_id);
 	}
 
 	return true;
 }
 
 
-sched_status_t ScpcScheduling::addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-                                                  BBFrame *bbframe,
-                                                  const time_sf_t current_superframe_sf,
-                                                  vol_sym_t &remaining_capacity_sym)
+sched_status ScpcScheduling::addCompleteBBFrame(std::list<Rt::Ptr<DvbFrame>> &complete_bb_frames,
+                                                Rt::Ptr<BBFrame> &bbframe,
+                                                const time_sf_t current_superframe_sf,
+                                                vol_sym_t &remaining_capacity_sym)
 {
 	fmt_id_t modcod_id = bbframe->getModcodId();
 	size_t bbframe_size_bytes = bbframe->getMaxSize();
@@ -733,7 +725,7 @@ sched_status_t ScpcScheduling::addCompleteBBFrame(std::list<DvbFrame *> *complet
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: failed to get BB frame size (MODCOD ID = %u)\n",
 		    current_superframe_sf, modcod_id);
-		return status_error;
+		return sched_status::error;
 	}
 
 	// not enough space for this BBFrame
@@ -743,12 +735,11 @@ sched_status_t ScpcScheduling::addCompleteBBFrame(std::list<DvbFrame *> *complet
 		    "SF#%u: not enough capacity (%u symbols) for the BBFrame of "
 		    "size %u symbols\n", current_superframe_sf, remaining_capacity_sym,
 		    bbframe_size_sym);
-		return status_full;
+		return sched_status::full;
 	}
 
-
 	// we can send the BBFrame
-	complete_bb_frames->push_back((DvbFrame *)bbframe);
+	complete_bb_frames.push_back(dvb_frame_downcast(std::move(bbframe)));
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: New complete BBFrame\n",
 	    current_superframe_sf);
@@ -756,13 +747,13 @@ sched_status_t ScpcScheduling::addCompleteBBFrame(std::list<DvbFrame *> *complet
 	// reduce the time carrier capacity by the BBFrame size
 	remaining_capacity_sym -= bbframe_size_sym;
 
-	return status_ok;
+	return sched_status::ok;
 }
 
 
 void ScpcScheduling::schedulePending(const std::list<fmt_id_t> supported_modcods,
                                      const time_sf_t current_superframe_sf,
-                                     std::list<DvbFrame *> *complete_dvb_frames,
+                                     std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                      vol_sym_t &remaining_capacity_sym)
 {
 	if(this->pending_bbframes.size() == 0)
@@ -770,7 +761,7 @@ void ScpcScheduling::schedulePending(const std::list<fmt_id_t> supported_modcods
 		return;
 	}
 
-	std::list<BBFrame *> new_pending;
+	std::list<Rt::Ptr<BBFrame>> new_pending;
 	for (auto&& pending_bbframe : this->pending_bbframes)
 	{
 		fmt_id_t modcod = pending_bbframe->getModcodId();
@@ -781,7 +772,7 @@ void ScpcScheduling::schedulePending(const std::list<fmt_id_t> supported_modcods
 			if(this->addCompleteBBFrame(complete_dvb_frames,
 			                            pending_bbframe,
 			                            current_superframe_sf,
-			                            remaining_capacity_sym) != status_ok)
+			                            remaining_capacity_sym) != sched_status::ok)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: cannot add pending BBFrame in the list "
@@ -794,17 +785,15 @@ void ScpcScheduling::schedulePending(const std::list<fmt_id_t> supported_modcods
 		else
 		{
 			// keep the BBFrame in pending list
-			new_pending.push_back(pending_bbframe);
+			new_pending.push_back(std::move(pending_bbframe));
 		}
 	}
-	if(complete_dvb_frames->size() > 0)
+	if(complete_dvb_frames.size() > 0)
 	{
 		LOG(this->log_scheduling, LEVEL_INFO,
 		    "%zu pending frames scheduled, %zu remaining\n",
-		    complete_dvb_frames->size(), new_pending.size());
+		    complete_dvb_frames.size(), new_pending.size());
 	}
-	this->pending_bbframes.clear();
-	this->pending_bbframes.insert(this->pending_bbframes.end(),
-	                              new_pending.begin(), new_pending.end());
 
+	this->pending_bbframes = std::move(new_pending);
 }

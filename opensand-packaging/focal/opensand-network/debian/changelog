@@ -1,3 +1,27 @@
+opensand-network (8.0.0) focal; urgency=low
+
+  * Release 8.0.0
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Wed, 21 May 2025 13:27:12 +0200
+
+opensand-network (7.0.1) focal; urgency=low
+
+  * Release 7.0.1
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Mon, 11 Sep 2023 17:08:35 +0200
+
+opensand-network (7.0.0) focal; urgency=low
+
+  * Release 7.0.0
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Tue, 25 Jul 2023 15:28:12 +0200
+
+opensand-network (6.1.2) focal; urgency=low
+
+  * Release 6.1.2
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Mon, 05 Jun 2023 10:14:42 +0100
+
 opensand-network (6.1.1) focal; urgency=low
 
   * Release 6.1.1

@@ -226,7 +226,7 @@ def create_default_infrastructure(meta_model):
     infrastructure = infra.get_root()
 
     logs = _get_component(infrastructure, 'logs')
-    for log in ('init', 'lan_adaptation', 'encap', 'dvb', 'physical_layer', 'sat_carrier'):
+    for log in ('init', 'lan_adaptation', 'dvb', 'physical_layer', 'sat_carrier'):
         _set_parameter(_get_component(logs, log), 'level', 'warning')
 
     entity = _get_component(infrastructure, 'entity')
@@ -283,12 +283,12 @@ def create_default_topology(meta_model):
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
     forward_carrier = _create_list_item(spot, 'forward_band')
-    _set_parameter(forward_carrier, 'symbol_rate', 40e6)
+    _set_parameter(forward_carrier, 'bandwidth', 54000)
     _set_parameter(forward_carrier, 'type', 'ACM')
     _set_parameter(forward_carrier, 'wave_form', '1-28')
     _set_parameter(forward_carrier, 'group', 'Standard')
     return_carrier = _create_list_item(spot, 'return_band')
-    _set_parameter(return_carrier, 'symbol_rate', 40e6)
+    _set_parameter(return_carrier, 'bandwidth', 48000)
     _set_parameter(return_carrier, 'type', 'DAMA')
     _set_parameter(return_carrier, 'wave_form', '3-12')
     _set_parameter(return_carrier, 'group', 'Standard')
@@ -340,8 +340,13 @@ def create_default_profile(meta_model, entity_type):
     model = mod.get_root()
 
     encapsulation = _get_component(model, 'encap')
-    _set_parameter(_get_component(encapsulation, 'gse'), 'packing_threshold', 3)
+    gse_rust = _get_component(encapsulation, 'gse_Rust')
+    _set_parameter(gse_rust, 'max_frag_id', 8)
+    _set_parameter(gse_rust, 'decap_buffer_len', 5000)
+    _set_parameter(gse_rust, 'compatibility_mode', True)
+    _set_parameter(_get_component(encapsulation, 'gse_C'), 'packing_threshold', 3)
     _set_parameter(_get_component(encapsulation, 'rle'), 'alpdu_protection', 'Sequence Number')
+    _set_parameter(encapsulation, 'GSE_library', 'Rust' if gse_rust else 'C')
 
     access = _get_component(model, 'access')
     _set_parameter(_get_component(access, 'random_access'), 'saloha_algo', 'CRDSA')
@@ -356,7 +361,7 @@ def create_default_profile(meta_model, entity_type):
     _set_parameter(scpc, "carrier_duration", 5)
 
     dama = _get_component(access, 'dama')
-    _set_parameter(dama, 'cra', 100)
+    _set_parameter(dama, 'cra', 3000)
     _set_parameter(dama, 'algorithm', 'Legacy')
     _set_parameter(dama, 'duration', 23)
 
@@ -425,7 +430,7 @@ def create_scpc_topology(meta_model):
     spot = spots.get_item("0")
     
     return_carrier = _create_list_item(spot, 'return_band')
-    _set_parameter(return_carrier, 'symbol_rate', 40e6)
+    _set_parameter(return_carrier, 'bandwidth', 48000)
     _set_parameter(return_carrier, 'type', 'SCPC')
     _set_parameter(return_carrier, 'wave_form', '3-12')
     _set_parameter(return_carrier, 'group', 'Standard')
@@ -804,7 +809,7 @@ def download_entity(name, entity):
 
     in_memory.seek(0)
     dl_name = '{}.tar.gz'.format(entity)
-    return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+    return send_file(in_memory, download_name=dl_name, as_attachment=True)
 
 
 @app.route('/api/project/<string:name>/entity/<string:entity>', methods=['PUT'])
@@ -821,7 +826,7 @@ def upload_entity(name, entity):
     method = request.json.get('copy_method')
     ssh_config = request.json.get('ssh', {})
 
-    if method == 'NFS' and run in ('', 'LAUNCH'):
+    if method in ('NFS', 'File System') and run in ('', 'LAUNCH'):
         destination = destination.expanduser().resolve()
         destination.mkdir(parents=True, exist_ok=True)
 
@@ -834,6 +839,7 @@ def upload_entity(name, entity):
             'password': None,
             'passphrase': None,
     }
+    # .get could return None but make sure to not let '' through as well
     if ssh_config.get('is_passphrase', False):
         passwords['passphrase'] = ssh_config.get('password') or None
     else:
@@ -843,7 +849,7 @@ def upload_entity(name, entity):
     with Connection(host, connect_kwargs=passwords) as client:
         client.client.set_missing_host_key_policy(MissingHostKeyPolicy())
 
-        if run in ('', 'LAUNCH'):
+        if not run or run == 'LAUNCH':
             if method == 'SCP':
                 client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
                 for file in files:
@@ -959,9 +965,7 @@ def update_project_content(name):
 
 @app.route('/api/project/<string:name>', methods=['POST'])
 def validate_project(name):
-    try:
-        new_project_name = request.json['name']
-    except (KeyError, TypeError):
+    if not request.is_json or 'name' not in request.json:
         if request.files and 'project' in request.files:
             # Do upload
             destination = WWW_FOLDER / name
@@ -1035,13 +1039,14 @@ def validate_project(name):
 
             in_memory.seek(0)
             dl_name = '{}.tar.gz'.format(name)
-            return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+            return send_file(in_memory, download_name=dl_name, as_attachment=True)
     else:
         # Do copy
         source = WWW_FOLDER / name
         if not source.exists() or not source.is_dir():
             return error('Project {} not found'.format(name), 404)
 
+        new_project_name = request.json['name']
         destination = WWW_FOLDER / new_project_name
         if destination.exists():
             return error('Project {} already exists'.format(new_project_name), 409)

@@ -22,7 +22,7 @@ libopensand_gse_encap_plugin_la_SOURCES = \
     $(libopensand_gse_encap_plugin_la_cpp) \
     $(libopensand_gse_encap_plugin_la_h)
 
-pluginsdir = $(prefix)/lib/opensand/plugins
+pluginsdir = $(libdir)/opensand/plugins
 
 EXTRA_DIST = \
 	gse.py

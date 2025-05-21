@@ -40,6 +40,10 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 /**
   * @class TcpListenEvent
   * @brief Events describing data received on a nework socket
@@ -66,19 +70,25 @@ class TcpListenEvent: public FileEvent
 	 *
 	 * @return the file descriptor of the socket client
 	 */
-	inline int32_t getSocketClient(void) const {return this->socket_client;};
+	inline int32_t getSocketClient() const {return this->socket_client;};
 
 	/**
 	 * @brief  handle event
 	 * 
 	 * @return  True on success, false otherwise
 	 */
-	bool handle(void) override;
+	bool handle() override;
 
  protected:
 	/// The file descriptor of the socket client
 	int32_t socket_client;
+
+ private:
+	bool advertiseEvent(ChannelBase& channel) override;
 };
+
+
+};  // namespace Rt
 
 
 #endif

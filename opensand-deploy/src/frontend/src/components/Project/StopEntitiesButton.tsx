@@ -1,6 +1,6 @@
 import React from 'react';
 
-import SpacedButton from '../common/SpacedButton';
+import Button from '@mui/material/Button';
 
 import {deployEntity} from '../../api';
 import {useDispatch} from '../../redux';
@@ -70,13 +70,13 @@ const StopEntitiesButton: React.FC<Props> = (props) => {
     }, [dispatch, projectName, entities]);
 
     return (
-        <SpacedButton
+        <Button
             color="error"
             variant="contained"
             onClick={handleClick}
         >
             Stop All Entities
-        </SpacedButton>
+        </Button>
     );
 };
 

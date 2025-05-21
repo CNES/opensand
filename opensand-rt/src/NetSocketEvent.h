@@ -43,6 +43,10 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 /**
   * @class NetSocketEvent
   * @brief Events describing data received on a nework socket
@@ -69,14 +73,20 @@ class NetSocketEvent: public FileEvent
 	 *
 	 * @return the message source address
 	 */
-	inline struct sockaddr_in getSrcAddr(void) const {return this->src_addr;};
+	inline struct sockaddr_in getSrcAddr() const {return this->src_addr;};
 
-	bool handle(void) override;
+	bool handle() override;
 
  protected:
 	/// The source address of the message;
 	struct sockaddr_in src_addr;
+
+ private:
+	bool advertiseEvent(ChannelBase& channel) override;
 };
+
+
+};  // namespace Rt
 
 
 #endif

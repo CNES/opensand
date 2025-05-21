@@ -44,177 +44,188 @@
 
 class SlottedAlohaNcc;
 class StFmtSimuList;
-class PhysicStd;
+class DvbRcs2Std;
+class DvbScpcStd;
 class NetBurst;
 
 
 class SpotUpward: public DvbChannel, public DvbFmt
 {
-	public:
-		SpotUpward(spot_id_t spot_id,
-		           tal_id_t mac_id,
-		           StFmtSimuList *input_sts,
-		           StFmtSimuList *output_sts);
+ public:
+	SpotUpward(spot_id_t spot_id,
+	           tal_id_t mac_id,
+	           StackPlugin *upper_encap,
+	           std::shared_ptr<StFmtSimuList> input_sts,
+	           std::shared_ptr<StFmtSimuList> output_sts);
 
-		~SpotUpward();
+	~SpotUpward();
 
-		static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
+	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
-		/**
-		 * @brief Spot Upward initialisation
-		 *
-		 * @return true on success, false otherwise
-		 */ 
-		bool onInit();
+	/**
+	 * @brief Spot Upward initialisation
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	bool onInit();
 
 
-		/**
-		 * @brief Handle a DVB frame
-		 *
-		 * @param frame  The frame
-		 * @param burst  OUT: the burst of packets
-		 * @return true on success, false otherwise
-		 */
-		bool handleFrame(DvbFrame *frame, NetBurst **burst);
+	/**
+	 * @brief Handle a DVB frame
+	 *
+	 * @param frame  The frame
+	 * @param burst  OUT: the burst of packets
+	 * @return true on success, false otherwise
+	 */
+	bool handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst);
 
-		/**
-		 * @brief get CNI in a frame
-		 *
-		 * @param dvb_frame the Dvb Frame corrupted
-		 */
-		void handleFrameCni(DvbFrame *dvb_frame);
+	/**
+	 * @brief get CNI in a frame
+	 *
+	 * @param dvb_frame the Dvb Frame corrupted
+	 */
+	void handleFrameCni(DvbFrame& dvb_frame);
 
-		/**
-		 * @brief Schedule Slotted Aloha carriers
-		 *
-		 *	@param dvb_frame   a SoF
-		 *  @param ack_frames  OUT: The generated ACK frames
-		 *  @param sa_burst    OUT: The Slotted Aloha bursts received
-		 *  @return true on success, false otherwise
-		 */
-		bool scheduleSaloha(DvbFrame *dvb_frame,
-		                    std::list<DvbFrame *>* &ack_frames,
-		                    NetBurst **sa_burst);
+	/**
+	 * @brief Schedule Slotted Aloha carriers
+	 *
+	 *	@param dvb_frame   a SoF
+	 *  @param ack_frames  OUT: The generated ACK frames
+	 *  @param sa_burst    OUT: The Slotted Aloha bursts received
+	 *  @return true on success, false otherwise
+	 */
+	bool scheduleSaloha(Rt::Ptr<DvbFrame> dvb_frame,
+	                    Rt::Ptr<std::list<Rt::Ptr<DvbFrame>>> &ack_frames,
+	                    Rt::Ptr<NetBurst> &sa_burst);
 
-		/**
-		 *  @brief Handle a logon request transmitted by the lower layer
-		 *
-		 *  @param logon_req  The frame contining the logon request
-		 *  @return true on success, false otherwise
-		 */
-		bool onRcvLogonReq(DvbFrame *dvb_frame);
+	/**
+	 *  @brief Handle a logon request transmitted by the lower layer
+	 *
+	 *  @param logon_req  The frame contining the logon request
+	 *  @return true on success, false otherwise
+	 */
+	bool onRcvLogonReq(DvbFrame& dvb_frame);
 
-		/**
-		 *  @brief Handle a Slotted Aloha Data Frame
-		 *
-		 *  @param frame  The Slotted Aloha data frame
-		 *  @return true on success, false otherwise
-		 */
-		bool handleSlottedAlohaFrame(DvbFrame *frame);
+	/**
+	 *  @brief Handle a Slotted Aloha Data Frame
+	 *
+	 *  @param frame  The Slotted Aloha data frame
+	 *  @return true on success, false otherwise
+	 */
+	bool handleSlottedAlohaFrame(Rt::Ptr<DvbFrame> frame);
 
-		// statistics update
-		void updateStats(void);
+	// statistics update
+	void updateStats();
 
-		/**
-		 * @brief  handle a SAC frame
-		 *
-		 * @param dvb_frame The SAC frame
-		 * @return true on success, false otherwise
-		 */
-		bool handleSac(const DvbFrame *dvb_frame);
+	/**
+	 * @brief  handle a SAC frame
+	 *
+	 * @param dvb_frame The SAC frame
+	 * @return true on success, false otherwise
+	 */
+	bool handleSac(DvbFrame &dvb_frame);
 
-		/**
-		 * @brief  Getter to spot_id
-		 *
-		 * @return spot_id
-		 */
-		inline uint8_t getSpotId(void) { return this->spot_id; }
+	/**
+	 * @brief  Getter to spot_id
+	 *
+	 * @return spot_id
+	 */
+	inline uint8_t getSpotId() { return this->spot_id; }
 
-	protected:
-		/**
-		 * @brief Initialize the transmission mode
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initMode(void);
+	/**
+	 * @brief Forward filter terminal ID to the encapsulation contexts
+	 * 
+	 * @param filter	The terminal ID used to filter packets on
+	 */
+	void setFilterTalId(tal_id_t filter) override;
 
-		/**
-		 * @brief Read configuration for the different files and open them
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodSimu(void);
+ protected:
+	/**
+	 * @brief Initialize the transmission mode
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initMode();
 
-		/**
-		 * @brief Initialize the ACM loop margins
-		 *        Called in GW SpotUpward only as it will initialize
-		 *        StFmtSimuList that are shared
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initAcmLoopMargin(void);
+	/**
+	 * @brief Read configuration for the different files and open them
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodSimu();
 
-		/**
-		 * @brief Initialize the statistics
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initOutput(void);
+	/**
+	 * @brief Initialize the ACM loop margins
+	 *        Called in GW SpotUpward only as it will initialize
+	 *        StFmtSimuList that are shared
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initAcmLoopMargin();
 
-		/**
-		 * Read configuration for the Slotted Aloha algorithm
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initSlottedAloha(void);
+	/**
+	 * @brief Initialize the statistics
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initOutput();
 
-		/**
-		 * Checks if SCPC mode is activated and configured
-		 * (Available FIFOs and Carriers for SCPC)
-		 *
-		 * @return       Whether there are SCPC FIFOs and SCPC Carriers
-		 *               available or not
-		 */
-		bool checkIfScpc();
+	/**
+	 * Read configuration for the Slotted Aloha algorithm
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initSlottedAloha();
 
-		/// Spot Id
-		uint8_t spot_id;
+	/**
+	 * Checks if SCPC mode is activated and configured
+	 * (Available FIFOs and Carriers for SCPC)
+	 *
+	 * @return       Whether there are SCPC FIFOs and SCPC Carriers
+	 *               available or not
+	 */
+	bool checkIfScpc();
 
-		/// Gw tal id
-		uint8_t mac_id;
+	/// Spot Id
+	spot_id_t spot_id;
 
-		/// The Slotted Aloha for NCC
-		SlottedAlohaNcc *saloha;
+	/// Gw tal id
+	tal_id_t mac_id;
 
-		/// reception standard (DVB-RCS or DVB-S2)
-		PhysicStd *reception_std;
+	/// The Slotted Aloha for NCC
+	std::unique_ptr<SlottedAlohaNcc> saloha;
 
-		/// reception standard for SCPC
-		PhysicStd *reception_std_scpc;
+	/// reception standard (DVB-RCS or DVB-S2)
+	std::unique_ptr<DvbRcs2Std> reception_std;
 
-		/// The up/return packet handler for SCPC
-		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;
+	/// reception standard for SCPC
+	std::unique_ptr<DvbScpcStd> reception_std_scpc;
 
-		/// FMT groups for up/return
-		fmt_groups_t ret_fmt_groups;
+	/// The up/return packet handler for SCPC
+	std::shared_ptr<EncapPlugin::EncapPacketHandler> scpc_pkt_hdl;
+	encap_contexts_t scpc_ctx;
 
-		/// is terminal scpc map
-		std::list<tal_id_t> is_tal_scpc;
+	/// FMT groups for up/return
+	fmt_groups_t ret_fmt_groups;
 
-		// Output probes and stats
-		// Rates
-		// Layer 2 from SAT
-		std::shared_ptr<Probe<int>> probe_gw_l2_from_sat;
-		int l2_from_sat_bytes;
-		// Physical layer information
-		std::shared_ptr<Probe<int>> probe_received_modcod;
-		std::shared_ptr<Probe<int>> probe_rejected_modcod;
+	/// is terminal scpc map
+	std::list<tal_id_t> is_tal_scpc;
 
-		/// log for slotted aloha
-		std::shared_ptr<OutputLog> log_saloha;
+	// Output probes and stats
+	// Rates
+	// Layer 2 from SAT
+	std::shared_ptr<Probe<int>> probe_gw_l2_from_sat;
+	int l2_from_sat_bytes;
+	// Physical layer information
+	std::shared_ptr<Probe<int>> probe_received_modcod;
+	std::shared_ptr<Probe<int>> probe_rejected_modcod;
 
-		/// logon request events
-		std::shared_ptr<OutputEvent> event_logon_req;
+	/// log for slotted aloha
+	std::shared_ptr<OutputLog> log_saloha;
+
+	/// logon request events
+	std::shared_ptr<OutputEvent> event_logon_req;
 };
+
 
 #endif

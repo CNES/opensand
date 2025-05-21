@@ -47,7 +47,7 @@
  */
 class TerminalCategoryDama: public TerminalCategory<CarriersGroupDama>
 {
-public:
+ public:
 	/**
 	 * @brief  Create a terminal category.
 	 *
@@ -66,20 +66,17 @@ public:
 	 * @return  terminal list in the carriers group
 	 */
 	template<class T>
-	std::vector<T *> getTerminalsInCarriersGroup(
-	                             unsigned int carrier_id) const;
-
+	std::vector<std::shared_ptr<T>> getTerminalsInCarriersGroup(unsigned int carrier_id) const;
 };
 
+
 template<class T>
-std::vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(unsigned int carrier_id) const
+std::vector<std::shared_ptr<T>> TerminalCategoryDama::getTerminalsInCarriersGroup(unsigned int carrier_id) const
 {
-	std::vector<T *> entries;
-	std::vector<TerminalContext *>::const_iterator it;
-	for(it = this->terminals.begin();
-	    it != this->terminals.end(); ++it)
+	std::vector<std::shared_ptr<T>> entries;
+	for (auto &&t: this->terminals)
 	{
-		T *terminal = dynamic_cast<T *>(*it);
+		std::shared_ptr<T> terminal = std::dynamic_pointer_cast<T>(t);
 		if(terminal->getCarrierId() == carrier_id)
 		{
 			entries.push_back(terminal);
@@ -88,5 +85,5 @@ std::vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(unsigned int 
 	return entries;
 }
 
-#endif
 
+#endif
