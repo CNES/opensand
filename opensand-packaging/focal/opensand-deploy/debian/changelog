@@ -1,3 +1,9 @@
+opensand-deploy (8.0.0) focal; urgency=low
+
+  * Release 8.0.0
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Wed, 21 May 2025 13:27:12 +0200
+
 opensand-deploy (7.0.1) focal; urgency=low
 
   * Release 7.0.1

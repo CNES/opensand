@@ -1,3 +1,9 @@
+opensand-network (8.0.0) noble; urgency=low
+
+  * Release 8.0.0
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Wed, 21 May 2025 13:27:12 +0200
+
 opensand-network (7.0.1) jammy; urgency=low
 
   * Release 7.0.1

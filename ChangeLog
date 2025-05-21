@@ -1,3 +1,14 @@
+2025-05-21 opensand-8.0.0
+
+   * Reworked opensand-deploy frontend to try and make it more intuitive
+   * Added GSE plugin in Rust (wrapping https://github.com/viveris/dvb_gse_rust)
+   * Fixed packets routing in regenerative satellite
+   * Fixed ISLs
+   * Fixed SCPC
+   * Fixed memory leaks due to plugins management
+   * Use better default values for configuration
+   * Simplified build process
+
 2023-09-11 opensand-7.0.1
 
    * Added liboutput dump in a new 'check' mode
