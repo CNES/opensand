@@ -1,0 +1,25 @@
+Source: opensand-rt
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper-compat (= 13),
+ autotools-dev, automake, libtool, pkg-config,
+ libopensand-output-dev (>= 7.0.0),
+ libgoogle-perftools-dev
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-rt-dev
+Section: libdevel
+Architecture: any
+Depends: libopensand-rt (= ${binary:Version})
+Provides: opensand-margouilla-dev
+Conflicts: opensand-margouilla-dev
+Description: The runtime library and headers for OpenSAND
+
+Package: libopensand-rt
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: opensand-margouilla
+Conflicts: opensand-margouilla
+Description: The runtime library for OpenSAND
