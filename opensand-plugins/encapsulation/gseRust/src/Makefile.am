@@ -31,4 +31,4 @@ libopensand_gseRust_encap_plugin_la_LIBADD = libgse_rust_c_api.a
 pluginsdir = $(libdir)/opensand/plugins
 
 libgse_rust_c_api.a:
-	cd $(srcdir)/gse_c_rust_api; cargo build --release; cp target/release/$@ $(abs_builddir)
+	cd $(srcdir)/gse_c_rust_api; rustup default stable; cargo build --release; cp target/release/$@ $(abs_builddir)

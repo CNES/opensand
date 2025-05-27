@@ -2,7 +2,6 @@ Source: opensand-gse-rust-encap-plugin
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper-compat (= 13), autotools-dev, automake, libtool,
- cargo, rustc,
  libopensand-conf-dev (>= 7.0.0),
  libopensand-output-dev (>= 7.0.0),
  libopensand-plugin-dev (>= 7.0.0)
