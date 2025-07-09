@@ -119,6 +119,16 @@ public:
 	                              SatDelayPlugin **sat_delay);
 
 	/**
+	 * @brief get a satellite ISL delay plugin
+	 *
+	 * @param name           The name of the satellite delay plugin
+	 * @param sat_delay      The satellite ISL delay plugin
+	 * @return true on success, false otherwise
+	 */
+	static bool getIslDelayPlugin(std::string name,
+	                              IslDelayPlugin **sat_delay);
+
+	/**
 	 * @brief get the encapsulation plugins list
 	 *
 	 * @return a vector containing the names of all known encapsulation plugins

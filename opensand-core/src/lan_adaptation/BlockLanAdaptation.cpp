@@ -42,6 +42,7 @@
 #include "OpenSandModelConf.h"
 #include "PacketSwitch.h"
 #include "FifoElement.h"
+#include "IslPlugin.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/FileEvent.h>
@@ -173,7 +174,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 		}
 	}
 
-	if (delay == time_ms_t::zero())
+	if (delay == nullptr)
 	{
 		// No need to poll, messages are sent directly
 		return true;
@@ -319,7 +320,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const Event& event)
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 {
-	if(delay != time_ms_t::zero() && event == delay_timer)
+	if(delay != nullptr && event == delay_timer)
 	{
 		for (auto &&elem: delay_fifo)
 		{
@@ -469,7 +470,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			}
 
 			packet.insert(0, head, TUNTAP_FLAGS_LEN);
-			if (delay == time_ms_t::zero())
+			if (delay == nullptr)
 			{
 				if(!this->writePacket(packet))
 				{
@@ -480,7 +481,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			}
 			else
 			{
-				if (!delay_fifo.push(make_ptr<NetPacket>(packet), delay))
+				if (!delay_fifo.push(make_ptr<NetPacket>(packet), delay->getSatDelay()))
 				{
 					LOG(this->log_receive, LEVEL_ERROR, "failed to push the message in the fifo\n");
 					success = false;

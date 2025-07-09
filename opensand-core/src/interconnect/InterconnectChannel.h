@@ -44,6 +44,7 @@
 #include "DvbFrame.h"
 #include "DelayFifo.h"
 #include "UdpChannel.h"
+#include "IslPlugin.h"
 
 
 class OutputLog;
@@ -129,7 +130,7 @@ protected:
 	 */
 	bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
 
-	time_ms_t delay = time_ms_t::zero();
+	IslDelayPlugin* delay = nullptr;
 
 private:
 	/**

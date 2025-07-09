@@ -101,7 +101,7 @@ bool BlockPhysicalLayer::onInit()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize sat delay plugin '%s' for terminal id %u",
-		    satdelay_name, this->mac_id);
+		    satdelay_name.c_str(), this->mac_id);
 		return false;
 	}
 

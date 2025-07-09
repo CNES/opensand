@@ -1,3 +1,5 @@
+SUBDIRS = plugins .
+
 noinst_LTLIBRARIES = libopensand_sat.la
 
 libopensand_sat_la_cpp = \

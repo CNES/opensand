@@ -90,6 +90,13 @@ bool Plugin::getSatDelayPlugin(std::string name,
 }
 
 
+bool Plugin::getIslDelayPlugin(std::string name,
+                               IslDelayPlugin **sat_delay)
+{
+	return utils.getIslDelayPlugin(name, sat_delay);
+}
+
+
 std::vector<std::string> Plugin::getAllEncapsulationPlugins()
 {
 	return utils.getAllEncapsulationPlugins();

@@ -39,6 +39,7 @@
 #include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
 #include "PhysicalLayerPlugin.h"
+#include "IslPlugin.h"
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
 
@@ -138,6 +139,10 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 				{
 					case PluginType::Encapsulation:
 						storePlugin(this->encapsulation, plugin, handle);
+						break;
+
+					case PluginType::IslDelay:
+						storePlugin(this->isl_delay, plugin, handle);
 						break;
 
 					case PluginType::SatDelay:
@@ -287,9 +292,16 @@ bool getPlugin(const std::string &plugin_name,
 
 
 bool PluginUtils::getEncapsulationPlugin(std::string name,
-	                                     EncapPlugin **encapsulation)
+                                         EncapPlugin **encapsulation)
 {
 	return getPlugin(name, this->encapsulation, encapsulation);
+};
+
+
+bool PluginUtils::getIslDelayPlugin(std::string name,
+                                    IslDelayPlugin **sat_delay)
+{
+	return getPlugin(name, this->isl_delay, sat_delay);
 };
 
 
@@ -348,6 +360,10 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 	{
 		case PluginType::Encapsulation:
 			container = &this->encapsulation;
+			break;
+
+		case PluginType::IslDelay:
+			container = &this->isl_delay;
 			break;
 
 		case PluginType::SatDelay:

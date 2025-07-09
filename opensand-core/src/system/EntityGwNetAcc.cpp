@@ -113,7 +113,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 
 		InterconnectConfig interco_cfg;
 		interco_cfg.interconnect_addr = this->interconnect_address;
-		interco_cfg.delay = time_ms_t::zero();
+		interco_cfg.delay = nullptr;
 
 		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
 		auto& block_dvb = Rt::Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);

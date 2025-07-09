@@ -54,6 +54,7 @@ class AttenuationModelPlugin;
 class MinimalConditionPlugin;
 class ErrorInsertionPlugin;
 class SatDelayPlugin;
+class IslDelayPlugin;
 
 class OutputLog;
 
@@ -85,6 +86,7 @@ protected:
 	PluginConfigurationContainer minimal;
 	PluginConfigurationContainer error;
 	PluginConfigurationContainer sat_delay;
+	PluginConfigurationContainer isl_delay;
 	std::vector<void *> handlers;
 
 	PluginUtils();
@@ -121,6 +123,16 @@ protected:
 	 */
 	bool getEncapsulationPlugin(std::string name,
 	                            EncapPlugin **encapsulation);
+
+	/**
+	 * @brief get a satellite ISL delay plugin
+	 *
+	 * @param name           The name of the satellite delay plugin
+	 * @param sat_delay      The satellite ISL delay plugin
+	 * @return true on success, false otherwise
+	 */
+	bool getIslDelayPlugin(std::string name,
+	                       IslDelayPlugin **sat_delay);
 
 	/**
 	 * @brief get a satellite delay plugin
