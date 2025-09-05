@@ -76,7 +76,7 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	static bool getEncapsulationPlugin(std::string name,
-	                                   SimpleEncapPlugin **encapsulation);
+	                                   EncapPlugin **encapsulation);
 
 	/**
 	 * @brief get physical layer attenuation plugin

@@ -41,7 +41,6 @@
 
 #include "Plugin.h"
 #include "DvbS2Std.h"
-#include "SimpleEncapPlugin.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>

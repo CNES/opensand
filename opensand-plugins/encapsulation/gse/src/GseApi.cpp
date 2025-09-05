@@ -1,4 +1,4 @@
-#include "GseRustCApi.h"
+#include "GseApi.h"
 
 #include <cstring>
 

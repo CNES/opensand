@@ -27,12 +27,12 @@
  */
 
 /**
- * @file GseRust.cpp
+ * @file Gse.cpp
  * @brief GSE encapsulation plugin implementation
  * @author Axel Pinel <axel.pinel@viveris.fr>
  */
 
-#include "GseRust.h"
+#include "Gse.h"
 
 #include <array>
 #include <memory>
@@ -90,7 +90,7 @@ static int deencodeHeaderCniExtensions(unsigned char *ext,
 }
 */
 
-Rt::Ptr<NetPacket> GseRust::decapNextPacket(const Rt::Data &data, size_t &length_decap)
+Rt::Ptr<NetPacket> Gse::decapNextPacket(const Rt::Data &data, size_t &length_decap)
 {
 	length_decap = 0;
 
@@ -104,9 +104,9 @@ Rt::Ptr<NetPacket> GseRust::decapNextPacket(const Rt::Data &data, size_t &length
 	{
 
 		uint8_t *label_bytes = status.value.completed_pkt.metadata.label.bytes;
-		uint8_t src_tal_id = GseRust::getSrcTalIdFromLabel(label_bytes);
-		uint8_t dst_tal_id = GseRust::getDstTalIdFromLabel(label_bytes);
-		uint8_t qos = GseRust::getQosFromLabel(label_bytes);
+		uint8_t src_tal_id = Gse::getSrcTalIdFromLabel(label_bytes);
+		uint8_t dst_tal_id = Gse::getDstTalIdFromLabel(label_bytes);
+		uint8_t qos = Gse::getQosFromLabel(label_bytes);
 
 		Rt::Ptr<NetPacket> packet = Rt::make_ptr<NetPacket>(
 			status.value.completed_pkt.pdu.bytes,
@@ -253,7 +253,7 @@ Rt::Ptr<NetPacket> GseRust::decapNextPacket(const Rt::Data &data, size_t &length
 		"Checking now for header ext");
 }
 
-bool GseRust::decapAllPackets(Rt::Ptr<NetContainer> encap_packets,
+bool Gse::decapAllPackets(Rt::Ptr<NetContainer> encap_packets,
 							  std::vector<Rt::Ptr<NetPacket>> &decap_packets,
 							  unsigned int decap_packets_count)
 {
@@ -355,7 +355,7 @@ bool GseRust::decapAllPackets(Rt::Ptr<NetContainer> encap_packets,
 	return true;
 }
 
-bool GseRust::encapNextPacket(Rt::Ptr<NetPacket> packet,
+bool Gse::encapNextPacket(Rt::Ptr<NetPacket> packet,
 							  std::size_t remaining_length,
 							  bool new_burst,
 							  Rt::Ptr<NetPacket> &encap_packet,
@@ -367,7 +367,7 @@ bool GseRust::encapNextPacket(Rt::Ptr<NetPacket> packet,
 
 	// TODO buffer_encap should not exceed 4Ko + 2 o (check)
 	uint8_t buffer_encap[size_data_encap];
-	uint8_t frag_id = GseRust::getFragId(*packet);
+	uint8_t frag_id = Gse::getFragId(*packet);
 	RustSlice payload = (RustSlice){.size = packet->getTotalLength(),
 									.bytes = packet->getRawData()};
 	RustMutSlice gse_pck = {.size = size_data_encap,
@@ -442,7 +442,7 @@ bool GseRust::encapNextPacket(Rt::Ptr<NetPacket> packet,
 			rustLabel.label_type = RustLabelType::ThreeBytes;
 		}
 
-		if (!GseRust::setLabel(*packet, rustLabel.bytes))
+		if (!Gse::setLabel(*packet, rustLabel.bytes))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Failed to set the label for rust encapsulation\n");
@@ -542,7 +542,7 @@ bool GseRust::encapNextPacket(Rt::Ptr<NetPacket> packet,
 
 }
 
-GseRust::GseRust(const std::string &name): SimpleEncapPlugin(name, NET_PROTO::GSE)
+Gse::Gse(): EncapPlugin(NET_PROTO::GSE)
 {
 	// initialize using default value
 	uint8_t max_frag_id = 5;		   // 5 FIFO so 5 id should be ok, but Gse protocol allows 256 different id
@@ -570,12 +570,12 @@ GseRust::GseRust(const std::string &name): SimpleEncapPlugin(name, NET_PROTO::GS
 	this->rust_decapsulator = create_deencapsulator(this->decap_buffer);
 }
 
-GseRust::~GseRust()
+Gse::~Gse()
 {
 	c_memory_delete(this->decap_buffer);
 }
 
-void GseRust::generateConfiguration(const std::string &, const std::string &, const std::string &)
+void Gse::generateConfiguration(const std::string &, const std::string &, const std::string &)
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
@@ -588,7 +588,7 @@ void GseRust::generateConfiguration(const std::string &, const std::string &, co
 }
 
 // Static methods
-bool GseRust::setLabel(const NetPacket &packet, uint8_t label[])
+bool Gse::setLabel(const NetPacket &packet, uint8_t label[])
 {
 	tal_id_t src_tal_id = packet.getSrcTalId();
 	tal_id_t dst_tal_id = packet.getDstTalId();
@@ -608,40 +608,40 @@ bool GseRust::setLabel(const NetPacket &packet, uint8_t label[])
 	return true;
 }
 
-uint8_t GseRust::getSrcTalIdFromLabel(const uint8_t label[])
+uint8_t Gse::getSrcTalIdFromLabel(const uint8_t label[])
 {
 	return label[0] & 0x1F;
 }
 
-uint8_t GseRust::getDstTalIdFromLabel(const uint8_t label[])
+uint8_t Gse::getDstTalIdFromLabel(const uint8_t label[])
 {
 	return label[1] & 0x1F;
 }
 
-uint8_t GseRust::getQosFromLabel(const uint8_t label[])
+uint8_t Gse::getQosFromLabel(const uint8_t label[])
 {
 	return label[2] & 0x07;
 }
 
-uint8_t GseRust::getFragId(const NetPacket &packet)
+uint8_t Gse::getFragId(const NetPacket &packet)
 {
 	uint8_t src_tal_id = packet.getSrcTalId();
 	uint8_t qos = packet.getQos();
 	return ((src_tal_id & 0x1F) << 3 | ((qos & 0x07)));
 }
 
-uint8_t GseRust::getSrcTalIdFromFragId(const uint8_t frag_id)
+uint8_t Gse::getSrcTalIdFromFragId(const uint8_t frag_id)
 {
 	return (frag_id >> 3) & 0x1F;
 }
 
-uint8_t GseRust::getQosFromFragId(const uint8_t frag_id)
+uint8_t Gse::getQosFromFragId(const uint8_t frag_id)
 {
 	return frag_id & 0x07;
 }
 
 // this method is only called in SCPC mode
-bool GseRust::getSrc(const Rt::Data &data, tal_id_t &tal_id) const
+bool Gse::getSrc(const Rt::Data &data, tal_id_t &tal_id) const
 {
 	LOG(this->log, LEVEL_DEBUG,
 		"Looking for FragId or Label in a %lu-bytes packet", data.size());
@@ -689,28 +689,28 @@ bool GseRust::getSrc(const Rt::Data &data, tal_id_t &tal_id) const
 }
 
 // this method must not be called
-bool GseRust::getQos(const Rt::Data &data, qos_t &qos) const
+bool Gse::getQos(const Rt::Data &data, qos_t &qos) const
 {
 	LOG(this->log, LEVEL_ERROR,
-		"GseRust::getQos called");
+		"Gse::getQos called");
 	assert(false);
 	return true;
 }
 
 // this method must not be called
-Rt::Ptr<NetPacket> GseRust::build(const Rt::Data &data,
+Rt::Ptr<NetPacket> Gse::build(const Rt::Data &data,
 								  size_t data_length,
 								  uint8_t qos,
 								  uint8_t src_tal_id,
 								  uint8_t dst_tal_id)
 {
 	LOG(this->log, LEVEL_ERROR,
-		"ERROR GseRust::build() has been called. Aborting.");
+		"ERROR Gse::build() has been called. Aborting.");
 	assert(false);
 	return Rt::make_ptr<NetPacket>(nullptr);
 }
 
-bool GseRust::setHeaderExtensions(Rt::Ptr<NetPacket> packet,
+bool Gse::setHeaderExtensions(Rt::Ptr<NetPacket> packet,
 								  Rt::Ptr<NetPacket> &new_packet,
 								  tal_id_t tal_id_src,
 								  tal_id_t tal_id_dst,
@@ -768,7 +768,7 @@ bool GseRust::setHeaderExtensions(Rt::Ptr<NetPacket> packet,
 	return true;
 }
 
-bool GseRust::getHeaderExtensions(const Rt::Ptr<NetPacket> &packet,
+bool Gse::getHeaderExtensions(const Rt::Ptr<NetPacket> &packet,
 								  std::string callback_name,
 								  void *opaque)
 {

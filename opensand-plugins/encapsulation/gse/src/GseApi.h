@@ -1,12 +1,12 @@
+#ifndef GSE_API_H
+#define GSE_API_H
+
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
 #include <ostream>
 #include <new>
 
-
-#ifndef GSE_RUST_C_API_H
-#define GSE_RUST_C_API_H
 enum class RustDecapStatusType {
   DecapCompletedPkt,
   DecapFragmentedPkt,
@@ -270,4 +270,4 @@ RustExtractLabelorFragIdStatus rust_getFragIdOrLbl(RustSlice c_buffer, OpaquePtr
 } // extern "C"
 
 
-#endif // GSE_RUST_C_API_H
+#endif // GSE_API_H

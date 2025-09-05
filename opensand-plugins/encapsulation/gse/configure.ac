@@ -2,7 +2,7 @@
 
 # Process this file with autoconf to produce a configure script.
 m4_define([opensand_version], m4_bregexp(m4_quote(m4_esyscmd_s([cat ChangeLog])), [[0-9]+\.[0-9]+\.[0-9]+], [\&]))
-AC_INIT(opensand-gseRust-encap-plugin, [opensand_version], [http://opensand.org])
+AC_INIT(opensand-gse-encap-plugin, [opensand_version], [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE

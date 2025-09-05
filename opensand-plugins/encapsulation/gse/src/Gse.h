@@ -27,8 +27,8 @@
  */
 
 /**
- * @file GseRust.h
- * @brief GseRust encapsulation plugin implementation
+ * @file Gse.h
+ * @brief Gse encapsulation plugin implementation
  * @author Axel Pinel <axel.pinel@viveris.fr>
  */
 
@@ -39,20 +39,20 @@
 #include <string>
 #include <vector>
 
-#include <SimpleEncapPlugin.h>
+#include <EncapPlugin.h>
 #include "GseIdentifier.h"
 
 #include "Memory.h"
-#include "GseRustCApi.h"
+#include "GseApi.h"
 
 class NetPacket;
 class NetBurst;
 
 /**
- * @class GseRust
- * @brief GseRust encapsulation plugin implementation
+ * @class Gse
+ * @brief Gse encapsulation plugin implementation
  */
-class GseRust : public SimpleEncapPlugin
+class Gse : public EncapPlugin
 {
 private:
 	/**
@@ -151,8 +151,9 @@ public:
 							 void *opaque) override;
 
 public:
-	GseRust(const std::string &name);
-	~GseRust();
+	Gse();
+	~Gse();
+
 	/**
 	 * @brief Generate the configuration for the plugin
 	 */
@@ -163,7 +164,7 @@ public:
 	// Static methods: getter/setter for label/fragId
 
 	/**
-	 * @brief  Set the GseRust packet label
+	 * @brief  Set the Gse packet label
 	 *
 	 * @param   packet  The packet to get label values from.
 	 * @param   label   The label to set values of.
@@ -214,6 +215,6 @@ public:
 	static uint8_t getQosFromFragId(const uint8_t frag_id);
 };
 
-CREATE(GseRust, "GSE");
+CREATE(Gse, PluginType::Encapsulation, "GSE");
 
 #endif

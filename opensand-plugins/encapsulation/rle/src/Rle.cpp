@@ -122,12 +122,11 @@ void initRleConf(struct rle_config &conf)
 
 
 
-Rle::Rle(const std::string &name) : SimpleEncapPlugin(name, NET_PROTO::RLE)
+Rle::Rle(): EncapPlugin(NET_PROTO::RLE)
 {
 	rle_set_trace_callback(&(rle_log));
 
-
-		bool status = true;
+	bool status = true;
 	struct rle_config conf;
 
 	initRleConf(conf);
@@ -185,7 +184,7 @@ unload:
 
 Rle::~Rle()
 {
-		std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator trans_it;
+	std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator trans_it;
 
 	// Reset and clean encapsulation
 	for (auto &&trans_it : this->transmitters)

@@ -45,7 +45,7 @@
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "PhysicStd.h"
-#include "SimpleEncapPlugin.h"
+#include "EncapPlugin.h"
 #include "FifoElement.h"
 #include "TerminalCategoryDama.h"
 #include "TerminalCategorySaloha.h"
@@ -91,7 +91,7 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 }
 
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
-							SimpleEncapPlugin *&pkt_hdl)
+							EncapPlugin *&pkt_hdl)
 {
 	auto encap_conf = OpenSandModelConf::Get()->getProfileData()->getComponent("encap");
 	std::string encap_plugin;
@@ -102,7 +102,7 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 		break;
 
 	case EncapSchemeList::RETURN_SCPC:
-	encap_plugin = "GSE";
+		encap_plugin = "GSE";
 		break;
 
 	case EncapSchemeList::RETURN_UP:
@@ -122,17 +122,9 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 		return false;
 	}
 
-	if (encap_plugin.empty())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-			"cannot get plugin for encapsulation\n");
-		return false;
-	}
-
-	SimpleEncapPlugin *plugin;
+	EncapPlugin *plugin;
 	if (!Plugin::getEncapsulationPlugin(encap_plugin, &plugin))
 	{
-
 		LOG(this->log_init_channel, LEVEL_ERROR,
 			"cannot get plugin for %s encapsulation\n",
 			encap_plugin);
@@ -382,7 +374,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 	return this->output_sts->getCniHasChanged(tal_id);
 }
 
-Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(SimpleEncapPlugin *pkt_hdl,
+Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(EncapPlugin *pkt_hdl,
 											  Rt::Ptr<NetPacket> packet,
 											  tal_id_t source,
 											  tal_id_t dest,

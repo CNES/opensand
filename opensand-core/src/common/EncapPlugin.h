@@ -27,15 +27,15 @@
  */
 
 /**
- * @file SimpleEncapPlugin.h
+ * @file EncapPlugin.h
  * @brief Generic encapsulation / deencapsulation plugin
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef SIMPLE_ENCAP_PLUGIN_H
-#define SIMPLE_ENCAP_PLUGIN_H
+#ifndef ENCAP_PLUGIN_H
+#define ENCAP_PLUGIN_H
 
 #include <map>
 #include <list>
@@ -49,6 +49,8 @@
 #include "OpenSandCore.h"
 
 #include "OpenSandPlugin.h"
+
+
 class NetPacket;
 class NetBurst;
 class OutputLog;
@@ -59,18 +61,14 @@ enum class NET_PROTO : uint16_t;
  * @class SimpleSimpleEncapPlugin
  * @brief Generic encapsulation / deencapsulation plugin
  */
-class SimpleEncapPlugin : public OpenSandPlugin
+class EncapPlugin: public OpenSandPlugin
 {
 protected:
-	
 	uint8_t dst_tal_id; // used to filter packets
 
 public:
-	SimpleEncapPlugin(const std::string &name, NET_PROTO ether_type);
-
-
-	virtual ~SimpleEncapPlugin() = default;
-
+	EncapPlugin(NET_PROTO ether_type);
+	virtual ~EncapPlugin() = default;
 
 	void setFilterTalId(uint8_t tal_id);
 
@@ -156,7 +154,7 @@ public:
 									 void *opaque) = 0;
 
 public:
-	inline SimpleEncapPlugin* getSharedPlugin()
+	inline EncapPlugin* getSharedPlugin()
 	{
 		return this;
 	};
@@ -168,51 +166,9 @@ public:
 	 */
 	NET_PROTO getEtherType() const;
 
-	virtual std::string getName() const;
-
-	/**
-	 * @brief Create the Plugin, this function should be called instead of constructor
-	 *
-	 * @return The plugin
-	 */
-	template <class Plugin>
-	static OpenSandPlugin *create(const std::string &name)
-	{
-		Plugin* plugin = new Plugin(name);
-		if (!plugin){
-			delete plugin;	
-			return nullptr;
-		}
-
-		return plugin;
-	};
-
-
 protected:
 	NET_PROTO ether_type;
 	std::shared_ptr<OutputLog> log;
 };
 
-#ifdef CREATE
-#undef CREATE
-#define CREATE(CLASS, pl_name)                                          \
-	extern "C" OpenSandPlugin *create_ptr(void)                                  \
-	{                                                                            \
-		return CLASS::create<CLASS>(pl_name);                           \
-	};                                                                           \
-	extern "C" void configure_ptr(const char *parent_path, const char *param_id) \
-	{                                                                            \
-		CLASS::configure<CLASS>(parent_path, param_id, pl_name);                 \
-	};                                                                           \
-	extern "C" OpenSandPluginFactory *init()                                     \
-	{                                                                            \
-		auto pl = new OpenSandPluginFactory{                                     \
-			create_ptr,                                                          \
-			configure_ptr,                                                       \
-			PluginType::Encapsulation,                                           \
-			pl_name};                                                            \
-		return pl;                                                               \
-	};
-#endif // CREATE
-
-#endif // SIMPLE_ENCAP_PLUGIN_H
+#endif // ENCAP_PLUGIN_H

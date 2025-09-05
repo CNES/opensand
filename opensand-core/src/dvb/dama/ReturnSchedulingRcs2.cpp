@@ -49,7 +49,7 @@
 constexpr const uint32_t max_allocation = std::numeric_limits<vol_kb_t>::max();
 
 
-ReturnSchedulingRcs2::ReturnSchedulingRcs2(SimpleEncapPlugin*  packet_handler,
+ReturnSchedulingRcs2::ReturnSchedulingRcs2(EncapPlugin*  packet_handler,
                                            std::shared_ptr<fifos_t> fifos):
 	Scheduling(packet_handler, fifos, nullptr),
 	max_burst_length_b(0)

@@ -56,7 +56,7 @@ void Plugin::releasePlugins()
 
 
 bool Plugin::getEncapsulationPlugin(std::string name,
-                                    SimpleEncapPlugin **encapsulation)
+                                    EncapPlugin **encapsulation)
 {
 	return utils.getEncapsulationPlugin(name, encapsulation);
 }

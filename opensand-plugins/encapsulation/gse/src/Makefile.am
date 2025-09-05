@@ -10,15 +10,15 @@ plugins_LTLIBRARIES = libopensand_gse_encap_plugin.la
 
 libopensand_gse_encap_plugin_la_cpp = \
 	GseIdentifier.cpp \
-	GseRust.cpp \
+	Gse.cpp \
 	Memory.cpp \
-	GseRustCApi.cpp
+	GseApi.cpp
 
 libopensand_gse_encap_plugin_la_h = \
-	GseRust.h \
+	Gse.h \
 	GseIdentifier.h \
 	Memory.h \
-	GseRustCApi.h
+	GseApi.h
 
 libopensand_gse_encap_plugin_la_SOURCES = \
 	$(libopensand_gse_encap_plugin_la_cpp) \

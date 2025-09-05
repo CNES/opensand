@@ -73,7 +73,7 @@ public:
 	 *
 	 * @param packet_handler the packet handler
 	 */
-	DvbS2Std(SimpleEncapPlugin* pkt_hdl);
+	DvbS2Std(EncapPlugin* pkt_hdl);
 
 	/**
 	 * Build a DVB-S2 Transmission Standard
@@ -82,7 +82,7 @@ public:
 	 * @param packet_handler the packet handler
 	 */
 	DvbS2Std(std::string type,
-	         SimpleEncapPlugin* pkt_hdl);
+	         EncapPlugin* pkt_hdl);
 
 	/**
 	 * Destroy the DVB-S2 Transmission Standard
@@ -152,7 +152,7 @@ public:
 class DvbScpcStd: public DvbS2Std
 {
 public:
-	DvbScpcStd(SimpleEncapPlugin* pkt_hdl);
+	DvbScpcStd(EncapPlugin* pkt_hdl);
 };
 
 

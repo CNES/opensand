@@ -38,6 +38,7 @@
 #include "LanAdaptationPlugin.h"
 #include "PhysicalLayerPlugin.h"
 #include "IslPlugin.h"
+#include "EncapPlugin.h"
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
 
@@ -287,7 +288,7 @@ bool getPlugin(const std::string &plugin_name,
 }
 
 bool PluginUtils::getEncapsulationPlugin(std::string name,
-										 SimpleEncapPlugin **encapsulation)
+										 EncapPlugin **encapsulation)
 {
 	return getPlugin(name, this->encapsulation, encapsulation);
 };

@@ -27,36 +27,32 @@
  */
 
 /**
- * @file SimpleEncapPlugin.cpp
+ * @file EncapPlugin.cpp
  * @brief Generic encapsulation / deencapsulation plugin
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include <opensand_output/Output.h>
 
-#include "SimpleEncapPlugin.h"
+#include "EncapPlugin.h"
 #include "NetBurst.h"
 #include "NetContainer.h"
 #include "NetPacket.h"
 
-SimpleEncapPlugin::SimpleEncapPlugin(const std::string &name, NET_PROTO ether_type) : OpenSandPlugin(), dst_tal_id(BROADCAST_TAL_ID), ether_type{ether_type}
+
+EncapPlugin::EncapPlugin(NET_PROTO ether_type) : OpenSandPlugin(), dst_tal_id(BROADCAST_TAL_ID), ether_type{ether_type}
 {
-	this->name = name;
 	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 }
 
 
-std::string SimpleEncapPlugin::getName() const
-{
-	return this->name;
-}
-
-NET_PROTO SimpleEncapPlugin::getEtherType() const
+NET_PROTO EncapPlugin::getEtherType() const
 {
 	return this->ether_type;
 }
 
-void SimpleEncapPlugin::setFilterTalId(uint8_t tal_id)
+
+void EncapPlugin::setFilterTalId(uint8_t tal_id)
 {
 	this->dst_tal_id = tal_id;
 }

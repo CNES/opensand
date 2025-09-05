@@ -61,7 +61,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            time_us_t ret_up_frame_duration,
                            time_ms_t stats_period,
                            StackPlugin *upper_encap,
-                           SimpleEncapPlugin* pkt_hdl,
+                           EncapPlugin* pkt_hdl,
                            std::shared_ptr<StFmtSimuList> input_sts,
                            std::shared_ptr<StFmtSimuList> output_sts):
 	DvbChannel{upper_encap, [spot_id](){std::stringstream stream; stream << "gw" << spot_id << ".downward"; return stream.str();}()},

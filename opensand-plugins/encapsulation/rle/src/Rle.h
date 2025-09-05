@@ -39,7 +39,7 @@
 #include <string>
 #include <vector>
 
-#include <SimpleEncapPlugin.h>
+#include <EncapPlugin.h>
 #include "RleIdentifier.h"
 
 extern "C"
@@ -59,10 +59,10 @@ typedef enum
  * @class Rle
  * @brief Rle encapsulation plugin implementation
  */
-class Rle : public SimpleEncapPlugin
+class Rle : public EncapPlugin
 {
 public:
-	Rle(const std::string &name);
+	Rle();
 	~Rle();
 	
 	/// rle configuration
@@ -116,6 +116,6 @@ public:
 
 };
 
-CREATE(Rle, "RLE");
+CREATE(Rle, PluginType::Encapsulation, "RLE");
 
 #endif

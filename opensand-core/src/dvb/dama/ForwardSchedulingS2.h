@@ -61,7 +61,7 @@ class ForwardSchedulingS2: public Scheduling
 {
 public:
 	ForwardSchedulingS2(time_us_t fwd_timer,
-	                    SimpleEncapPlugin*	 packet_handler,
+	                    EncapPlugin* packet_handler,
 	                    std::shared_ptr<fifos_t> fifos,
 	                    std::shared_ptr<const StFmtSimuList> fwd_sts,
 	                    const FmtDefinitionTable &fwd_modcod_def,
