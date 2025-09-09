@@ -333,10 +333,10 @@
 // 	{
 // 		encap_contexts_t encap_contexts;
 // 		std::string name_low;
-// 		EncapPlugin *plugin = nullptr;
 // 		int found;
 
-// 		if(!Plugin::getEncapsulationPlugin(name, &plugin))
+// 		std::shared_ptr<EncapPlugin> plugin = Plugin::getEncapsulationPlugin(name);
+// 		if(!plugin)
 // 		{
 // 			ERROR("failed to initialize plugin %s\n", name.c_str());
 // 			if(stack.size() > 0)
@@ -360,8 +360,8 @@
 // 			{
 // 				if(std::find(encap_names.begin(), encap_names.end(), upper_name) != encap_names.end())
 // 				{
-// 					EncapPlugin *up_plugin;
-// 					if(!Plugin::getEncapsulationPlugin(upper_name, &up_plugin))
+// 					std::shared_ptr<EncapPlugin> up_plugin = Plugin::getEncapsulationPlugin(upper_name);
+// 					if(!up_plugin)
 // 					{
 // 						ERROR("failed to initialize upper plugin %s for %s\n",
 // 						      upper_name.c_str(), name.c_str());

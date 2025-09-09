@@ -43,7 +43,7 @@
 #include "OpenSandModelConf.h"
 
 
-DvbS2Std::DvbS2Std(EncapPlugin* pkt_hdl):
+DvbS2Std::DvbS2Std(std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd("DVB-S2", pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
@@ -55,7 +55,7 @@ DvbS2Std::DvbS2Std(EncapPlugin* pkt_hdl):
 }
 
 
-DvbScpcStd::DvbScpcStd(EncapPlugin* pkt_hdl):
+DvbScpcStd::DvbScpcStd(std::shared_ptr<EncapPlugin> pkt_hdl):
 	DvbS2Std("SCPC", pkt_hdl)
 {
 	this->is_scpc = true;
@@ -63,7 +63,7 @@ DvbScpcStd::DvbScpcStd(EncapPlugin* pkt_hdl):
 
 
 DvbS2Std::DvbS2Std(std::string type,
-                   EncapPlugin* pkt_hdl):
+                   std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()

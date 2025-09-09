@@ -210,50 +210,50 @@ bool BlockDvbTal::initListsSts()
 /*                              Downward                                     */
 /*****************************************************************************/
 
-Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_specific specific) : DvbChannel{specific.upper_encap, [&specific]()
-																											   {std::stringstream stream; stream << "st" << specific.spot_id << ".downward"; return stream.str(); }()},
-																									Channels::Downward<DownwardChannel<BlockDvbTal>>{name},
-																									DvbFmt{},
-																									mac_id{specific.mac_id},
-																									state{TalState::initializing},
-																									disable_control_plane{specific.disable_control_plane},
-																									group_id{},
-																									tal_id{},
-																									gw_id{specific.spot_id},
-																									is_scpc{specific.disable_control_plane},
-																									cra_kbps{0},
-																									max_rbdc_kbps{0},
-																									max_vbdc_kb{0},
-																									dama_agent{nullptr},
-																									saloha{nullptr},
-																									scpc_carr_duration{0},
-																									scpc_timer{-1},
-																									ret_fmt_groups{},
-																									scpc_sched{nullptr},
-																									scpc_frame_counter{0},
-																									scpc_timers{},
-																									carrier_id_ctrl{},
-																									carrier_id_logon{},
-																									carrier_id_data{},
-																									dvb_fifos{std::make_shared<fifos_t>()},
-																									default_fifo_id{0},
-																									sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
-																									obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
-																									complete_dvb_frames{},
-																									logon_timer{-1},
-																									qos_server_host{},
-																									event_login{nullptr},
-																									log_frame_tick{nullptr},
-																									log_qos_server{nullptr},
-																									log_saloha{nullptr},
-																									probe_st_queue_size{},
-																									probe_st_queue_size_kb{},
-																									probe_st_l2_to_sat_before_sched{},
-																									probe_st_l2_to_sat_after_sched{},
-																									l2_to_sat_total_bytes{0},
-																									probe_st_l2_to_sat_total{nullptr},
-																									probe_st_phy_to_sat{nullptr},
-																									probe_st_required_modcod{nullptr}
+Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_specific specific):
+	DvbChannel{[&specific]() {std::stringstream stream; stream << "st" << specific.spot_id << ".downward"; return stream.str(); }()},
+	Channels::Downward<DownwardChannel<BlockDvbTal>>{name},
+	DvbFmt{},
+	mac_id{specific.mac_id},
+	state{TalState::initializing},
+	disable_control_plane{specific.disable_control_plane},
+	group_id{},
+	tal_id{},
+	gw_id{specific.spot_id},
+	is_scpc{specific.disable_control_plane},
+	cra_kbps{0},
+	max_rbdc_kbps{0},
+	max_vbdc_kb{0},
+	dama_agent{nullptr},
+	saloha{nullptr},
+	scpc_carr_duration{0},
+	scpc_timer{-1},
+	ret_fmt_groups{},
+	scpc_sched{nullptr},
+	scpc_frame_counter{0},
+	scpc_timers{},
+	carrier_id_ctrl{},
+	carrier_id_logon{},
+	carrier_id_data{},
+	dvb_fifos{std::make_shared<fifos_t>()},
+	default_fifo_id{0},
+	sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
+	obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
+	complete_dvb_frames{},
+	logon_timer{-1},
+	qos_server_host{},
+	event_login{nullptr},
+	log_frame_tick{nullptr},
+	log_qos_server{nullptr},
+	log_saloha{nullptr},
+	probe_st_queue_size{},
+	probe_st_queue_size_kb{},
+	probe_st_l2_to_sat_before_sched{},
+	probe_st_l2_to_sat_after_sched{},
+	l2_to_sat_total_bytes{0},
+	probe_st_l2_to_sat_total{nullptr},
+	probe_st_phy_to_sat{nullptr},
+	probe_st_required_modcod{nullptr}
 {
 }
 
@@ -1699,7 +1699,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::sendLogonReq()
 	}
 
 	// send the corresponding event
-	event_login->sendEvent("Login sent to GW");
+	event_login->sendEvent("%s", "Login sent to GW");
 	return true;
 }
 
@@ -2206,24 +2206,24 @@ void Rt::DownwardChannel<BlockDvbTal>::deletePackets()
 /*                               Upward                                      */
 /*****************************************************************************/
 
-Rt::UpwardChannel<BlockDvbTal>::UpwardChannel(const std::string &name, dvb_specific specific) : DvbChannel{specific.upper_encap, [&specific]()
-																										   {std::stringstream stream; stream << "st" << specific.spot_id << ".upward"; return stream.str(); }()},
-																								Channels::Upward<UpwardChannel<BlockDvbTal>>{name},
-																								DvbFmt{},
-																								reception_std{nullptr},
-																								mac_id{specific.mac_id},
-																								group_id{},
-																								tal_id{},
-																								gw_id{specific.spot_id},
-																								is_scpc{!specific.is_ground_entity},
-																								filter_packets{specific.is_ground_entity},
-																								state{TalState::initializing},
-																								probe_st_l2_from_sat{nullptr},
-																								probe_st_received_modcod{nullptr},
-																								probe_st_rejected_modcod{nullptr},
-																								probe_sof_interval{nullptr},
-																								disable_control_plane{specific.disable_control_plane},
-																								disable_acm_loop{specific.disable_acm_loop}
+Rt::UpwardChannel<BlockDvbTal>::UpwardChannel(const std::string &name, dvb_specific specific):
+	DvbChannel{[&specific]() {std::stringstream stream; stream << "st" << specific.spot_id << ".upward"; return stream.str(); }()},
+	Channels::Upward<UpwardChannel<BlockDvbTal>>{name},
+	DvbFmt{},
+	reception_std{nullptr},
+	mac_id{specific.mac_id},
+	group_id{},
+	tal_id{},
+	gw_id{specific.spot_id},
+	is_scpc{!specific.is_ground_entity},
+	filter_packets{specific.is_ground_entity},
+	state{TalState::initializing},
+	probe_st_l2_from_sat{nullptr},
+	probe_st_received_modcod{nullptr},
+	probe_st_rejected_modcod{nullptr},
+	probe_sof_interval{nullptr},
+	disable_control_plane{specific.disable_control_plane},
+	disable_acm_loop{specific.disable_acm_loop}
 {
 }
 

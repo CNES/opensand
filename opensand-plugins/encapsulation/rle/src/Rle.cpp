@@ -179,7 +179,6 @@ Rle::Rle(): EncapPlugin(NET_PROTO::RLE)
 
 unload:
 	this->loadRleConf(conf);
-	
 }
 
 Rle::~Rle()

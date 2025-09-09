@@ -52,15 +52,15 @@
 
 std::shared_ptr<OutputLog> DvbChannel::dvb_fifo_log = nullptr;
 
-DvbChannel::DvbChannel(StackPlugin *upper_encap, const std::string &name) : req_burst_length(0),
-																			super_frame_counter(0),
-																			fwd_down_frame_duration(),
-																			ret_up_frame_duration(),
-																			pkt_hdl(nullptr),
-																			upper_encap(upper_encap),
-																			stats_period_ms(),
-																			stats_period_frame(),
-																			check_send_stats(0)
+DvbChannel::DvbChannel(const std::string &name):
+	req_burst_length(0),
+	super_frame_counter(0),
+	fwd_down_frame_duration(),
+	ret_up_frame_duration(),
+	pkt_hdl(nullptr),
+	stats_period_ms(),
+	stats_period_frame(),
+	check_send_stats(0)
 {
 	// register static log
 	auto output = Output::Get();
@@ -91,7 +91,7 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 }
 
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
-							EncapPlugin *&pkt_hdl)
+							std::shared_ptr<EncapPlugin> &pkt_hdl)
 {
 	auto encap_conf = OpenSandModelConf::Get()->getProfileData()->getComponent("encap");
 	std::string encap_plugin;
@@ -122,20 +122,12 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 		return false;
 	}
 
-	EncapPlugin *plugin;
-	if (!Plugin::getEncapsulationPlugin(encap_plugin, &plugin))
+	pkt_hdl = Plugin::getEncapsulationPlugin(encap_plugin);
+	if (!pkt_hdl)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 			"cannot get plugin for %s encapsulation\n",
 			encap_plugin);
-		return false;
-	}
-
-	pkt_hdl = plugin->getSharedPlugin();
-	if (!pkt_hdl)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-			"cannot get %s packet handler\n", encap_plugin.c_str());
 		return false;
 	}
 
@@ -374,7 +366,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 	return this->output_sts->getCniHasChanged(tal_id);
 }
 
-Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(EncapPlugin *pkt_hdl,
+Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(std::shared_ptr<EncapPlugin> pkt_hdl,
 											  Rt::Ptr<NetPacket> packet,
 											  tal_id_t source,
 											  tal_id_t dest,

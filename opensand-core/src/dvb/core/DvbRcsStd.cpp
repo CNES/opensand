@@ -40,7 +40,7 @@
 #include "NetBurst.h"
 
 
-DvbRcsStd::DvbRcsStd(EncapPlugin* pkt_hdl):
+DvbRcsStd::DvbRcsStd(std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl),
 	has_fixed_length(true)
 {
@@ -48,14 +48,14 @@ DvbRcsStd::DvbRcsStd(EncapPlugin* pkt_hdl):
 }
 
 DvbRcsStd::DvbRcsStd(std::string type, bool has_fixed_length,
-                     EncapPlugin* pkt_hdl):
+                     std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	has_fixed_length(has_fixed_length)
 {
 	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
-DvbRcs2Std::DvbRcs2Std(EncapPlugin* pkt_hdl):
+DvbRcs2Std::DvbRcs2Std(std::shared_ptr<EncapPlugin> pkt_hdl):
 	DvbRcsStd("DVB-RCS2", false, pkt_hdl)
 {
 }

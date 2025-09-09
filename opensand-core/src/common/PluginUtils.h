@@ -62,12 +62,14 @@ namespace OpenSANDConf {
 }
 
 
+template<class T>
 struct PluginConfigurationElement {
 	fn_configure init;
 	fn_create create;
-	OpenSandPlugin *plugin;
+	std::shared_ptr<T> plugin;
 };
-using PluginConfigurationContainer = std::map<std::string, PluginConfigurationElement>;
+template<class T>
+using PluginConfigurationContainer = std::map<std::string, PluginConfigurationElement<T>>;
 
 
 /**
@@ -79,13 +81,13 @@ class PluginUtils
 	friend class Plugin;
 
 protected:
-	PluginConfigurationContainer encapsulation;
-	PluginConfigurationContainer lan_adaptation;
-	PluginConfigurationContainer attenuation;
-	PluginConfigurationContainer minimal;
-	PluginConfigurationContainer error;
-	PluginConfigurationContainer sat_delay;
-	PluginConfigurationContainer isl_delay;
+	PluginConfigurationContainer<EncapPlugin> encapsulation;
+	PluginConfigurationContainer<LanAdaptationPlugin> lan_adaptation;
+	PluginConfigurationContainer<AttenuationModelPlugin> attenuation;
+	PluginConfigurationContainer<MinimalConditionPlugin> minimal;
+	PluginConfigurationContainer<ErrorInsertionPlugin> error;
+	PluginConfigurationContainer<SatDelayPlugin> sat_delay;
+	PluginConfigurationContainer<IslDelayPlugin> isl_delay;
 	std::vector<void *> handlers;
 
 	PluginUtils();
@@ -99,16 +101,6 @@ protected:
 	bool loadPlugins(bool enable_phy_layer);
 
 	/**
-	 * @brief store the plugin in the appropirate container
-	 *        Check for duplicates before doing so.
-	 *
-	 * @param container  The container where to store the plugin
-	 * @param plugin     The plugin to store into the container
-	 * @param handle     The handle to the library storing the plugin
-	 */
-	void storePlugin(PluginConfigurationContainer &container, OpenSandPluginFactory *plugin, void *handle);
-
-	/**
 	 * @brief release the class elements for plugins
 	 */
 	void releasePlugins();
@@ -117,61 +109,49 @@ protected:
 	 * @brief get an encapsulation plugin
 	 *
 	 * @param name           The name of the encapsulation plugin
-	 * @param encapsulation  The encapsulation plugin
-	 * @return true on success, false otherwise
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	bool getEncapsulationPlugin(std::string name,
-	                            EncapPlugin **encapsulation);
+	std::shared_ptr<EncapPlugin> getEncapsulationPlugin(std::string name);
 
 	/**
 	 * @brief get a satellite ISL delay plugin
 	 *
 	 * @param name           The name of the satellite delay plugin
-	 * @param sat_delay      The satellite ISL delay plugin
-	 * @return true on success, false otherwise
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	bool getIslDelayPlugin(std::string name,
-	                       IslDelayPlugin **sat_delay);
+	std::shared_ptr<IslDelayPlugin> getIslDelayPlugin(std::string name);
 
 	/**
 	 * @brief get a satellite delay plugin
 	 *
 	 * @param name           The name of the satellite delay plugin
-	 * @param sat_delay      The satellite delay plugin
-	 * @return true on success, false otherwise
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	bool getSatDelayPlugin(std::string name,
-	                       SatDelayPlugin **sat_delay);
+	std::shared_ptr<SatDelayPlugin> getSatDelayPlugin(std::string name);
 
 	/**
 	 * @brief get physical layer attenuation plugin
 	 *
-	 * @param att_pl_name  The name of the attenuation model plugin
-	 * @param attenuation  The attenuation model plugin
-	 * @return true on success, false otherwise
+	 * @param name  The name of the attenuation model plugin
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	bool getAttenuationPlugin(std::string att_pl_name,
-	                          AttenuationModelPlugin **attenuation);
+	std::shared_ptr<AttenuationModelPlugin> getAttenuationPlugin(std::string name);
 
 	/**
 	 * @brief get physical layer minimal condition plugin
 	 *
-	 * @param min_pl_name  The name of the minimal condition plugin
-	 * @param minimal      The minimal condition plugin
-	 * @return true on success, false otherwise
+	 * @param name  The name of the minimal condition plugin
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	bool getMinimalConditionPlugin(std::string min_pl_name,
-	                               MinimalConditionPlugin **minimal);
+	std::shared_ptr<MinimalConditionPlugin> getMinimalConditionPlugin(std::string name);
 
 	/**
 	 * @brief get physical layer error insertion plugin
 	 *
-	 * @param err_pl_name  The name of the erroe insertion plugin
-	 * @param error        The error insertion plugin
-	 * @return true on success, false otherwise
+	 * @param name  The name of the erroe insertion plugin
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	bool getErrorInsertionPlugin(std::string err_pl_name,
-	                             ErrorInsertionPlugin **error);
+	std::shared_ptr<ErrorInsertionPlugin> getErrorInsertionPlugin(std::string name);
 
 	/**
 	 * @brief get the encapsulation plugins list

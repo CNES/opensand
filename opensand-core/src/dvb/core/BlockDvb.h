@@ -61,9 +61,6 @@
 #include "OpenSandCore.h"
 
 
-class StackPlugin;
-
-
 struct dvb_specific
 {
 	tal_id_t mac_id;
@@ -71,7 +68,6 @@ struct dvb_specific
 	bool disable_control_plane;
 	bool disable_acm_loop;
 	bool is_ground_entity;
-	StackPlugin *upper_encap;
 };
 
 

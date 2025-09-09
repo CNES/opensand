@@ -81,15 +81,9 @@ bool BlockPhysicalLayer::onInit()
 	}
 
 	/// Load de SatDelay Plugin
-	if(!Plugin::getSatDelayPlugin(satdelay_name, &this->satdelay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "error when getting the sat delay plugin '%s'",
-		    satdelay_name.c_str());
-		return false;
-	}
+	this->satdelay = Plugin::getSatDelayPlugin(satdelay_name);
 	// Check if the plugin was found
-	if(this->satdelay == nullptr)
+	if(!this->satdelay)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Satellite delay plugin conf was not found for terminal %u",

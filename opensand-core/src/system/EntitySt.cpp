@@ -69,7 +69,6 @@
 #include "BlockPhysicalLayer.h"
 #include "DvbS2Std.h"
 #include "PacketSwitch.h"
-#include "Ethernet.h"
 
 
 EntitySt::EntitySt(tal_id_t instance_id, bool check_mode):
@@ -98,7 +97,6 @@ bool EntitySt::createSpecificBlocks()
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = gw_id;
 		dvb_spec.is_ground_entity = true;
-		dvb_spec.upper_encap = Ethernet::constructPlugin();
 
 		PhyLayerConfig phy_config;
 		phy_config.mac_id = instance_id;

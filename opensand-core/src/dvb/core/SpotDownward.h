@@ -64,8 +64,7 @@ public:
 	             time_us_t fwd_down_frame_duration,
 	             time_us_t ret_up_frame_duration,
 	             time_ms_t stats_period,
-	             StackPlugin *upper_encap,
-	             EncapPlugin* pkt_hdl,
+	             std::shared_ptr<EncapPlugin> pkt_hdl,
 	             std::shared_ptr<StFmtSimuList> input_sts,
 	             std::shared_ptr<StFmtSimuList> output_sts);
 

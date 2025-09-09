@@ -76,7 +76,6 @@
 #include "BlockSatDispatcher.h"
 #include "BlockSatAsymetricHandler.h"
 #include "DvbS2Std.h"
-#include "Ethernet.h"
 #include "IslPlugin.h"
 
 
@@ -99,7 +98,7 @@ bool EntitySat::createSpecificBlocks()
 		sat_dispatch_cfg.isl_enabled = this->isl_enabled;
 		auto& block_sat_dispatch = Rt::Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
-		IslDelayPlugin *isldelay = nullptr;
+		std::shared_ptr<IslDelayPlugin> isldelay;
 		if (isl_enabled)
 		{
 			std::string isldelay_name;
@@ -111,18 +110,12 @@ bool EntitySat::createSpecificBlocks()
 				return false;
 			}
 			/// Load de SatDelay Plugin
-			if(!Plugin::getIslDelayPlugin(isldelay_name, &isldelay))
+			isldelay = Plugin::getIslDelayPlugin(isldelay_name);
+			if(!isldelay)
 			{
 				DFLTLOG(LEVEL_ERROR,
 				    "error when getting the satellite ISL delay plugin '%s'",
 				    isldelay_name.c_str());
-				return false;
-			}
-			// Check if the plugin was found
-			if(isldelay == nullptr)
-			{
-				DFLTLOG(LEVEL_ERROR,
-				    "Satellite ISL delay plugin conf was not found");
 				return false;
 			}
 			// init plugin
@@ -259,7 +252,6 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = spot_id;
 		dvb_spec.is_ground_entity = false;
-		dvb_spec.upper_encap = Ethernet::constructPlugin();
 		if (!OpenSandModelConf::Get()->getControlPlaneDisabled(dvb_spec.disable_control_plane))
 		{
 			DFLTLOG(LEVEL_ERROR,

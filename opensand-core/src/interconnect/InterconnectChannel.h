@@ -130,7 +130,7 @@ protected:
 	 */
 	bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
 
-	IslDelayPlugin* delay = nullptr;
+	std::shared_ptr<IslDelayPlugin> delay = nullptr;
 
 private:
 	/**

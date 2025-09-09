@@ -52,24 +52,23 @@
 
 SpotUpward::SpotUpward(spot_id_t spot_id,
 					   tal_id_t mac_id,
-					   StackPlugin *upper_encap,
 					   std::shared_ptr<StFmtSimuList> input_sts,
-					   std::shared_ptr<StFmtSimuList> output_sts) : DvbChannel{upper_encap, [spot_id]()
-																			   {std::stringstream stream; stream << "gw" << spot_id << ".upward"; return stream.str(); }()},
-																	DvbFmt{},
-																	spot_id{spot_id},
-																	mac_id{mac_id},
-																	saloha{nullptr},
-																	reception_std{nullptr},
-																	reception_std_scpc{nullptr},
-																	scpc_pkt_hdl{nullptr},
-																	ret_fmt_groups{},
-																	is_tal_scpc{},
-																	probe_gw_l2_from_sat{nullptr},
-																	probe_received_modcod{nullptr},
-																	probe_rejected_modcod{nullptr},
-																	log_saloha{nullptr},
-																	event_logon_req{nullptr}
+					   std::shared_ptr<StFmtSimuList> output_sts):
+	DvbChannel{[spot_id]() {std::stringstream stream; stream << "gw" << spot_id << ".upward"; return stream.str(); }()},
+	DvbFmt{},
+	spot_id{spot_id},
+	mac_id{mac_id},
+	saloha{nullptr},
+	reception_std{nullptr},
+	reception_std_scpc{nullptr},
+	scpc_pkt_hdl{nullptr},
+	ret_fmt_groups{},
+	is_tal_scpc{},
+	probe_gw_l2_from_sat{nullptr},
+	probe_received_modcod{nullptr},
+	probe_rejected_modcod{nullptr},
+	log_saloha{nullptr},
+	event_logon_req{nullptr}
 {
 	this->super_frame_counter = 0;
 	this->input_sts = input_sts;
@@ -449,7 +448,6 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 {
 	EmulatedMessageType msg_type = frame->getMessageType();
 	bool corrupted = frame->isCorrupted();
-	bool isScpc = false;
 	PhysicStd *std = this->reception_std.get();
 
 	if (msg_type == EmulatedMessageType::BbFrame)
@@ -462,7 +460,6 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 			return false;
 		}
 		std = this->reception_std_scpc.get();
-		isScpc = true;
 	}
 	// Update stats
 	this->l2_from_sat_bytes += frame->getPayloadLength();
@@ -533,9 +530,9 @@ bool SpotUpward::handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst)
 		return false;
 	}
 
-	auto nb_bursts = burst->size();
 	LOG(this->log_receive_channel, LEVEL_INFO,
-		"burst of deencapsulated packets sent to the upper layer\n");
+		"burst of %d deencapsulated packets sent to the upper layer\n",
+		burst->size());
 	return true;
 }
 

@@ -51,7 +51,7 @@ class IslDelayPlugin;
 struct InterconnectConfig
 {
 	std::string interconnect_addr; // Interconnect interface IP address
-	IslDelayPlugin *delay;
+	std::shared_ptr<IslDelayPlugin> delay;
 	std::size_t isl_index;
 };
 

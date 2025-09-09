@@ -154,11 +154,6 @@ public:
 									 void *opaque) = 0;
 
 public:
-	inline EncapPlugin* getSharedPlugin()
-	{
-		return this;
-	};
-
 	/**
 	 * @brief Get the EtherType associated with the encapsulation protocol
 	 *

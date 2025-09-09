@@ -42,7 +42,7 @@
 #include "StFmtSimu.h"
 
 
-Scheduling::Scheduling(EncapPlugin*  packet_handler,
+Scheduling::Scheduling(std::shared_ptr<EncapPlugin> packet_handler,
                        std::shared_ptr<fifos_t> fifos,
                        std::shared_ptr<const StFmtSimuList> simu_sts):
 	packet_handler(packet_handler),

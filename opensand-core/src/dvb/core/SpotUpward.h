@@ -54,7 +54,6 @@ class SpotUpward: public DvbChannel, public DvbFmt
  public:
 	SpotUpward(spot_id_t spot_id,
 	           tal_id_t mac_id,
-	           StackPlugin *upper_encap,
 	           std::shared_ptr<StFmtSimuList> input_sts,
 	           std::shared_ptr<StFmtSimuList> output_sts);
 
@@ -202,7 +201,7 @@ class SpotUpward: public DvbChannel, public DvbFmt
 	std::unique_ptr<DvbScpcStd> reception_std_scpc;
 
 	/// The up/return packet handler for SCPC
-	EncapPlugin* scpc_pkt_hdl;
+	std::shared_ptr<EncapPlugin> scpc_pkt_hdl;
 
 	/// FMT groups for up/return
 	fmt_groups_t ret_fmt_groups;

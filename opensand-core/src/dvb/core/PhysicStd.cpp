@@ -37,7 +37,7 @@
 
 
 PhysicStd::PhysicStd(std::string type,
-                     EncapPlugin* pkt_hdl):
+                     std::shared_ptr<EncapPlugin> pkt_hdl):
 	type(type),
 	packet_handler(pkt_hdl)
 {

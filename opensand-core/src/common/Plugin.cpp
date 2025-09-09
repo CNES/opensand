@@ -55,45 +55,39 @@ void Plugin::releasePlugins()
 }
 
 
-bool Plugin::getEncapsulationPlugin(std::string name,
-                                    EncapPlugin **encapsulation)
+std::shared_ptr<EncapPlugin> Plugin::getEncapsulationPlugin(std::string name)
 {
-	return utils.getEncapsulationPlugin(name, encapsulation);
+	return utils.getEncapsulationPlugin(name);
 }
 
 
-bool Plugin::getAttenuationPlugin(std::string att_pl_name,
-                                  AttenuationModelPlugin **attenuation)
+std::shared_ptr<AttenuationModelPlugin> Plugin::getAttenuationPlugin(std::string name)
 {
-	return utils.getAttenuationPlugin(att_pl_name, attenuation);
+	return utils.getAttenuationPlugin(name);
 }
 
 
-bool Plugin::getMinimalConditionPlugin(std::string min_pl_name,
-                                       MinimalConditionPlugin **minimal)
+std::shared_ptr<MinimalConditionPlugin> Plugin::getMinimalConditionPlugin(std::string name)
 {
-	return utils.getMinimalConditionPlugin(min_pl_name, minimal);
+	return utils.getMinimalConditionPlugin(name);
 }
 
 
-bool Plugin::getErrorInsertionPlugin(std::string err_pl_name,
-                                     ErrorInsertionPlugin **error)
+std::shared_ptr<ErrorInsertionPlugin> Plugin::getErrorInsertionPlugin(std::string name)
 {
-	return utils.getErrorInsertionPlugin(err_pl_name, error);
+	return utils.getErrorInsertionPlugin(name);
 }
 
 
-bool Plugin::getSatDelayPlugin(std::string name,
-                               SatDelayPlugin **sat_delay)
+std::shared_ptr<SatDelayPlugin> Plugin::getSatDelayPlugin(std::string name)
 {
-	return utils.getSatDelayPlugin(name, sat_delay);
+	return utils.getSatDelayPlugin(name);
 }
 
 
-bool Plugin::getIslDelayPlugin(std::string name,
-                               IslDelayPlugin **sat_delay)
+std::shared_ptr<IslDelayPlugin> Plugin::getIslDelayPlugin(std::string name)
 {
-	return utils.getIslDelayPlugin(name, sat_delay);
+	return utils.getIslDelayPlugin(name);
 }
 
 

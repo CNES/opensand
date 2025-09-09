@@ -127,20 +127,20 @@ bool BlockDvbNcc::initListsSts()
 /*****************************************************************************/
 
 // TODO lot of duplicated code for fifos between ST and GW
-Rt::DownwardChannel<BlockDvbNcc>::DownwardChannel(const std::string &name, dvb_specific specific) : DvbChannel{specific.upper_encap, [&specific]()
-																											   {std::stringstream stream; stream << "gw" << specific.spot_id << ".downward"; return stream.str(); }()},
-																									Channels::Downward<DownwardChannel<BlockDvbNcc>>{name},
-																									DvbFmt{},
-																									pep_interface{},
-																									svno_interface{},
-																									mac_id{specific.mac_id},
-																									spot_id{specific.spot_id},
-																									disable_control_plane{specific.disable_control_plane},
-																									fwd_frame_counter{0},
-																									fwd_timer{-1},
-																									scpc_timers{},
-																									spot{nullptr},
-																									probe_frame_interval{nullptr}
+Rt::DownwardChannel<BlockDvbNcc>::DownwardChannel(const std::string &name, dvb_specific specific):
+	DvbChannel{[&specific]() {std::stringstream stream; stream << "gw" << specific.spot_id << ".downward"; return stream.str(); }()},
+	Channels::Downward<DownwardChannel<BlockDvbNcc>>{name},
+	DvbFmt{},
+	pep_interface{},
+	svno_interface{},
+	mac_id{specific.mac_id},
+	spot_id{specific.spot_id},
+	disable_control_plane{specific.disable_control_plane},
+	fwd_frame_counter{0},
+	fwd_timer{-1},
+	scpc_timers{},
+	spot{nullptr},
+	probe_frame_interval{nullptr}
 {
 }
 
@@ -173,7 +173,6 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 													this->fwd_down_frame_duration,
 													this->ret_up_frame_duration,
 													this->stats_period_ms,
-													this->upper_encap,
 													this->pkt_hdl,
 													this->input_sts,
 													this->output_sts);
@@ -854,18 +853,18 @@ bool Rt::DownwardChannel<BlockDvbNcc>::handleLogonReq(Ptr<DvbFrame> dvb_frame)
 /*                               Upward                                      */
 /*****************************************************************************/
 
-Rt::UpwardChannel<BlockDvbNcc>::UpwardChannel(const std::string &name, dvb_specific specific) : DvbChannel{specific.upper_encap, [&specific]()
-																										   {std::stringstream stream; stream << "gw" << specific.spot_id << ".upward"; return stream.str(); }()},
-																								Channels::Upward<UpwardChannel<BlockDvbNcc>>{name},
-																								DvbFmt{},
-																								mac_id{specific.mac_id},
-																								spot_id{specific.spot_id},
-																								spot{nullptr},
-																								log_saloha{nullptr},
-																								probe_gw_received_modcod{nullptr},
-																								probe_gw_rejected_modcod{nullptr},
-																								disable_control_plane{specific.disable_control_plane},
-																								disable_acm_loop{specific.disable_acm_loop}
+Rt::UpwardChannel<BlockDvbNcc>::UpwardChannel(const std::string &name, dvb_specific specific):
+	DvbChannel{[&specific]() {std::stringstream stream; stream << "gw" << specific.spot_id << ".upward"; return stream.str(); }()},
+	Channels::Upward<UpwardChannel<BlockDvbNcc>>{name},
+	DvbFmt{},
+	mac_id{specific.mac_id},
+	spot_id{specific.spot_id},
+	spot{nullptr},
+	log_saloha{nullptr},
+	probe_gw_received_modcod{nullptr},
+	probe_gw_rejected_modcod{nullptr},
+	disable_control_plane{specific.disable_control_plane},
+	disable_acm_loop{specific.disable_acm_loop}
 {
 }
 
@@ -879,7 +878,6 @@ bool Rt::UpwardChannel<BlockDvbNcc>::onInit()
 	{
 		this->spot = std::make_unique<SpotUpward>(this->spot_id,
 												  this->mac_id,
-												  this->upper_encap,
 												  this->input_sts,
 												  this->output_sts);
 	}
