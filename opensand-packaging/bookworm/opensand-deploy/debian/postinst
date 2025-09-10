@@ -1,0 +1,54 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  configure)
+
+    # create opensand group if it isn't already there
+    if ! getent group opensand >/dev/null; then
+      addgroup --quiet --system opensand
+    fi
+
+    # create opensand user if it isn't already there
+    if ! getent passwd opensand >/dev/null; then
+      adduser --system --ingroup opensand --no-create-home --home /var/opensand opensand --gecos "OpenSAND web configuration server"
+    fi
+
+    # ensure /var/opensand/ has appropriate permissions
+    chown -R opensand:opensand /var/opensand/
+
+    # Reload Nginx with the new website if not already present
+    if [ ! -f /etc/nginx/sites-enabled/opensand ]; then
+      ln -s /etc/nginx/sites-available/opensand /etc/nginx/sites-enabled/opensand
+    fi
+    # Make sure to remove the default Nginx site as it conflicts with ours
+    if [ -f /etc/nginx/sites-enabled/default ]; then
+      rm /etc/nginx/sites-enabled/default
+    fi
+    systemctl stop nginx.service
+    systemctl start nginx.service
+
+    ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+
+if [ -f /etc/systemd/system/opensand-conf.service ]; then
+  systemctl daemon-reload
+  systemctl enable opensand-conf.socket
+  systemctl enable opensand-conf.service
+  systemctl stop opensand-conf.service
+  systemctl restart opensand-conf.socket
+fi
+
+
+
+exit 0
+

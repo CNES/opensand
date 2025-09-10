@@ -1,0 +1,42 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  remove|remove-in-favour|deconfigure|deconfigure-in-favour)
+    # Remove our site from nginx active ones
+    if [ -f /etc/nginx/sites-enabled/opensand ]; then
+      rm /etc/nginx/sites-enabled/opensand
+    fi
+    # Restore the default nginx site in case no more sites are enabled
+    if [ -z "$(ls -A /etc/nginx/sites-enabled)" ]; then
+      ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+    fi
+
+    # Restart nginx to remove traffic from our site
+    systemctl stop nginx.service
+    systemctl start nginx.service || true
+
+    # Remove our services while files still exist
+    if [ -f /etc/systemd/system/opensand-conf.service ]; then
+      systemctl disable opensand-conf.service || exit $?
+      systemctl stop opensand-conf.service || exit $?
+    fi
+    if [ -f /etc/systemd/system/opensand-conf.socket ]; then
+      systemctl disable opensand-conf.socket || exit $?
+      systemctl stop opensand-conf.socket || exit $?
+    fi
+    ;;
+
+  upgrade|failed-upgrade)
+    ;;
+
+  *)
+    echo "prerm called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+
+
+exit 0
+
