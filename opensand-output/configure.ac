@@ -2,6 +2,7 @@
 
 # Process this file with autoconf to produce a configure script.
 m4_define([opensand_version], m4_bregexp(m4_quote(m4_esyscmd_s([cat ChangeLog])), [[0-9]+\.[0-9]+\.[0-9]+], [\&]))
+AC_MSG_NOTICE([opensand_version = ]m4_expand([opensand_version]))
 AC_INIT(opensand-output, [opensand_version], [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])

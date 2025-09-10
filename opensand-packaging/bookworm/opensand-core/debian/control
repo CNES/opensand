@@ -1,0 +1,52 @@
+Source: opensand-core
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper-compat (= 13),
+ autotools-dev, automake, libtool, pkg-config,
+ libopensand-conf-dev (>= 7.0.0),
+ libopensand-output-dev (>= 7.0.0),
+ libopensand-rt-dev (>= 7.0.0),
+ python3-lxml, libpcap-dev
+Standards-Version: 3.8.3
+Section: misc
+
+Package: opensand-core
+Architecture: any
+Section: misc
+Depends: ${shlibs:Depends}, ${misc:Depends}, rsyslog, logrotate, libopensand-conf (= ${binary:Version})
+Provides: opensand-core-bin
+Conflicts: opensand-core-bin
+Replaces: opensand-core-bin
+Description: The OpenSAND emulation testbed core
+  OpenSAND is an emulation testbed aiming to represent in a cost effective way a
+  satellite telecommunication system for research and engineering activities.
+
+Package: libopensand-plugin
+Section: libdevel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libopensand-conf (= ${binary:Version})
+Provides: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin,
+ libopensand-ideal-attenuation-plugin, libopensand-on-off-attenuation-plugin, libopensand-triangular-attenuation-plugin,
+ libopensand-constant-minimal-plugin, libopensand-modcod-minimal-plugin, libopensand-ethernet-lan-adapt,
+ libopensand-default-nominal-plugin, libopensand-gate-error-plugin, libopensand-constant-satdelay-plugin,
+ libopensand-file-satdelay-plugin
+Conflicts: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin,
+ libopensand-ideal-attenuation-plugin, libopensand-on-off-attenuation-plugin, libopensand-triangular-attenuation-plugin,
+ libopensand-constant-minimal-plugin, libopensand-modcod-minimal-plugin, libopensand-ethernet-lan-adapt,
+ libopensand-default-nominal-plugin, libopensand-gate-error-plugin, libopensand-constant-satdelay-plugin,
+ libopensand-file-satdelay-plugin
+Replaces: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin,
+ libopensand-ideal-attenuation-plugin, libopensand-on-off-attenuation-plugin, libopensand-triangular-attenuation-plugin,
+ libopensand-constant-minimal-plugin, libopensand-modcod-minimal-plugin, libopensand-ethernet-lan-adapt,
+ libopensand-default-nominal-plugin, libopensand-gate-error-plugin, libopensand-constant-satdelay-plugin,
+ libopensand-file-satdelay-plugin
+Description: The library for OpenSAND plugins
+
+Package: libopensand-plugin-dev
+Section: libdevel
+Architecture: any
+Depends: libopensand-plugin (= ${binary:Version})
+Provides: libopensand-encap-plugin-dev
+Conflicts: libopensand-encap-plugin-dev
+Replaces: libopensand-encap-plugin-dev
+Description: The library for OpenSAND plugins
