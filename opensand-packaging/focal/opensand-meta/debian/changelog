@@ -1,4 +1,10 @@
-opensand-meta (8.0.0) jammy; urgency=low
+opensand-meta (8.1.0) focal; urgency=low
+
+  * Release 8.1.0  
+
+ -- agarba-abdou <aichatou.garba-abdou@viveris.fr>  Mon, 26 May 2025 14:55:51 +0200
+
+opensand-meta (8.0.0) focal; urgency=low
 
   * Release 8.0.0
 
