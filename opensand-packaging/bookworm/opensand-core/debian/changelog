@@ -1,3 +1,9 @@
+opensand-core (8.1.1) bookworm; urgency=low
+
+  * Release 8.1.1
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Thu, 11 Sep 2025 15:14:43 +0200
+
 opensand-core (8.1.0) bookworm; urgency=low
 
   * Release 8.1.0  
