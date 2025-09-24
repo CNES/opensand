@@ -111,13 +111,6 @@ bool BlockLanAdaptation::onInit()
 {
 	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
 	lan_context_t context = plugin->getContext();
-	if(!context->setUpperPacketHandler(nullptr))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot use %s for packets read on the interface",
-		    context->getName().c_str());
-		return false;
-	}
 	LOG(this->log_init, LEVEL_INFO,
 	    "add lan adaptation: %s\n",
 	    plugin->getName());

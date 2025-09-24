@@ -63,127 +63,6 @@ class StackPlugin: public virtual OpenSandPlugin
 {
 public:
 	/**
-	 * @class StackPacketHandler
-	 * @brief Functions to handle the encapsulated packets
-	 */
-	class StackPacketHandler
-	{
-	public:
-		/**
-		 * @brief StackPacketHandler constructor
-		 */
-		/* Allow packets to access StackPlugin members */
-		StackPacketHandler(StackPlugin &pl);
-
-		/**
-		 * @brief StackPacketHandler destructor
-		 */
-		virtual ~StackPacketHandler() = default;
-
-		/**
-		 * @brief get the packet length if constant
-		 *
-		 * @return the packet length if constant, 0 otherwise
-		 */
-		virtual std::size_t getFixedLength() const = 0;
-
-		/**
-		 * @brief Create a NetPacket from data with the relevant attributes.
-		 *
-		 * @param data        The packet data
-		 * @param data_length The packet length
-		 * @param qos         The QoS value to associate with the packet
-		 * @param src_tal_id  The source terminal ID to associate with the packet
-		 * @param dst_tal_id  The destination terminal ID to associate with the packet
-		 *
-		 * @return The packet
-		 */
-		virtual Rt::Ptr<NetPacket> build(const Rt::Data &data,
-		                                 std::size_t data_length,
-		                                 uint8_t qos,
-		                                 uint8_t src_tal_id,
-		                                 uint8_t dst_tal_id)  = 0;
-
-		/**
-		 * @brief Get a packet length
-		 *
-		 * @param data The packet content
-		 * @return the packet length
-		 */
-		virtual std::size_t getLength(const unsigned char *data) const = 0;
-
-		/**
-		 * @brief Get the EtherType associated with the related protocol
-		 *
-		 * return The EtherType
-		 */
-		virtual NET_PROTO getEtherType() const;
-
-		/**
-		 * @brief Get the type of stack
-		 *
-		 * @return the name of the stack
-		 */
-		virtual std::string getName() const;
-
-		/* The functions below are only used by EncapPlugin but we need them to avoid
-		 * casting upper packet handlers for EncapPlugins that does not support
-		 * lan adaptation upper packets */
-
-		/**
-		 * @brief get the minimum packet length
-		 *
-		 * @return the minimum packet length
-		 */
-		virtual std::size_t getMinLength() const = 0;
-
-		/**
-		 * @brief Encapsulate the packet and store unencapsulable part
-		 *
-		 * @param[in]  packet            The packet to encapsulate
-		 * @param[in]  remaining_length  The remaining length
-		 * @param[in]  new_burst         The new burst status
-		 * @param[out] partial_encap     The status about encapsulation
-		 *                               (true if data remains after encapsulation,
-		 *                               false otherwise)
-		 * @param[out] encap_packet      The encapsulated packet (null in error case)
-		 *
-		 * @return  true if success, false otherwise
-		 */
-		virtual bool encapNextPacket(Rt::Ptr<NetPacket> packet,
-		                             std::size_t remaining_length,
-		                             bool new_burst,
-		                             Rt::Ptr<NetPacket> &encap_packet,
-		                             Rt::Ptr<NetPacket> &remaining_data) = 0;
-
-		/**
-		 * @brief Get encapsulated packet from payload
-		 *
-		 * @param[in]  packet             The packet storing payload
-		 * @param[out] partial_decap      The status about decapsulation (true if data
-		 *                                is incomplete to decapsulation, false otherwise)
-		 * @param[out] decap_packets      The list of decapsulated packet
-		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
-		 */
-		virtual bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
-		                                    bool &partial_decap,
-		                                    std::vector<Rt::Ptr<NetPacket>> &decap_packets,
-		                                    unsigned int decap_packet_count = 0) = 0;
-
-		/**
-		 * @brief perform some plugin initialization
-		 */
-		virtual bool init() = 0;
-
-	protected:
-		/// Output Logs
-		std::shared_ptr<OutputLog> log;
-
-	private:
-		StackPlugin &plugin;
-	};
-
-	/**
 	 * @class StackContext
 	 * @brief The stack context
 	 */
@@ -248,14 +127,6 @@ public:
 		NET_PROTO getEtherType() const;
 
 		/**
-		 * @brief Set the encapsulated packet handler
-		 *
-		 * @param pkt_hdl  The encapsulated packet handler
-		 * @return true if this type of packet can be encapsulated, false otherwise
-		 */
-		virtual bool setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl);
-
-		/**
 		 * @brief Update statistics periodically
 		 *
 		 * @param period  The time interval bewteen two updates
@@ -279,11 +150,11 @@ public:
 		 * @param dst_tal_id  The destination terminal ID to associate with the packet
 		 * @return the packet on success, NULL otherwise
 		 */
-		Rt::Ptr<NetPacket> createPacket(const Rt::Data &data,
-		                                std::size_t data_length,
-		                                uint8_t qos,
-		                                uint8_t src_tal_id,
-		                                uint8_t dst_tal_id);
+		virtual Rt::Ptr<NetPacket> createPacket(const Rt::Data &data,
+										        std::size_t data_length,
+										        uint8_t qos,
+										        uint8_t src_tal_id,
+										        uint8_t dst_tal_id) = 0;
 
 		/**
 		 * @brief perform some plugin initialization
@@ -293,9 +164,6 @@ public:
 		virtual bool init() = 0;
 
 	protected:
-		/// the current upper encapsulation protocol EtherType
-		std::shared_ptr<StackPlugin::StackPacketHandler> current_upper;
-
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
 
@@ -323,13 +191,6 @@ public:
 	std::shared_ptr<StackContext> getContext() const;
 
 	/**
-	 * @brief Get the encapsulation packet handler
-	 *
-	 * @return the packet handler
-	 */
-	std::shared_ptr<StackPacketHandler> getPacketHandler() const;
-
-	/**
 	 * @brief Get The plugin name
 	 *
 	 * @return the plugin name
@@ -341,24 +202,18 @@ public:
 	 *
 	 * @return The plugin
 	 */
-	template<class Plugin, class Context, class Handler>
+	template<class Plugin, class Context>
 	static OpenSandPlugin *create(const std::string &name)
 	{
 		Plugin *plugin = new Plugin();
 		auto context = std::make_shared<Context>(*plugin);
-		auto handler = std::make_shared<Handler>(*plugin);
 		plugin->context = context;
-		plugin->packet_handler = handler;
 		plugin->name = name;
 		if(!plugin->init())
 		{
 			goto error;
 		}
 		if(!context->init())
-		{
-			goto error;
-		}
-		if(!handler->init())
 		{
 			goto error;
 		}
@@ -386,19 +241,16 @@ protected:
 	/// The context
 	std::shared_ptr<StackContext> context;
 
-	/// The packet handler
-	std::shared_ptr<StackPacketHandler> packet_handler;
-
 	/// Output Logs
 	std::shared_ptr<OutputLog> log;
 };
 
 
 /// Define the function that will create the plugin class
-#define CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, pl_type) \
+#define CREATE_STACK(CLASS, CONTEXT, pl_name, pl_type) \
 	extern "C" OpenSandPlugin *create_ptr(void) \
 	{ \
-		return CLASS::create<CLASS, CONTEXT, HANDLER>(pl_name); \
+		return CLASS::create<CLASS, CONTEXT>(pl_name); \
 	}; \
 	extern "C" void configure_ptr(const char *parent_path, const char *param_id) \
 	{\

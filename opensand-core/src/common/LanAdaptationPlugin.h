@@ -58,47 +58,6 @@ class LanAdaptationPlugin: public StackPlugin
 {
 public:
 	/**
-	 * @class LanAdaptationPacketHandler
-	 * @brief Functions to handle the encapsulated packets
-	 * @warning Be really careful, encapsulation and deencapsulation
-	 *          are handled in two different thread so shared ressources
-	 *          can be accessed concurrently
-	 *          If you wish to prevent concurrent access to one ressource
-	 *          you can take the lock with the Block function Lock and
-	 *          unlock it with the Block function Unlock
-	 *          This should be avoided as this will remove process
-	 *          efficiency
-	 *          All the attributes defines below should be read-only
-	 *          once initLanAdaptationContext is called so there is
-	 *          no need to protect them
-	 */
-	class LanAdaptationPacketHandler: public StackPacketHandler
-	{
-	public:
-		/**
-		 * @brief LanAdaptationPacketHandler constructor
-		 */
-		/* Allow packets to access LanAdaptationPlugin members */
-		LanAdaptationPacketHandler(LanAdaptationPlugin &pl);
-
-		bool init() override;
-
-		/* the following functions should not be called */
-		std::size_t getMinLength() const override;
-
-		bool encapNextPacket(Rt::Ptr<NetPacket> packet,
-		                     std::size_t remaining_length,
-		                     bool new_burst,
-		                     Rt::Ptr<NetPacket> &encap_packet,
-		                     Rt::Ptr<NetPacket> &remaining_packet) override;
-
-		bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
-		                            bool &partial_decap,
-		                            std::vector<Rt::Ptr<NetPacket>> &decap_packets,
-		                            unsigned int decap_packets_count) override;
-	};
-
-	/**
 	 * @class LanAdaptationContext
 	 * @brief The encapsulation/deencapsulation context
 	 */
@@ -136,8 +95,6 @@ public:
 		 */
 		virtual bool handleTap() = 0;
 
-		bool setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl) override;
-
 		virtual bool init();
 
 	protected:
@@ -164,16 +121,6 @@ public:
 	{
 		return std::static_pointer_cast<LanAdaptationContext>(this->context);
 	};
-
-	/**
-	 * @brief Get the packet handler
-	 *
-	 * @return the packet handler
-	 */
-	inline std::shared_ptr<LanAdaptationPacketHandler> getPacketHandler() const
-	{
-		return std::static_pointer_cast<LanAdaptationPacketHandler>(this->packet_handler);
-	};
 };
 
 typedef std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext> lan_context_t;
@@ -181,8 +128,8 @@ typedef std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext> lan_context_t
 
 #ifdef CREATE
 #undef CREATE
-#define CREATE(CLASS, CONTEXT, HANDLER, pl_name) \
-	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, PluginType::LanAdaptation)
+#define CREATE(CLASS, CONTEXT, pl_name) \
+	CREATE_STACK(CLASS, CONTEXT, pl_name, PluginType::LanAdaptation)
 #endif
 
 #endif

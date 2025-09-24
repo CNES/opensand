@@ -52,43 +52,6 @@ bool LanAdaptationPlugin::init()
 }
 
 
-LanAdaptationPlugin::LanAdaptationPacketHandler::LanAdaptationPacketHandler(LanAdaptationPlugin &pl):
-		StackPacketHandler(pl)
-{
-}
-
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::init()
-{
-	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Lan_Adaptation." + this->getName());
-	return true;
-}
-
-
-std::size_t LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength() const
-{
-	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength");
-}
-
-
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(Rt::Ptr<NetPacket>,
-                                                                      std::size_t,
-                                                                      bool,
-                                                                      Rt::Ptr<NetPacket> &,
-                                                                      Rt::Ptr<NetPacket> &)
-{
-	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket");
-}
-
-
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContainer>,
-                                                                             bool &,
-                                                                             std::vector<Rt::Ptr<NetPacket>> &,
-                                                                             unsigned int)
-{
-	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets");
-}
-
-
 LanAdaptationPlugin::LanAdaptationContext::LanAdaptationContext(LanAdaptationPlugin &pl):
 		StackContext(pl),
 		handle_net_packet(false)
@@ -107,14 +70,4 @@ bool LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id_
 	this->tal_id = tal_id;
 	this->packet_switch = packet_switch;
 	return true;
-}
-
-bool LanAdaptationPlugin::LanAdaptationContext::setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl)
-{
-	if(!pkt_hdl && this->handle_net_packet)
-	{
-		this->current_upper = nullptr;
-		return true;
-	}
-	return StackPlugin::StackContext::setUpperPacketHandler(pkt_hdl);
 }

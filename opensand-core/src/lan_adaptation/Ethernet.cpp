@@ -93,7 +93,7 @@ void Ethernet::generateConfiguration()
 Ethernet *Ethernet::constructPlugin()
 {
 	//to manage virtual inheritance (used to avoid DDoD)
-	static Ethernet	*plugin = dynamic_cast<Ethernet *>(Ethernet::create<Ethernet, Ethernet::Context, Ethernet::PacketHandler>("Ethernet"));
+	static Ethernet	*plugin = dynamic_cast<Ethernet *>(Ethernet::create<Ethernet, Ethernet::Context>("Ethernet"));
 	return plugin;
 }
 
@@ -423,17 +423,7 @@ bool Ethernet::Context::initLanAdaptationContext(tal_id_t tal_id, std::shared_pt
 
 Rt::Ptr<NetBurst> Ethernet::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &)
 {
-	if(this->current_upper)
-	{
-		LOG(this->log, LEVEL_INFO,
-		    "got a burst of %s packets to encapsulate\n",
-		    this->current_upper->getName().c_str());
-	}
-	else
-	{
-		LOG(this->log, LEVEL_INFO,
-		    "got a network packet to encapsulate\n");
-	}
+	LOG(this->log, LEVEL_INFO, "got a network packet to encapsulate\n");
 
 	// create an empty burst of ETH frames
 	Rt::Ptr<NetBurst> eth_frames = Rt::make_ptr<NetBurst>(nullptr);
@@ -453,93 +443,104 @@ Rt::Ptr<NetBurst> Ethernet::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::m
 		Rt::Ptr<NetPacket> eth_frame = Rt::make_ptr<NetPacket>(nullptr);
 		uint8_t evc_id = 0;
 
-		if(this->current_upper)
+		size_t header_length;
+		NET_PROTO ether_type = Ethernet::getPayloadEtherType(packet->getData());
+		NET_PROTO frame_type = Ethernet::getFrameType(packet->getData());
+		MacAddress src_mac = Ethernet::getSrcMac(packet->getData());
+		MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
+		tal_id_t src = 255 ;
+		tal_id_t dst = 255;
+		uint16_t q_tci = 0;
+		uint16_t ad_tci = 0;
+		if (frame_type != NET_PROTO::ETH) {
+			q_tci = Ethernet::getQTci(packet->getData());
+			ad_tci = Ethernet::getAdTci(packet->getData());
+		}
+		qos_t pcp = (q_tci & 0xe000) >> 13;
+		qos_t qos = 0;
+		Evc *evc;
+
+		// Do not print errors here because we may want to reject trafic as spanning
+		// tree coming from miscellaneous host
+		if(!packet_switch->getPacketDestination(packet->getData(), src, dst))
 		{
-			// we have to create the Ethernet header from scratch,
-			// try to find an EVC and create the header with given information
-			eth_frame = this->createEthFrameData(packet, evc_id);
-			if(!eth_frame)
+			// check default tal_id
+			if(dst > BROADCAST_TAL_ID)
 			{
+				LOG(this->log, LEVEL_WARNING,
+				    "cannot find destination MAC address %s in sarp table\n",
+				    dst_mac.str().c_str());
 				continue;
 			}
-		}
-		else
-		{
-			size_t header_length;
-			NET_PROTO ether_type = Ethernet::getPayloadEtherType(packet->getData());
-			NET_PROTO frame_type = Ethernet::getFrameType(packet->getData());
-			MacAddress src_mac = Ethernet::getSrcMac(packet->getData());
-			MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
-			tal_id_t src = 255 ;
-			tal_id_t dst = 255;
-			uint16_t q_tci = 0;
-			uint16_t ad_tci = 0;
-			if (frame_type != NET_PROTO::ETH) {
-				q_tci = Ethernet::getQTci(packet->getData());
-				ad_tci = Ethernet::getAdTci(packet->getData());
-			}
-			qos_t pcp = (q_tci & 0xe000) >> 13;
-			qos_t qos = 0;
-			Evc *evc;
-
-			// Do not print errors here because we may want to reject trafic as spanning
-			// tree coming from miscellaneous host
-			if(!packet_switch->getPacketDestination(packet->getData(), src, dst))
+			else
 			{
-				// check default tal_id
-				if(dst > BROADCAST_TAL_ID)
-				{
-					LOG(this->log, LEVEL_WARNING,
-					    "cannot find destination MAC address %s in sarp table\n",
-					    dst_mac.str().c_str());
-					continue;
-				}
-				else
-				{
-					LOG(this->log, LEVEL_NOTICE,
-					    "cannot find destination tal ID, use default (%u)\n",
-					    dst);
-				}
+				LOG(this->log, LEVEL_NOTICE,
+				    "cannot find destination tal ID, use default (%u)\n",
+				    dst);
+			}
+		}
+		LOG(this->log, LEVEL_INFO,
+		    "build Ethernet frame with source MAC %s corresponding "
+		    " to terminal ID %d and destination MAC %s corresponding "
+		    "to terminal ID %d\n",
+		    src_mac.str().c_str(), src, dst_mac.str().c_str(), dst);
+
+		switch(frame_type)
+		{
+			case NET_PROTO::ETH:
+				header_length = ETHERNET_2_HEADSIZE;
+				evc = this->getEvc(src_mac, dst_mac, ether_type, evc_id);
+				qos = this->default_category->getId();
+				break;
+			case NET_PROTO::IEEE_802_1Q:
+				header_length = ETHERNET_802_1Q_HEADSIZE;
+				evc = this->getEvc(src_mac, dst_mac, q_tci, ether_type, evc_id);
+				LOG(this->log, LEVEL_INFO,
+				    "TCI = %u\n", q_tci);
+				break;
+			case NET_PROTO::IEEE_802_1AD:
+				header_length = ETHERNET_802_1AD_HEADSIZE;
+				evc = this->getEvc(src_mac, dst_mac, q_tci, ad_tci, ether_type, evc_id);
+				LOG(this->log, LEVEL_INFO,
+				    "Outer TCI = %u, Inner TCI = %u\n", ad_tci, q_tci);
+				break;
+			default:
+				LOG(this->log, LEVEL_ERROR,
+				    "wrong Ethernet frame type 0x%.4x\n", frame_type);
+				continue;
+		}
+		if(!evc)
+		{
+			LOG(this->log, LEVEL_INFO,
+			    "cannot find EVC for this flow, use the default values\n");
+		}
+
+		if(frame_type != NET_PROTO::ETH)
+		{
+			// get the QoS from the PCP if there is a PCP
+			auto found_category = this->category_map.find(pcp);
+			if (found_category == this->category_map.end())
+			{
+				qos = this->default_category->getId();
+			}
+			else
+			{
+				qos = found_category->second->getId();
 			}
 			LOG(this->log, LEVEL_INFO,
-			    "build Ethernet frame with source MAC %s corresponding "
-			    " to terminal ID %d and destination MAC %s corresponding "
-			    "to terminal ID %d\n",
-			    src_mac.str().c_str(), src, dst_mac.str().c_str(), dst);
+			    "PCP = %u corresponding to queue %s (%u)\n", pcp,
+			    found_category->second->getName().c_str(), qos);
+		}
 
-			switch(frame_type)
+		if(frame_type != this->sat_frame_type)
+		{
+			if(evc)
 			{
-				case NET_PROTO::ETH:
-					header_length = ETHERNET_2_HEADSIZE;
-					evc = this->getEvc(src_mac, dst_mac, ether_type, evc_id);
-					qos = this->default_category->getId();
-					break;
-				case NET_PROTO::IEEE_802_1Q:
-					header_length = ETHERNET_802_1Q_HEADSIZE;
-					evc = this->getEvc(src_mac, dst_mac, q_tci, ether_type, evc_id);
-					LOG(this->log, LEVEL_INFO,
-					    "TCI = %u\n", q_tci);
-					break;
-				case NET_PROTO::IEEE_802_1AD:
-					header_length = ETHERNET_802_1AD_HEADSIZE;
-					evc = this->getEvc(src_mac, dst_mac, q_tci, ad_tci, ether_type, evc_id);
-					LOG(this->log, LEVEL_INFO,
-					    "Outer TCI = %u, Inner TCI = %u\n", ad_tci, q_tci);
-					break;
-				default:
-					LOG(this->log, LEVEL_ERROR,
-					    "wrong Ethernet frame type 0x%.4x\n", frame_type);
-					continue;
-			}
-			if(!evc)
-			{
-				LOG(this->log, LEVEL_INFO,
-				    "cannot find EVC for this flow, use the default values\n");
-			}
-
-			if(frame_type != NET_PROTO::ETH)
-			{
-				// get the QoS from the PCP if there is a PCP
+				// Retrieve every field, we may already have it but no need to
+				// handle every condition if we do that
+				q_tci = (evc->getQTci() & 0xffff);
+				ad_tci = (evc->getAdTci() & 0xffff);
+				qos_t pcp = (evc->getQTci() & 0xe000) > 13;
 				auto found_category = this->category_map.find(pcp);
 				if (found_category == this->category_map.end())
 				{
@@ -550,53 +551,29 @@ Rt::Ptr<NetBurst> Ethernet::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::m
 					qos = found_category->second->getId();
 				}
 				LOG(this->log, LEVEL_INFO,
-				    "PCP = %u corresponding to queue %s (%u)\n", pcp,
-				    found_category->second->getName().c_str(), qos);
+				    "PCP in EVC is %u corresponding to QoS %u for DVB layer\n",
+				    pcp, qos);
 			}
+			// TODO we should cast to an EthernetPacket and use getPayload instead
+			eth_frame = this->createEthFrameData(packet->getData().substr(header_length),
+			                                     src_mac, dst_mac,
+			                                     ether_type,
+			                                     q_tci, ad_tci,
+			                                     qos, src, dst,
+			                                     this->sat_frame_type);
+		}
+		else
+		{
+			eth_frame = this->createPacket(packet->getData(),
+			                               packet->getTotalLength(),
+			                               qos, src, dst);
+		}
 
-			if(frame_type != this->sat_frame_type)
-			{
-				if(evc)
-				{
-					// Retrieve every field, we may already have it but no need to
-					// handle every condition if we do that
-					q_tci = (evc->getQTci() & 0xffff);
-					ad_tci = (evc->getAdTci() & 0xffff);
-					qos_t pcp = (evc->getQTci() & 0xe000) > 13;
-					auto found_category = this->category_map.find(pcp);
-					if (found_category == this->category_map.end())
-					{
-						qos = this->default_category->getId();
-					}
-					else
-					{
-						qos = found_category->second->getId();
-					}
-					LOG(this->log, LEVEL_INFO,
-					    "PCP in EVC is %u corresponding to QoS %u for DVB layer\n",
-					    pcp, qos);
-				}
-				// TODO we should cast to an EthernetPacket and use getPayload instead
-				eth_frame = this->createEthFrameData(packet->getData().substr(header_length),
-				                                     src_mac, dst_mac,
-				                                     ether_type,
-				                                     q_tci, ad_tci,
-				                                     qos, src, dst,
-				                                     this->sat_frame_type);
-			}
-			else
-			{
-				eth_frame = this->createPacket(packet->getData(),
-				                               packet->getTotalLength(),
-				                               qos, src, dst);
-			}
-
-			if(eth_frame == nullptr)
-			{
-				LOG(this->log, LEVEL_ERROR,
-				    "cannot create the Ethernet frame\n");
-				continue;
-			}
+		if(!eth_frame)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot create the Ethernet frame\n");
+			continue;
 		}
 
 		if(this->evc_data_size.find(evc_id) == this->evc_data_size.end())
@@ -698,74 +675,56 @@ Rt::Ptr<NetBurst> Ethernet::Context::deencapsulate(Rt::Ptr<NetBurst> burst)
 		    src_mac.str().c_str(), dst_mac.str().c_str(),
 		    q_tci, ad_tci, ether_type);
 
-		if(this->current_upper)
+		// TODO factorize
+		tal_id_t dst = packet->getDstTalId();
+
+		// Here we have errors because if we received this packets
+		// the information should be in sarp table
+		/*if(!sarp_table->getTalByMac(dst_mac, dst))
 		{
-			if(ether_type == NET_PROTO::ARP && this->current_upper->getName() == "IP")
+			// check default tal_id
+			if(dst > BROADCAST_TAL_ID)
 			{
 				LOG(this->log, LEVEL_WARNING,
-				    "ARP is not supported on IP layer at the moment, drop it\n");
+				    "cannot find destination MAC address %s in sarp table\n",
+				    dst_mac.str().c_str());
 				continue;
-			}
-
-			// strip eth header to get to IP
-			deenc_packet = this->current_upper->build(packet->getPayload(),
-			                                          packet->getPayloadLength(),
-			                                          packet->getQos(),
-			                                          packet->getSrcTalId(),
-			                                          packet->getDstTalId());
-		}
-		else
-		{
-			// TODO factorize
-			tal_id_t dst = packet->getDstTalId();
-
-			// Here we have errors because if we received this packets
-			// the information should be in sarp table
-			/*if(!sarp_table->getTalByMac(dst_mac, dst))
-			{
-				// check default tal_id
-				if(dst > BROADCAST_TAL_ID)
-				{
-					LOG(this->log, LEVEL_WARNING,
-					    "cannot find destination MAC address %s in sarp table\n",
-					    dst_mac.str().c_str());
-					continue;
-				}
-				else
-				{
-					LOG(this->log, LEVEL_NOTICE,
-					    "cannot find destination tal ID, use default (%u)\n",
-					    dst);
-				}
-			}*/
-
-			if(frame_type != this->lan_frame_type)
-			{
-				if(evc)
-				{
-					q_tci = (evc->getQTci() & 0xffff);
-					ad_tci = (evc->getAdTci() & 0xffff);
-				}
-				// TODO we should cast to an EthernetPacket and use getPayload instead
-				deenc_packet = this->createEthFrameData(packet->getData().substr(header_length),
-				                                        src_mac, dst_mac,
-				                                        ether_type,
-				                                        q_tci, ad_tci,
-				                                        packet->getQos(),
-				                                        packet->getSrcTalId(),
-				                                        dst,
-				                                        this->lan_frame_type);
 			}
 			else
 			{
-				// create ETH packet
-				deenc_packet = this->createPacket(packet->getData(),
-				                                  data_length,
-				                                  packet->getQos(),
-				                                  packet->getSrcTalId(),
-				                                  dst);
+				LOG(this->log, LEVEL_NOTICE,
+				    "cannot find destination tal ID, use default (%u)\n",
+				    dst);
 			}
+		}*/
+
+		if(frame_type != this->lan_frame_type)
+		{
+			if(evc)
+			{
+				q_tci = (evc->getQTci() & 0xffff);
+				ad_tci = (evc->getAdTci() & 0xffff);
+			}
+			// TODO we should cast to an EthernetPacket and use getPayload instead
+			deenc_packet = this->createEthFrameData(packet->getData().substr(header_length),
+			                                        src_mac, dst_mac,
+			                                        ether_type,
+			                                        q_tci, ad_tci,
+			                                        packet->getQos(),
+			                                        packet->getSrcTalId(),
+			                                        dst,
+			                                        this->lan_frame_type);
 		}
+		else
+		{
+			// create ETH packet
+			deenc_packet = this->createPacket(packet->getData(),
+			                                  data_length,
+			                                  packet->getQos(),
+			                                  packet->getSrcTalId(),
+			                                  dst);
+		}
+
 		if(!deenc_packet)
 		{
 			LOG(this->log, LEVEL_ERROR,
@@ -952,8 +911,7 @@ char Ethernet::Context::getLanHeader(unsigned int, const Rt::Ptr<NetPacket>&)
 
 bool Ethernet::Context::handleTap()
 {
-	// if no upper protocol, then we are using a TAP device
-	return !(this->current_upper);
+	return true;
 }
 
 
@@ -997,11 +955,11 @@ void Ethernet::Context::updateStats(const time_ms_t &period)
 	}
 }
 
-Rt::Ptr<NetPacket> Ethernet::PacketHandler::build(const Rt::Data &data,
-                                                  std::size_t data_length,
-                                                  uint8_t qos,
-                                                  uint8_t src_tal_id,
-                                                  uint8_t dst_tal_id)
+Rt::Ptr<NetPacket> Ethernet::Context::createPacket(const Rt::Data &data,
+                                                   std::size_t data_length,
+                                                   uint8_t qos,
+                                                   uint8_t src_tal_id,
+                                                   uint8_t dst_tal_id)
 {
 	size_t head_length = 0;
 	NET_PROTO frame_type = Ethernet::getFrameType(data);

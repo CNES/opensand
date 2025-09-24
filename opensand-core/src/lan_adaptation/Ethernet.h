@@ -98,6 +98,11 @@ public:
 		bool handleTap() override;
 		void updateStats(const time_ms_t &period) override;
 		bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch) override;
+		Rt::Ptr<NetPacket> createPacket(const Rt::Data &data,
+										std::size_t data_length,
+										uint8_t qos,
+										uint8_t src_tal_id,
+										uint8_t dst_tal_id) override;
 
 	protected:
 		/**
@@ -224,38 +229,6 @@ public:
 
 		/// The default traffic category
 		const TrafficCategory *default_category;
-	};
-
-	/**
-	 * @class PacketHandler
-	 * @brief ETH frame handler
-	 */
-	class PacketHandler: public LanAdaptationPacketHandler
-	{
-	public:
-		PacketHandler(LanAdaptationPlugin &plugin):
-			LanAdaptationPlugin::LanAdaptationPacketHandler(plugin)
-		{};
-
-		size_t getFixedLength() const {return 0;};
-
-		size_t getLength(const unsigned char *data) const
-		{
-			size_t length = 0;
-			if(data == NULL)
-			{
-				//error
-				return 0;
-			}
-			return length;
-		}
-
-		Rt::Ptr<NetPacket> build(const Rt::Data &data,
-		                         std::size_t data_length,
-		                         uint8_t qos,
-		                         uint8_t src_tal_id,
-		                         uint8_t dst_tal_id) override;
-
 	};
 
 public:

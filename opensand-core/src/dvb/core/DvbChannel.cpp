@@ -136,7 +136,7 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 
 void DvbChannel::setFilterTalId(tal_id_t filter)
 {
-	uint8_t filter_u8 = (uint8_t)(filter & 0xFF);
+	uint8_t filter_u8 = static_cast<uint8_t>(filter & 0xFF);
 	this->pkt_hdl->setFilterTalId(filter_u8);
 }
 
