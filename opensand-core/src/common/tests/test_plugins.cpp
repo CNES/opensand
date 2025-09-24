@@ -126,14 +126,14 @@
 //                       uint32_t &link_len);
 // static bool test_iter(std::string src_filename, std::string encap_filename,
 //                       bool compare, std::string name,
-//                       lan_contexts_t lan_contexts,
+//                       lan_context_t lan_context,
 //                       encap_contexts_t encap_contexts);
 // static bool test_lan_adapt(std::string src_filename,
 //                            std::string folder,
 //                            bool compare);
 // static void test_encap_and_decap(
 // 	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl,
-// 	lan_contexts_t lan_contexts,
+// 	lan_context_t lan_context,
 // 	std::vector<std::string> &failure,
 // 	std::string src_filename,
 // 	std::string folder,
@@ -222,7 +222,6 @@
 //                            std::string folder,
 //                            bool compare)
 // {
-// 	lan_contexts_t contexts;
 // 	std::vector<std::string> failure;
 // 	unsigned int nbr_tests = 0;
 
@@ -254,8 +253,6 @@
 // 	}
 // 	else
 // 	{
-// 		contexts.push_back(context);
-
 // 		// LanAdaptationContext initialisation
 // 		auto packet_switch = std::make_shared<TerminalPacketSwitch>(1, 0);
 // 		SarpTable *sarp_table = packet_switch->getSarpTable();
@@ -272,12 +269,9 @@
 // 		sarp_table->add(std::move(src_mac), 0);
 // 		dst_mac = std::make_unique<MacAddress>(std::string("00:04:76:0B:31:8b"));
 // 		sarp_table->add(std::move(dst_mac), 1);
-// 		for (auto &&context: contexts)
-// 		{
-// 			context->initLanAdaptationContext(1, packet_switch);
-// 		}
+// 		context->initLanAdaptationContext(1, packet_switch);
 
-// 		test_encap_and_decap(pkt_hdl, contexts, failure, src_filename, folder, compare);
+// 		test_encap_and_decap(pkt_hdl, context, failure, src_filename, folder, compare);
 // 		nbr_tests += 1;
 // 	}
 
@@ -309,23 +303,13 @@
 
 // static void test_encap_and_decap(
 // 	std::shared_ptr<LanAdaptationPlugin::LanAdaptationPacketHandler> pkt_hdl,
-// 	lan_contexts_t lan_contexts,
+// 	lan_context_t lan_context,
 // 	std::vector<std::string> &failure,
 // 	std::string src_filename,
 // 	std::string folder,
 // 	bool compare)
 // {
-// 	std::string stack = "";
-
-// 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
-// 	    ctxit != lan_contexts.rend(); ++ctxit)
-// 	{
-// 		if(stack.size() > 0)
-// 		{
-// 			stack += "/";
-// 		}
-// 		stack += (*ctxit)->getName();
-// 	}
+// 	std::string stack = lan_context->getName();
 
 // 	// test each encap context
 // 	auto encap_names = Plugin::getAllEncapsulationPlugins();
@@ -352,7 +336,7 @@
 // 		{
 
 // 			INFO("cannot set %s as upper layer for %s context, find another one\n",
-// 			       pkt_hdl->getName().c_str(), name.c_str());
+// 			     pkt_hdl->getName().c_str(), name.c_str());
 
 // 			std::vector<std::string> upper = context->getAvailableUpperProto();
 // 			// try to add a supported upper layer
@@ -419,16 +403,8 @@
 
 // 		// protocol stack
 // 		INFO("Stack:\n");
-// 		stack = "";
-// 		for(auto &&context : lan_contexts)
-// 		{
-// 			INFO("   - %s\n", context->getName().c_str());
-// 			if(stack.size() > 0)
-// 			{
-// 				stack += "/";
-// 			}
-// 			stack += context->getName();
-// 		}
+// 		INFO("   - %s\n", lan_context->getName().c_str());
+// 		stack = lan_context->getName();
 // 		for(auto &&context : encap_contexts)
 // 		{
 // 			INFO("   - %s\n", context->getName().c_str());
@@ -450,7 +426,7 @@
 // 		}
 
 // 		if(!test_iter(src_filename, folder + '/' + name_low + ".pcap",
-// 		              compare, name, lan_contexts, encap_contexts))
+// 		              compare, name, lan_context, encap_contexts))
 // 		{
 // 			ERROR("FAILURE %s\n\n", stack.c_str());
 // 			failure.push_back(stack);
@@ -472,18 +448,18 @@
 //  * @param encap_filename The encapsualted packet PCAP file for dump or comparison
 //  * @param compare        Whether we dump or compare the encapsualted packets
 //  * @param name           The name of the tested encapsulation plugin
-//  * @param contexts       The stack of encapsulated contexts
+//  * @param context        The ethernet context
 //  *
 //  * @return true on success, false otherwise
 //  */
 // static bool test_iter(std::string src_filename, std::string encap_filename,
 //                       bool compare, std::string name,
-//                       lan_contexts_t lan_contexts,
+//                       lan_context_t lan_context,
 //                       encap_contexts_t encap_contexts)
 // {
 // 	bool success = false;
 
-// 	bool is_eth = ((*lan_contexts.begin())->getName() == "Ethernet");
+// 	bool is_eth = lan_context->getName() == "Ethernet";
 // 	INFO("Upper lan context is Ethernet\n");
 // 	pcap_t *src_handle;
 // 	pcap_t *comp_handle;
@@ -579,8 +555,9 @@
 // 			continue;
 // 		}
 
-// 		DEBUG("[packet #%d] %s packet is %zu-byte long\n", counter_src,
-// 		      (*lan_contexts.begin())->getName().c_str(),
+// 		DEBUG("[packet #%d] %s packet is %zu-byte long\n",
+// 		      counter_src,
+// 		      lan_context->getName().c_str(),
 // 		      net_packet->getTotalLength());
 
 // 		// encapsulation
@@ -597,17 +574,14 @@
 // 		encap_packets->push_back(std::move(net_packet));
 // 		DEBUG("[packet #%d] encapsulate in lan contexts\n", counter_src);
 
-// 		for(auto &&context : lan_contexts)
+// 		encap_packets = lan_context->encapsulate(std::move(encap_packets), time_contexts);
+// 		if(!encap_packets)
 // 		{
-// 			encap_packets = context->encapsulate(std::move(encap_packets), time_contexts);
-// 			if(!encap_packets)
-// 			{
-// 				ERROR("[packet #%d] %s encapsulation failed\n",
-// 				      counter_src, context->getName().c_str());
-// 				success = false;
-// 				break;
-// 			}
-// 		}
+// 			ERROR("[packet #%d] %s encapsulation failed\n",
+// 			      counter_src, context->getName().c_str());
+// 			success = false;
+// 			break;
+//		}
 // 		if(!encap_packets)
 // 		{
 // 			continue;
@@ -640,8 +614,9 @@
 // 			continue;
 // 		}
 
-// 		DEBUG("[packet #%d] 1 %s packet => %d %s packets\n", counter_src,
-// 		       (*lan_contexts.begin())->getName().c_str(),
+// 		DEBUG("[packet #%d] 1 %s packet => %d %s packets\n",
+// 		       counter_src,
+// 		       lan_context->getName().c_str(),
 // 			   encap_packets->length(),
 // 			   encap_packets->name().c_str());
 
@@ -740,17 +715,13 @@
 
 // 		DEBUG("[packet #%d] decapsulate %d encap packets in lan contexts\n",
 // 		      counter_src, packets->length());
-// 		for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
-// 		    ctxit != lan_contexts.rend(); ++ctxit)
+//		packets = lan_context->deencapsulate(std::move(packets));
+// 		if(!packets)
 // 		{
-// 			packets = (*ctxit)->deencapsulate(std::move(packets));
-// 			if(!packets)
-// 			{
-// 				ERROR("[LAN packet #%d/ %s packets] %s decapsulation failed\n",
-// 				      counter_src, name.c_str(), (*ctxit)->getName().c_str());
-// 				success = false;
-// 				break;
-// 			}
+// 			ERROR("[LAN packet #%d/ %s packets] %s decapsulation failed\n",
+// 			      counter_src, name.c_str(), lan_context->getName().c_str());
+// 			success = false;
+// 			break;
 // 		}
 // 		if(!packets)
 // 		{

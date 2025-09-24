@@ -176,7 +176,7 @@ public:
 	};
 };
 
-typedef std::vector<std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext>> lan_contexts_t;
+typedef std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext> lan_context_t;
 
 
 #ifdef CREATE

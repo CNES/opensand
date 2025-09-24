@@ -78,11 +78,11 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	bool onEvent(const MessageEvent& event) override;
 
 	/**
-	 * @brief Set the lan adaptation contexts for channels
+	 * @brief Set the ethernet context for channels
 	 *
-	 * @param contexts the lan adaptation contexts
+	 * @param context the ethernet context
 	 */
-	void setContexts(const lan_contexts_t &contexts);
+	void setContexts(lan_context_t context);
 
 	/**
 	 * @brief Set the network socket file descriptor
@@ -116,8 +116,8 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	/// TAP file descriptor
 	int fd;
 
-	/// the contexts list from lower to upper context
-	lan_contexts_t contexts;
+	/// the ethernet context
+	lan_context_t context;
 
 	/// The MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;
@@ -154,11 +154,11 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 	bool onEvent(const MessageEvent& event) override;
 
 	/**
-	 * @brief Set the lan adaptation contexts for channels
+	 * @brief Set the ethernet context for channels
 	 *
-	 * @param contexts the lan adaptation contexts
+	 * @param context the ethernet context
 	 */
-	void setContexts(const lan_contexts_t &contexts);
+	void setContexts(lan_context_t context);
 
 	/**
 	 * @brief Set the network socket file descriptor
@@ -174,8 +174,8 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 	///  The period for statistics update
 	time_ms_t stats_period_ms;
 
-	/// the contexts list from lower to upper context
-	lan_contexts_t contexts;
+	/// the ethernet context
+	lan_context_t context;
 
 	/// The MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;
