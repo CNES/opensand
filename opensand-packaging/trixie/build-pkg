@@ -104,13 +104,6 @@ build()
         # Install dependencies
         echo_incomplete_line "  * Installing build-dependencies ... "
         sudo apt-get install --no-install-recommends -y --allow-downgrades ${DEPS} 1>/dev/null && success || error "Failed" "installing" ${DEPS}
-        case $MODULE in
-            */gseRust )
-                curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-                source "$HOME/.cargo/env"
-                rustup default stable
-                ;;
-        esac     
     fi
     
     # Launch dpkg command to build package
