@@ -23,7 +23,6 @@ libopensand_plugin_la_cpp = \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp \
-	StackPlugin.cpp \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
 	PhysicalLayerPlugin.cpp \
@@ -33,7 +32,6 @@ libopensand_plugin_la_cpp = \
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
-	StackPlugin.h \
 	OpenSandCore.h \
 	Except.h \
 	CarrierType.h \

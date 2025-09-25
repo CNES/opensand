@@ -51,12 +51,17 @@
 
 
 Ethernet::Ethernet():
-	LanAdaptationPlugin(NET_PROTO::ETH)
+	LanAdaptationPlugin{NET_PROTO::ETH},
+	default_category{nullptr}
 {
 }
 
 Ethernet::~Ethernet()
 {
+	this->evc_map.clear();
+	this->category_map.clear();
+	this->probe_evc_throughput.clear();
+	this->probe_evc_size.clear();
 }
 
 void Ethernet::generateConfiguration()
@@ -90,10 +95,17 @@ void Ethernet::generateConfiguration()
 }
 
 
-Ethernet *Ethernet::constructPlugin()
+std::shared_ptr<Ethernet> Ethernet::constructPlugin()
 {
 	//to manage virtual inheritance (used to avoid DDoD)
-	static Ethernet	*plugin = dynamic_cast<Ethernet *>(Ethernet::create<Ethernet, Ethernet::Context>("Ethernet"));
+	static std::shared_ptr<Ethernet> plugin{dynamic_cast<Ethernet *>(Ethernet::create<Ethernet>("Ethernet"))};
+	static bool first = true;
+	if (first) {
+		first = false;
+		if (!plugin->init()) {
+			plugin = nullptr;
+		}
+	}
 	return plugin;
 }
 
@@ -105,15 +117,11 @@ bool Ethernet::init()
 		return false;
 	}
 
-	this->upper.push_back("IP");
-	this->upper.push_back("ROHC");
-
-	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
-	auto qos_parameter = network->getComponent("qos_settings")->getParameter("sat_frame_type");
+	auto qos = OpenSandModelConf::Get()->getProfileData()->getComponent("network")->getComponent("qos_settings");
 
 	// here we need frame type on satellite for lower layers
 	std::string sat_eth;
-	if(!OpenSandModelConf::extractParameterData(qos_parameter, sat_eth))
+	if(!OpenSandModelConf::extractParameterData(qos->getParameter("sat_frame_type"), sat_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "Section QoS settings, missing parameter satellite frame type\n");
@@ -121,57 +129,40 @@ bool Ethernet::init()
 
 	if(sat_eth == "Ethernet")
 	{
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer without extension on satellite\n");
+		this->sat_frame_type = NET_PROTO::ETH;
 		this->ether_type = NET_PROTO::ETH;
 	}
 	else if(sat_eth == "802.1Q")
 	{
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer support 802.1Q extension on satellite\n");
+		this->sat_frame_type = NET_PROTO::IEEE_802_1Q;
 		this->ether_type = NET_PROTO::IEEE_802_1Q;
 	}
 	else if(sat_eth == "802.1ad")
 	{
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer support 802.1ad extension on satellite\n");
+		this->sat_frame_type = NET_PROTO::IEEE_802_1AD;
 		this->ether_type = NET_PROTO::IEEE_802_1AD;
 	}
 	else
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "unknown type of Ethernet frames\n");
+		    "unknown type of Ethernet layer on satellite\n");
+		this->sat_frame_type = NET_PROTO::ERROR;
 		this->ether_type = NET_PROTO::ERROR;
 	}
-	return true;
-}
 
-Ethernet::Context::Context(LanAdaptationPlugin &plugin):
-	LanAdaptationContext(plugin),
-	default_category{nullptr}
-{
-}
-
-bool Ethernet::Context::init()
-{
-	if(!LanAdaptationPlugin::LanAdaptationContext::init())
-	{
-		return false;
-	}
-	
 	this->handle_net_packet = true;
 
-	auto qos = OpenSandModelConf::Get()->getProfileData()->getComponent("network")->getComponent("qos_settings");
-
 	std::string lan_eth;
-	auto lan_qos = qos->getParameter("lan_frame_type");
-	if(!OpenSandModelConf::extractParameterData(lan_qos, lan_eth))
+	if(!OpenSandModelConf::extractParameterData(qos->getParameter("lan_frame_type"), lan_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "Section QoS settings, missing parameter LAN frame type\n");
-		return false;
-	}
-
-	std::string sat_eth;
-	auto sat_qos = qos->getParameter("sat_frame_type");
-	if(!OpenSandModelConf::extractParameterData(sat_qos, sat_eth))
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "Section QoS settings, missing parameter satellite frame type\n");
 		return false;
 	}
 
@@ -214,43 +205,10 @@ bool Ethernet::Context::init()
 		this->lan_frame_type = NET_PROTO::ERROR;
 	}
 
-	if(sat_eth == "Ethernet")
-	{
-		LOG(this->log, LEVEL_INFO,
-		    "Ethernet layer without extension on satellite\n");
-		this->sat_frame_type = NET_PROTO::ETH;
-	}
-	else if(sat_eth == "802.1Q")
-	{
-		LOG(this->log, LEVEL_INFO,
-		    "Ethernet layer support 802.1Q extension on satellite\n");
-		this->sat_frame_type = NET_PROTO::IEEE_802_1Q;
-	}
-	else if(sat_eth == "802.1ad")
-	{
-		LOG(this->log, LEVEL_INFO,
-		    "Ethernet layer support 802.1ad extension on satellite\n");
-		this->sat_frame_type = NET_PROTO::IEEE_802_1AD;
-	}
-	else
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "unknown type of Ethernet layer on satellite\n");
-		this->sat_frame_type = NET_PROTO::ERROR;
-	}
-
 	return true;
 }
 
-Ethernet::Context::~Context()
-{
-	this->evc_map.clear();
-	this->category_map.clear();
-	this->probe_evc_throughput.clear();
-	this->probe_evc_size.clear();
-}
-
-bool Ethernet::Context::initEvc()
+bool Ethernet::initEvc()
 {
 	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
 	
@@ -334,7 +292,7 @@ bool Ethernet::Context::initEvc()
 	return true;
 }
 
-bool Ethernet::Context::initTrafficCategories()
+bool Ethernet::initTrafficCategories()
 {
 	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
 
@@ -415,13 +373,13 @@ bool Ethernet::Context::initTrafficCategories()
 }
 
 
-bool Ethernet::Context::initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch)
+bool Ethernet::initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch)
 {
-	return LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id, packet_switch);
+	return LanAdaptationPlugin::initLanAdaptationContext(tal_id, packet_switch);
 }
 
 
-Rt::Ptr<NetBurst> Ethernet::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &)
+Rt::Ptr<NetBurst> Ethernet::encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &)
 {
 	LOG(this->log, LEVEL_INFO, "got a network packet to encapsulate\n");
 
@@ -598,7 +556,7 @@ Rt::Ptr<NetBurst> Ethernet::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::m
 }
 
 
-Rt::Ptr<NetBurst> Ethernet::Context::deencapsulate(Rt::Ptr<NetBurst> burst)
+Rt::Ptr<NetBurst> Ethernet::deencapsulate(Rt::Ptr<NetBurst> burst)
 {
 	if(burst == nullptr || burst->front() == nullptr)
 	{
@@ -743,7 +701,7 @@ Rt::Ptr<NetBurst> Ethernet::Context::deencapsulate(Rt::Ptr<NetBurst> burst)
 }
 
 
-Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(const Rt::Ptr<NetPacket>& packet,
+Rt::Ptr<NetPacket> Ethernet::createEthFrameData(const Rt::Ptr<NetPacket>& packet,
                                                          uint8_t &evc_id)
 {
 	std::vector<MacAddress> src_macs;
@@ -833,7 +791,7 @@ Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(const Rt::Ptr<NetPacket
 }
 
 
-Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(Rt::Data data,
+Rt::Ptr<NetPacket> Ethernet::createEthFrameData(Rt::Data data,
                                                          const MacAddress &src_mac,
                                                          const MacAddress &dst_mac,
                                                          NET_PROTO ether_type,
@@ -904,18 +862,18 @@ Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(Rt::Data data,
 	                          src_tal_id, dst_tal_id);
 }
 
-char Ethernet::Context::getLanHeader(unsigned int, const Rt::Ptr<NetPacket>&)
+char Ethernet::getLanHeader(unsigned int, const Rt::Ptr<NetPacket>&)
 {
 	return 0;
 }
 
-bool Ethernet::Context::handleTap()
+bool Ethernet::handleTap()
 {
 	return true;
 }
 
 
-void Ethernet::Context::initStats()
+void Ethernet::initStats()
 {
 	auto output = Output::Get();
 	// create default probe with EVC=0 if it does no exist
@@ -939,7 +897,7 @@ void Ethernet::Context::initStats()
 	}
 }
 
-void Ethernet::Context::updateStats(const time_ms_t &period)
+void Ethernet::updateStats(const time_ms_t &period)
 {
 	for(auto it = this->evc_data_size.begin(); it != this->evc_data_size.end(); ++it)
 	{
@@ -955,7 +913,7 @@ void Ethernet::Context::updateStats(const time_ms_t &period)
 	}
 }
 
-Rt::Ptr<NetPacket> Ethernet::Context::createPacket(const Rt::Data &data,
+Rt::Ptr<NetPacket> Ethernet::createPacket(const Rt::Data &data,
                                                    std::size_t data_length,
                                                    uint8_t qos,
                                                    uint8_t src_tal_id,
@@ -986,7 +944,7 @@ Rt::Ptr<NetPacket> Ethernet::Context::createPacket(const Rt::Data &data,
 	                               head_length);
 }
 
-Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
+Evc *Ethernet::getEvc(const MacAddress &src_mac,
                                const MacAddress &dst_mac,
                                NET_PROTO ether_type,
                                uint8_t &evc_id) const
@@ -1003,7 +961,7 @@ Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
 }
 
 
-Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
+Evc *Ethernet::getEvc(const MacAddress &src_mac,
                                const MacAddress &dst_mac,
                                uint16_t q_tci,
                                NET_PROTO ether_type,
@@ -1021,7 +979,7 @@ Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
 }
 
 
-Evc *Ethernet::Context::getEvc(const MacAddress &src_mac,
+Evc *Ethernet::getEvc(const MacAddress &src_mac,
                                const MacAddress &dst_mac,
                                uint16_t q_tci,
                                uint16_t ad_tci,

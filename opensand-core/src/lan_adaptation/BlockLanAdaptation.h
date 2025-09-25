@@ -82,7 +82,7 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	 *
 	 * @param context the ethernet context
 	 */
-	void setContexts(lan_context_t context);
+	void setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin);
 
 	/**
 	 * @brief Set the network socket file descriptor
@@ -117,7 +117,7 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	int fd;
 
 	/// the ethernet context
-	lan_context_t context;
+	std::shared_ptr<LanAdaptationPlugin> context;
 
 	/// The MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;
@@ -158,7 +158,7 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 	 *
 	 * @param context the ethernet context
 	 */
-	void setContexts(lan_context_t context);
+	void setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin);
 
 	/**
 	 * @brief Set the network socket file descriptor
@@ -175,7 +175,7 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 	time_ms_t stats_period_ms;
 
 	/// the ethernet context
-	lan_context_t context;
+	std::shared_ptr<LanAdaptationPlugin> context;
 
 	/// The MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;

@@ -109,8 +109,7 @@ void BlockLanAdaptation::generateConfiguration()
 
 bool BlockLanAdaptation::onInit()
 {
-	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
-	lan_context_t context = plugin->getContext();
+	std::shared_ptr<LanAdaptationPlugin> plugin = Ethernet::constructPlugin();
 	LOG(this->log_init, LEVEL_INFO,
 	    "add lan adaptation: %s\n",
 	    plugin->getName());
@@ -122,8 +121,8 @@ bool BlockLanAdaptation::onInit()
 		return false;
 	}
 
-	this->upward.setContexts(context);
-	this->downward.setContexts(context);
+	this->upward.setPlugin(plugin);
+	this->downward.setPlugin(plugin);
 	// we can share FD as one thread will write, the second will read
 	this->upward.setFd(fd);
 	this->downward.setFd(fd);
@@ -179,14 +178,14 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 	return true;
 }
 
-void Rt::UpwardChannel<BlockLanAdaptation>::setContexts(lan_context_t context)
+void Rt::UpwardChannel<BlockLanAdaptation>::setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin)
 {
-	this->context = context;
+	this->context = plugin;
 }
 
-void Rt::DownwardChannel<BlockLanAdaptation>::setContexts(lan_context_t context)
+void Rt::DownwardChannel<BlockLanAdaptation>::setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin)
 {
-	this->context = context;
+	this->context = plugin;
 }
 
 void Rt::UpwardChannel<BlockLanAdaptation>::setFd(int fd)

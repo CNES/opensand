@@ -41,7 +41,7 @@
 
 
 LanAdaptationPlugin::LanAdaptationPlugin(NET_PROTO ether_type):
-		StackPlugin(ether_type)
+		ether_type{ether_type}
 {
 }
 
@@ -52,20 +52,26 @@ bool LanAdaptationPlugin::init()
 }
 
 
-LanAdaptationPlugin::LanAdaptationContext::LanAdaptationContext(LanAdaptationPlugin &pl):
-		StackContext(pl),
-		handle_net_packet(false)
+Rt::Ptr<NetBurst> LanAdaptationPlugin::encapsulate(Rt::Ptr<NetBurst> burst)
+{
+	std::map<long, int> time_contexts;
+	return this->encapsulate(std::move(burst), time_contexts);
+}
+
+
+NET_PROTO LanAdaptationPlugin::getEtherType() const
+{
+	return this->ether_type;
+}
+
+
+void LanAdaptationPlugin::updateStats(const time_ms_t &)
 {
 }
 
-bool LanAdaptationPlugin::LanAdaptationContext::init()
-{
-	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Lan_Adaptation." + this->getName());
-	return true;
-}
 
-bool LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id_t tal_id,
-                                                                         std::shared_ptr<PacketSwitch> packet_switch)
+bool LanAdaptationPlugin::initLanAdaptationContext(tal_id_t tal_id,
+                                                   std::shared_ptr<PacketSwitch> packet_switch)
 {
 	this->tal_id = tal_id;
 	this->packet_switch = packet_switch;
