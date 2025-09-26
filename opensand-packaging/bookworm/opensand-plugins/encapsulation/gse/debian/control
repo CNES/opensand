@@ -14,7 +14,6 @@ Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
  opensand-core (= ${binary:Version})
-Description: The GSE plugin for OpenSAND (Rust build)
 Provides: libopensand-gse-plugin, libopensand-gse-rust-encap-plugin
 Conflicts: libopensand-gse-plugin, libopensand-gse-rust-encap-plugin
 Replaces: libopensand-gse-plugin, libopensand-gse-rust-encap-plugin
