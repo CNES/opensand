@@ -3,7 +3,7 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper-compat (= 13),
  autotools-dev, automake, libtool,
- librle-dev (>= 1.7.2),
+ librle-dev (>= 1.7.4~),
  libopensand-conf-dev (>= 7.0.0),
  libopensand-output-dev (>= 7.0.0),
  libopensand-plugin-dev (>= 7.0.0)
@@ -14,6 +14,6 @@ Section: libs
 Package: libopensand-rle-encap-plugin
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, librle (>= 1.7.2),
+Depends: ${shlibs:Depends}, ${misc:Depends}, librle (>= 1.7.4~),
  opensand-core (= ${binary:Version})
 Description: The RLE plugin for OpenSAND
