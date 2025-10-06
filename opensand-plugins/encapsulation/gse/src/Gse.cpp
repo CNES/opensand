@@ -562,9 +562,13 @@ Gse::Gse(): EncapPlugin(NET_PROTO::GSE)
 	this->decap_buffer = c_memory_new(max_frag_id, decap_buffer_len);
 	this->rust_encapsulator = create_encapsulator();
 
-	if (this->force_compatibility == true)
+	if (this->force_compatibility)
 	{
-		enable_labelReUse(this->rust_encapsulator, false);
+		disable_labelReUse(this->rust_encapsulator);
+	}
+	else
+	{
+		enable_labelReUse(this->rust_encapsulator, 16);
 	}
 
 	this->rust_decapsulator = create_deencapsulator(this->decap_buffer);
