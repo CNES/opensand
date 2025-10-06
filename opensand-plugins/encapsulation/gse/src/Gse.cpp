@@ -549,7 +549,7 @@ Gse::Gse(): EncapPlugin(NET_PROTO::GSE)
 	uint16_t decap_buffer_len = 12000; // GSE protocol allows entire packet of 65 536 bytes
 	this->force_compatibility = false;
 
-	auto gse = OpenSandModelConf::Get()->getProfileData()->getComponent("encap")->getComponent("gse_Rust");
+	auto gse = OpenSandModelConf::Get()->getProfileData()->getComponent("encap")->getComponent("gse");
 	if (!gse)
 	{
 		return;
@@ -580,7 +580,7 @@ void Gse::generateConfiguration(const std::string &, const std::string &, const 
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
 	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
-	auto gse = conf->addComponent("gse_Rust", "GSE", "The GSE Rust Plugin Configuration");
+	auto gse = conf->addComponent("gse", "GSE", "The GSE Plugin Configuration");
 	conf->setAdvanced(true);
 	gse->addParameter("max_frag_id", "Maximum frag id possible (= number of deencapsulation buffer)", types->getType("ubyte"));
 	gse->addParameter("decap_buffer_len", "Maximal Packet length", types->getType("ushort"));

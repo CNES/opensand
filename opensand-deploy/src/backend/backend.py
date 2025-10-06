@@ -340,13 +340,11 @@ def create_default_profile(meta_model, entity_type):
     model = mod.get_root()
 
     encapsulation = _get_component(model, 'encap')
-    gse_rust = _get_component(encapsulation, 'gse_Rust')
+    gse_rust = _get_component(encapsulation, 'gse')
     _set_parameter(gse_rust, 'max_frag_id', 8)
     _set_parameter(gse_rust, 'decap_buffer_len', 5000)
     _set_parameter(gse_rust, 'compatibility_mode', True)
-    _set_parameter(_get_component(encapsulation, 'gse_C'), 'packing_threshold', 3)
     _set_parameter(_get_component(encapsulation, 'rle'), 'alpdu_protection', 'Sequence Number')
-    _set_parameter(encapsulation, 'GSE_library', 'Rust' if gse_rust else 'C')
 
     access = _get_component(model, 'access')
     _set_parameter(_get_component(access, 'random_access'), 'saloha_algo', 'CRDSA')
