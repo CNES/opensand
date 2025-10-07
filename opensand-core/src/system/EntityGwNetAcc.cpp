@@ -68,7 +68,6 @@
 #include "SpotUpward.h"
 #include "SpotDownward.h"
 #include "PacketSwitch.h"
-#include "Ethernet.h"
 
 
 EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id, bool check_mode):
@@ -109,11 +108,10 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = instance_id;
 		dvb_spec.is_ground_entity = true;
-		dvb_spec.upper_encap = Ethernet::constructPlugin();
 
 		InterconnectConfig interco_cfg;
 		interco_cfg.interconnect_addr = this->interconnect_address;
-		interco_cfg.delay = time_ms_t::zero();
+		interco_cfg.delay = nullptr;
 
 		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
 		auto& block_dvb = Rt::Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);

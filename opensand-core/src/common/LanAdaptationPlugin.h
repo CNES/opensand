@@ -40,149 +40,135 @@
 
 #include <memory>
 
+#include <opensand_rt/Ptr.h>
+#include <opensand_rt/Data.h>
+
 #include "OpenSandCore.h"
-#include "StackPlugin.h"
+#include "OpenSandPlugin.h"
 
 
 class NetBurst;
-class SarpTable;
+class NetPacket;
 class OutputLog;
 class PacketSwitch;
+enum class NET_PROTO : uint16_t;
 
 
 /**
  * @class LanAdaptationPlugin
  * @brief Generic Lan adaptation plugin
  */
-class LanAdaptationPlugin: public StackPlugin
+class LanAdaptationPlugin: public OpenSandPlugin
 {
 public:
 	/**
-	 * @class LanAdaptationPacketHandler
-	 * @brief Functions to handle the encapsulated packets
-	 * @warning Be really careful, encapsulation and deencapsulation
-	 *          are handled in two different thread so shared ressources
-	 *          can be accessed concurrently
-	 *          If you wish to prevent concurrent access to one ressource
-	 *          you can take the lock with the Block function Lock and
-	 *          unlock it with the Block function Unlock
-	 *          This should be avoided as this will remove process
-	 *          efficiency
-	 *          All the attributes defines below should be read-only
-	 *          once initLanAdaptationContext is called so there is
-	 *          no need to protect them
+	 * Encapsulate some packets into one or several packets.
+	 * The function returns a context ID and expiration time map.
+	 * It's the caller charge to arm the timers to manage contextis expiration.
+	 *
+	 * @param burst        the packets to encapsulate
+	 * @param time_contexts a map of time and context ID where:
+	 *                       - context ID identifies the context in which the
+	 *                         packet was encapsulated
+	 *                       - time is the time before the context identified by
+	 *                         the context ID expires
+	 * @return              a list of packets
 	 */
-	class LanAdaptationPacketHandler: public StackPacketHandler
-	{
-	public:
-		/**
-		 * @brief LanAdaptationPacketHandler constructor
-		 */
-		/* Allow packets to access LanAdaptationPlugin members */
-		LanAdaptationPacketHandler(LanAdaptationPlugin &pl);
-
-		bool init() override;
-
-		/* the following functions should not be called */
-		std::size_t getMinLength() const override;
-
-		bool encapNextPacket(Rt::Ptr<NetPacket> packet,
-		                     std::size_t remaining_length,
-		                     bool new_burst,
-		                     Rt::Ptr<NetPacket> &encap_packet,
-		                     Rt::Ptr<NetPacket> &remaining_packet) override;
-
-		bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
-		                            bool &partial_decap,
-		                            std::vector<Rt::Ptr<NetPacket>> &decap_packets,
-		                            unsigned int decap_packets_count) override;
-	};
+	virtual Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst,
+										  std::map<long, int> &time_contexts) = 0;
 
 	/**
-	 * @class LanAdaptationContext
-	 * @brief The encapsulation/deencapsulation context
+	 * Encapsulate some packets into one or several packets for contexts with
+	 * no timer.
+	 *
+	 * @param burst  the packets to encapsulate
+	 * @return       a list of packets
 	 */
-	class LanAdaptationContext: public StackContext
-	{
-	public:
-		/* Allow context to access LanAdaptationPlugin members */
-		/**
-		 * @brief LanAdaptationContext constructor
-		 */
-		LanAdaptationContext(LanAdaptationPlugin &pl);
+	virtual Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst);
 
-		/**
-		 * @brief Initialize the plugin with some bloc configuration
-		 *
-		 * @param tal_id           The terminal ID
-		 * @param class_list       A list of service classes
-		 * @return true on success, false otherwise
-		 */
-		virtual bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch);
+	/**
+	 * Deencapsulate some packets into one or several packets.
+	 *
+	 * @param burst   the stack packets to deencapsulate
+	 * @return        a list of packets
+	 */
+	virtual Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst) = 0;
 
-		/**
-		 * @brief Get the bytes of LAN header for TUN/TAP interface
-		 *
-		 * @param pos    The bytes position
-		 * @param packet The current packet
-		 * @return     The byte indicated by pos
-		 */
-		virtual char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet) = 0;
+	/**
+	 * @brief Get the EtherType associated with the encapsulation protocol
+	 *
+	 * return The EtherType
+	 */
+	NET_PROTO getEtherType() const;
 
-		/**
-		 * @brief check if the packet should be read/written on TAP or TUN interface
-		 *
-		 * @return true for TAP, false for TUN
-		 */
-		virtual bool handleTap() = 0;
+	/**
+	 * @brief Update statistics periodically
+	 *
+	 * @param period  The time interval bewteen two updates
+	 */
+	virtual void updateStats(const time_ms_t &period);
 
-		bool setUpperPacketHandler(std::shared_ptr<StackPlugin::StackPacketHandler> pkt_hdl) override;
+	/**
+	 * @brief Create a NetPacket from data with the relevant attributes
+	 *
+	 * @param data        The packet data
+	 * @param data_length The packet length
+	 * @param qos         The QoS value to associate with the packet
+	 * @param src_tal_id  The source terminal ID to associate with the packet
+	 * @param dst_tal_id  The destination terminal ID to associate with the packet
+	 * @return the packet on success, NULL otherwise
+	 */
+	virtual Rt::Ptr<NetPacket> createPacket(const Rt::Data &data,
+											std::size_t data_length,
+											uint8_t qos,
+											uint8_t src_tal_id,
+											uint8_t dst_tal_id) = 0;
 
-		virtual bool init();
+	/**
+	 * @brief Initialize the plugin with some bloc configuration
+	 *
+	 * @param tal_id           The terminal ID
+	 * @param class_list       A list of service classes
+	 * @return true on success, false otherwise
+	 */
+	virtual bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch);
 
-	protected:
-		/// Can we handle packet read from TUN or TAP interface
-		bool handle_net_packet;
+	/**
+	 * @brief Get the bytes of LAN header for TUN/TAP interface
+	 *
+	 * @param pos    The bytes position
+	 * @param packet The current packet
+	 * @return     The byte indicated by pos
+	 */
+	virtual char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet) = 0;
 
-		/// The terminal ID
-		tal_id_t tal_id;
-
-		/// The SARP table
-		std::shared_ptr<PacketSwitch> packet_switch;
-	};
+	/**
+	 * @brief check if the packet should be read/written on TAP or TUN interface
+	 *
+	 * @return true for TAP, false for TUN
+	 */
+	virtual bool handleTap() = 0;
 
 	LanAdaptationPlugin(NET_PROTO ether_type);
 
 	virtual bool init();
 
-	/**
-	 * @brief Get the context
-	 *
-	 * @return the context
-	 */
-	inline std::shared_ptr<LanAdaptationContext> getContext() const
-	{
-		return std::static_pointer_cast<LanAdaptationContext>(this->context);
-	};
+protected:
+	/// The EtherType (or EtherType like) of the associated protocol
+	NET_PROTO ether_type;
 
-	/**
-	 * @brief Get the packet handler
-	 *
-	 * @return the packet handler
-	 */
-	inline std::shared_ptr<LanAdaptationPacketHandler> getPacketHandler() const
-	{
-		return std::static_pointer_cast<LanAdaptationPacketHandler>(this->packet_handler);
-	};
+	/// Can we handle packet read from TUN or TAP interface
+	bool handle_net_packet;
+
+	/// The terminal ID
+	tal_id_t tal_id;
+
+	/// The SARP table
+	std::shared_ptr<PacketSwitch> packet_switch;
+
+	/// Output Logs
+	std::shared_ptr<OutputLog> log;
 };
 
-typedef std::vector<std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext>> lan_contexts_t;
-
-
-#ifdef CREATE
-#undef CREATE
-#define CREATE(CLASS, CONTEXT, HANDLER, pl_name) \
-	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, PluginType::LanAdaptation)
-#endif
 
 #endif

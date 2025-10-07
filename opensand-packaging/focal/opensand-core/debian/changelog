@@ -1,3 +1,9 @@
+opensand-core (8.2.0) focal; urgency=low
+
+  * Release 8.2.0
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Tue, 25 Sep 2025 17:02:18 +0200
+
 opensand-core (8.1.1) focal; urgency=low
 
   * Release 8.1.1

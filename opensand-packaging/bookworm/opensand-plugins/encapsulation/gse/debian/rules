@@ -13,6 +13,12 @@ PYTHON2=$(shell pyversions -vr)
 %:
 	dh  $@
 
+override_dh_auto_build:
+	echo "[toolchain]" > src/gse_c_rust_api/rust-toolchain.toml
+	echo 'channel = "nightly"' >> src/gse_c_rust_api/rust-toolchain.toml
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+	. "${HOME}/.cargo/env"; rustup default nightly; dh_auto_build
+
 override_dh_strip:
 	dh_strip --dbgsym-migration='libopensand-gse-encap-plugin-dbg (<< 7.0.1~)'
 	

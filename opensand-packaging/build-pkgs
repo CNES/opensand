@@ -55,7 +55,6 @@ make_encap()
     echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
     build opensand-plugins/encapsulation/gse install
     build opensand-plugins/encapsulation/rle install
-    build opensand-plugins/encapsulation/gseRust install
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
 }
 

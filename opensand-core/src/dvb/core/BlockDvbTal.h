@@ -41,11 +41,13 @@
 #ifndef BLOCK_DVB_TAL_H
 #define BLOCK_DVB_TAL_H
 
+#include "NetBurst.h"
 #include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannel.h>
 
 #include "BlockDvb.h"
 
+#include "NetContainer.h"
 #include "DvbChannel.h"
 #include "DamaAgent.h"
 #include "SlottedAlohaTal.h"
@@ -53,7 +55,6 @@
 #include "UnitConverter.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
-
 #include <opensand_output/Output.h>
 #include <opensand_rt/Block.h>
 

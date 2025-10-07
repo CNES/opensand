@@ -68,7 +68,7 @@ bool Rt::DownwardChannel<BlockInterconnectDownward>::onEvent(const Event &event)
 
 bool Rt::DownwardChannel<BlockInterconnectDownward>::onEvent(const TimerEvent &event)
 {
-	if (delay != time_ms_t::zero() && event == delay_timer)
+	if (delay != nullptr && event == delay_timer)
 	{
 		return onTimerEvent();
 	}
@@ -211,7 +211,7 @@ bool Rt::DownwardChannel<BlockInterconnectDownward>::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	if (delay == time_ms_t::zero())
+	if (delay == nullptr)
 	{
 		// No need to poll, messages are sent directly
 		return true;
@@ -297,7 +297,7 @@ bool Rt::UpwardChannel<BlockInterconnectUpward>::onEvent(const Event &event)
 
 bool Rt::UpwardChannel<BlockInterconnectUpward>::onEvent(const TimerEvent &event)
 {
-	if (delay != time_ms_t::zero() && event == delay_timer)
+	if (delay != nullptr && event == delay_timer)
 	{
 		return onTimerEvent();
 	}
@@ -353,7 +353,7 @@ bool Rt::UpwardChannel<BlockInterconnectUpward>::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	if (delay == time_ms_t::zero())
+	if (delay == nullptr)
 	{
 		// No need to poll, messages are sent directly
 		return true;

@@ -66,7 +66,7 @@ class GroundPhysicalChannel
 {
 private:
 	/// AttenuationModels
-	AttenuationModelPlugin *attenuation_model;
+	std::shared_ptr<AttenuationModelPlugin> attenuation_model;
 
 	/// Clear Sky Conditions (best C/N in clear-sky conditions)
 	double clear_sky_condition;
@@ -90,7 +90,7 @@ protected:
 	std::shared_ptr<OutputLog> log_channel = nullptr;
 
 	/// The satellite delay model
-	SatDelayPlugin *satdelay_model = nullptr;
+	std::shared_ptr<SatDelayPlugin> satdelay_model = nullptr;
 
 	/// Events
 	Rt::event_id_t attenuation_update_timer;
@@ -162,7 +162,7 @@ public:
 	 *
 	 * @param satdelay  the satellite delay plugin
 	 */
-	void setSatDelay(SatDelayPlugin *satdelay);
+	void setSatDelay(std::shared_ptr<SatDelayPlugin> satdelay);
 
 	/**
 	 * @brief Compute the total C/N of the link according to the uplink C/N

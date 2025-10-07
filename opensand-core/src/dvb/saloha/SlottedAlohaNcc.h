@@ -40,7 +40,6 @@
 
 #include "DvbFrame.h"
 #include "NetBurst.h"
-#include "EncapPlugin.h"
 #include "TerminalContextSaloha.h"
 #include "TerminalCategorySaloha.h"
 #include "SlottedAlohaAlgo.h"

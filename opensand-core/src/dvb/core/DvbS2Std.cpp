@@ -43,7 +43,7 @@
 #include "OpenSandModelConf.h"
 
 
-DvbS2Std::DvbS2Std(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
+DvbS2Std::DvbS2Std(std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd("DVB-S2", pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
@@ -55,7 +55,7 @@ DvbS2Std::DvbS2Std(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
 }
 
 
-DvbScpcStd::DvbScpcStd(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
+DvbScpcStd::DvbScpcStd(std::shared_ptr<EncapPlugin> pkt_hdl):
 	DvbS2Std("SCPC", pkt_hdl)
 {
 	this->is_scpc = true;
@@ -63,7 +63,7 @@ DvbScpcStd::DvbScpcStd(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl)
 
 
 DvbS2Std::DvbS2Std(std::string type,
-                   std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
+                   std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
@@ -88,7 +88,7 @@ bool DvbS2Std::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 	int real_mod = 0;     // real modcod of the receiver
 
 	std::vector<Rt::Ptr<NetPacket>> decap_packets;
-	bool partial_decap = false;
+	//bool partial_decap = false;
 
 	// sanity check
 	if(dvb_frame == nullptr)
@@ -131,7 +131,7 @@ bool DvbS2Std::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 
 	// used for terminal statistics
 	this->received_modcod = bbframe_burst->getModcodId();
-
+	
 	if(bbframe_burst->isCorrupted())
 	{
 		// corrupted, nothing more to do
@@ -165,8 +165,8 @@ bool DvbS2Std::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 	}
 
 	// get encapsulated packets received from lower layer
-	if(!this->packet_handler->getEncapsulatedPackets(std::move(bbframe_burst),
-	                                                 partial_decap,
+	if(!this->packet_handler->decapAllPackets(std::move(bbframe_burst),
+	                                                 //partial_decap,
 	                                                 decap_packets,
 	                                                 burst_length))
 	{
@@ -200,6 +200,8 @@ bool DvbS2Std::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 		    packet->getTotalLength());
 		burst->add(std::move(packet));
 	}
+
+
 
 	return true;
 }

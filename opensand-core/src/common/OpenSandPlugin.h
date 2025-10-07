@@ -56,6 +56,7 @@ enum class PluginType
 	Minimal,
 	Error,
 	SatDelay,
+	IslDelay,
 };
 
 

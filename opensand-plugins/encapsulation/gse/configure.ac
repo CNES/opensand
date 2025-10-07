@@ -34,15 +34,17 @@ AC_CHECK_FUNCS([])
 PKG_PROG_PKG_CONFIG
 CXXFLAGS="$CXXFLAGS -std=c++17"
 
+# check for Rust compiler
+AC_CHECK_PROG(CARGO, [cargo], [yes], [no])
+AC_CHECK_PROG(RUSTC, [rustc], [yes], [no])
+AS_IF([test "$CARGO" != "yes" -o "$RUSTC" != "yes"], [
+    AC_MSG_FAILURE("Missing Rust toolchain: cargo $CARGO / rustc $RUSTC")
+])
+
 # check for opensand-output library
 PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = opensand_version])
 LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
-
-# check for gse library
-PKG_CHECK_MODULES([OPENSAND_GSE], [gse >= 1.2.0], [])
-LIBS="$OPENSAND_GSE_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$OPENSAND_GSE_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-plugin library
 PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = opensand_version])
@@ -57,16 +59,18 @@ AC_ARG_ENABLE(fail_on_warning,
               fail_on_warning=$enableval,
               fail_on_warning=no)
 if test "x$fail_on_warning" != "xno"; then
-	WERROR="-Werror"
+    WERROR="-Werror"
 fi
 
-AC_SUBST(AM_CPPFLAGS, "-g -Wall -W ${WERROR} -DUTI_DEBUG_ON $AM_CPPFLAGS")
+#### not treating unused var / funct as error 
+AC_SUBST(AM_CPPFLAGS, "-g -Wall -Wno-error=unused-variable -Wno-error=unused-function ${WERROR} -DUTI_DEBUG_ON $AM_CPPFLAGS")
 
 AM_DEP_TRACK
 
-AC_CONFIG_FILES([Makefile \
-                 src/Makefile \
-                 ])
+AC_CONFIG_FILES([\
+    Makefile \
+    src/Makefile \
+])
 
 AC_OUTPUT
 

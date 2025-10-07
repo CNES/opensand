@@ -34,11 +34,11 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-
 #include "PluginUtils.h"
-#include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
 #include "PhysicalLayerPlugin.h"
+#include "IslPlugin.h"
+#include "EncapPlugin.h"
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
 
@@ -53,11 +53,23 @@ extern const std::string PLUGIN_LIBDIR;
 const std::string PLUGIN_DIRECTORY{"/opensand/plugins/"};
 const std::string PLUGIN_FILE_END = ".so.0";
 
-
 PluginUtils::PluginUtils()
 {
 }
 
+template<class T, typename = std::enable_if<std::is_base_of<OpenSandPlugin, T>::value>>
+inline bool storePlugin(PluginConfigurationContainer<T> &container, OpenSandPluginFactory *plugin)
+{
+	// if we load twice the same plugin, keep the first one
+	// this is why LD_LIBRARY_PATH should be first in the paths
+	const auto [_, inserted] = container.insert({
+			plugin->name, {
+			plugin->configure,
+			plugin->create,
+			nullptr}});
+
+	return inserted;
+}
 
 bool PluginUtils::loadPlugins(bool enable_phy_layer)
 {
@@ -65,124 +77,128 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "init");
 
 	char *lib_path = getenv("LD_LIBRARY_PATH");
-	if(lib_path)
+	if (lib_path)
 	{
 		// Split using ':' separator
 		tokenize(lib_path, path, ":");
 	}
 	path.push_back(PLUGIN_LIBDIR);
 
-	for(auto& directory : path)
+	for (auto &directory : path)
 	{
 		std::string dir = directory + PLUGIN_DIRECTORY;
-		
 
 		DIR *plugin_dir = opendir(dir.c_str());
-		if(!plugin_dir)
+		if (!plugin_dir)
 		{
 			LOG(this->log_init, LEVEL_NOTICE,
-			    "cannot search plugins in %s folder\n", 
-			    dir.c_str());
+				"cannot search plugins in %s folder\n",
+				dir.c_str());
 			continue;
 		}
 		LOG(this->log_init, LEVEL_NOTICE,
-		    "search for plugins in %s folder\n", dir.c_str());
+			"search for plugins in %s folder\n", dir.c_str());
 
 		struct dirent *ent;
-		while((ent = readdir(plugin_dir)) != NULL)
+		while ((ent = readdir(plugin_dir)) != NULL)
 		{
 			std::string filename = ent->d_name;
-			if(filename.length() <= PLUGIN_FILE_END.length())
+			if (filename.length() <= PLUGIN_FILE_END.length())
 			{
 				continue;
 			}
-			if(!filename.compare(filename.length() - PLUGIN_FILE_END.length(),
-			                     PLUGIN_FILE_END.length(),
-								 PLUGIN_FILE_END))
+			if (!filename.compare(filename.length() - PLUGIN_FILE_END.length(),
+								  PLUGIN_FILE_END.length(),
+								  PLUGIN_FILE_END))
 			{
 				std::string plugin_name = dir + filename;
 
 				LOG(this->log_init, LEVEL_INFO,
-				    "find plugin library %s\n", filename.c_str());
+						"find plugin library %s\n", filename.c_str());
 				void *handle = dlopen(plugin_name.c_str(), RTLD_LAZY);
-				if(!handle)
+				if (!handle)
 				{
 					LOG(this->log_init, LEVEL_ERROR,
-					    "cannot load plugin %s (%s)\n",
-					    filename.c_str(), dlerror());
+							"cannot load plugin %s (%s)\n",
+							filename.c_str(), dlerror());
 					continue;
 				}
 
 				void *sym = dlsym(handle, "init");
-				if(!sym)
+				if (!sym)
 				{
-
 					LOG(this->log_init, LEVEL_ERROR,
-					    "cannot find 'init' method in plugin %s "
-					    "(%s)\n", filename.c_str(), dlerror());
+							"cannot find 'init' method in plugin %s "
+							"(%s)\n",
+							filename.c_str(), dlerror());
 					dlclose(handle);
 					closedir(plugin_dir);
 					return false;
 				}
 
 				OpenSandPluginFactory *plugin = reinterpret_cast<fn_init *>(sym)();
-				if(!plugin)
+				if (!plugin)
 				{
 					LOG(this->log_init, LEVEL_ERROR,
-					    "cannot create plugin\n");
+							"cannot create plugin\n");
 					dlclose(handle);
 					continue;
 				}
 
-				switch(plugin->type)
+				bool inserted = false;
+				switch (plugin->type)
 				{
 					case PluginType::Encapsulation:
-						storePlugin(this->encapsulation, plugin, handle);
+						inserted = storePlugin(this->encapsulation, plugin);
+						break;
+
+					case PluginType::IslDelay:
+						inserted = storePlugin(this->isl_delay, plugin);
 						break;
 
 					case PluginType::SatDelay:
-						storePlugin(this->sat_delay, plugin, handle);
+						inserted = storePlugin(this->sat_delay, plugin);
 						break;
 
 					case PluginType::Attenuation:
-						if(!enable_phy_layer)
+						if (enable_phy_layer)
 						{
-							dlclose(handle);
-						}
-						else
-						{
-							storePlugin(this->attenuation, plugin, handle);
+							inserted = storePlugin(this->attenuation, plugin);
 						}
 						break;
 
 					case PluginType::Minimal:
-						if(!enable_phy_layer)
+						if (enable_phy_layer)
 						{
-							dlclose(handle);
-						}
-						else
-						{
-							storePlugin(this->minimal, plugin, handle);
+							inserted = storePlugin(this->minimal, plugin);
 						}
 						break;
 
 					case PluginType::Error:
-						if(!enable_phy_layer)
+						if (enable_phy_layer)
 						{
-							dlclose(handle);
-						}
-						else
-						{
-							storePlugin(this->error, plugin, handle);
+							inserted = storePlugin(this->error, plugin);
 						}
 						break;
 
 					default:
 						LOG(this->log_init, LEVEL_ERROR,
-						    "Wrong plugin type %d for %s",
-						    plugin->type, filename.c_str());
+								"Wrong plugin type %d for %s",
+								plugin->type, filename.c_str());
 				}
 				delete plugin;
+
+				if (inserted)
+				{
+					LOG(this->log_init, LEVEL_NOTICE,
+							"load plugin %s\n",
+							plugin->name.c_str());
+					this->handlers.push_back(handle);
+				}
+				else
+				{
+					dlclose(handle);
+				}
 			}
 		}
 		closedir(plugin_dir);
@@ -191,56 +207,22 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 	return true;
 }
 
-
-void PluginUtils::storePlugin(PluginConfigurationContainer &container, OpenSandPluginFactory *plugin, void *handle)
-{
-	const std::string plugin_name = plugin->name;
-
-	// if we load twice the same plugin, keep the first one
-	// this is why LD_LIBRARY_PATH should be first in the paths
-	if(container.find(plugin_name) == container.end())
-	{
-		LOG(this->log_init, LEVEL_NOTICE,
-		    "load plugin %s\n",
-		    plugin_name.c_str());
-		container[plugin_name] = {
-			plugin->configure,
-			plugin->create,
-			nullptr,
-		};
-		this->handlers.push_back(handle);
-	}
-	else
-	{
-		dlclose(handle);
-	}
-}
-
-
-inline void releasePluginsContainer(PluginConfigurationContainer &container)
-{
-	for (auto &&[name, element] : container)
-	{
-		delete element.plugin;
-	}
-}
-
-
 void PluginUtils::releasePlugins()
 {
-	releasePluginsContainer(encapsulation);
-	releasePluginsContainer(lan_adaptation);
-	releasePluginsContainer(attenuation);
-	releasePluginsContainer(minimal);
-	releasePluginsContainer(error);
-	releasePluginsContainer(sat_delay);
+	encapsulation.clear();
+	lan_adaptation.clear();
+	attenuation.clear();
+	minimal.clear();
+	error.clear();
+	sat_delay.clear();
+	isl_delay.clear();
 
-	for(auto &&handler : this->handlers)
+	for (auto &&handler : this->handlers)
 	{
 		dlclose(handler);
 	}
+	handlers.clear();
 }
-
 
 /**
  * @brief helper function to factorize getting any kind of plugin
@@ -250,133 +232,92 @@ void PluginUtils::releasePlugins()
  * @param plugin       The plugin
  * @return true on success, false otherwise
  */
-template<class PluginType>
-bool getPlugin(const std::string &plugin_name,
-               PluginConfigurationContainer &container,
-               PluginType **plugin)
+template <class PluginType>
+std::shared_ptr<PluginType> getPlugin(
+		std::shared_ptr<OutputLog> log,
+		const std::string &plugin_name,
+		PluginConfigurationContainer<PluginType> &container)
 {
 	auto plugin_configuration = container.find(plugin_name);
 	if (plugin_configuration == container.end())
 	{
-		return false;
+		LOG(log, LEVEL_ERROR, "Can not find plugin %s", plugin_name.c_str());
+		return nullptr;
 	}
 
-	PluginConfigurationElement &configuration = plugin_configuration->second;
+	PluginConfigurationElement<PluginType> &configuration = plugin_configuration->second;
 	if (configuration.plugin != nullptr)
 	{
-		//to manage virtual inheritance (used to avoid DDoD)
-		assert(dynamic_cast<PluginType *>(configuration.plugin) != nullptr);
-		*plugin = dynamic_cast<PluginType *>(configuration.plugin);
-		return true;
+		return configuration.plugin;
 	}
 
-	if(!configuration.create)
+	if (!configuration.create)
 	{
-		return false;
+		LOG(log, LEVEL_ERROR, "No create function found for plugin %s", plugin_name.c_str());
+		return nullptr;
 	}
 
-	*plugin = dynamic_cast<PluginType *>(configuration.create());
-	if(!*plugin)
+	OpenSandPlugin *plugin = configuration.create();
+	if (!plugin)
 	{
-		return false;
+		LOG(log, LEVEL_ERROR, "Create returned nullptr in %s", plugin_name.c_str());
+		return nullptr;
 	}
 
-	configuration.plugin = *plugin;
-	return true;
+	PluginType *plugin_cast = dynamic_cast<PluginType *>(plugin);
+	if (!plugin_cast)
+	{
+		LOG(log, LEVEL_ERROR, "Cast to proper type failed in %s", plugin_name.c_str());
+		delete plugin;
+		return nullptr;
+	}
+
+	configuration.plugin = std::shared_ptr<PluginType>(plugin_cast);
+	return configuration.plugin;
 }
 
-
-bool PluginUtils::getEncapsulationPlugin(std::string name,
-	                                     EncapPlugin **encapsulation)
+std::shared_ptr<EncapPlugin> PluginUtils::getEncapsulationPlugin(std::string name)
 {
-	return getPlugin(name, this->encapsulation, encapsulation);
+	return getPlugin(this->log_init, name, this->encapsulation);
 };
 
-
-bool PluginUtils::getSatDelayPlugin(std::string name,
-                                    SatDelayPlugin **sat_delay)
+std::shared_ptr<IslDelayPlugin> PluginUtils::getIslDelayPlugin(std::string name)
 {
-	return getPlugin(name, this->sat_delay, sat_delay);
+	return getPlugin(this->log_init, name, this->isl_delay);
 };
 
-
-bool PluginUtils::getAttenuationPlugin(std::string name,
-                                       AttenuationModelPlugin **attenuation)
+std::shared_ptr<SatDelayPlugin> PluginUtils::getSatDelayPlugin(std::string name)
 {
-	if(name.size() > 0)
-	{
-		return getPlugin(name, this->attenuation, attenuation);
-	}
-
-	return true;
+	return getPlugin(this->log_init, name, this->sat_delay);
 };
 
-
-bool PluginUtils::getMinimalConditionPlugin(std::string name,
-                                            MinimalConditionPlugin **minimal)
+std::shared_ptr<AttenuationModelPlugin> PluginUtils::getAttenuationPlugin(std::string name)
 {
-	if(name.size() > 0)
-	{
-		return getPlugin(name, this->minimal, minimal);
-	}
-
-	return true;
+	return getPlugin(this->log_init, name, this->attenuation);
 };
 
-
-bool PluginUtils::getErrorInsertionPlugin(std::string name,
-                                          ErrorInsertionPlugin **error)
+std::shared_ptr<MinimalConditionPlugin> PluginUtils::getMinimalConditionPlugin(std::string name)
 {
-	if(name.size() > 0)
-	{
-		return getPlugin(name, this->error, error);
-	}
-
-	return true;
+	return getPlugin(this->log_init, name, this->minimal);
 };
 
-
-void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
-                                               PluginType plugin_type,
-                                               const std::string &parameter_id,
-                                               const std::string &parameter_name,
-                                               const std::string &parameter_description)
+std::shared_ptr<ErrorInsertionPlugin> PluginUtils::getErrorInsertionPlugin(std::string name)
 {
-	PluginConfigurationContainer *container;
+	return getPlugin(this->log_init, name, this->error);
+};
 
-	switch(plugin_type)
-	{
-		case PluginType::Encapsulation:
-			container = &this->encapsulation;
-			break;
-
-		case PluginType::SatDelay:
-			container = &this->sat_delay;
-			break;
-
-		case PluginType::Attenuation:
-			container = &this->attenuation;
-			break;
-
-		case PluginType::Minimal:
-			container = &this->minimal;
-			break;
-
-		case PluginType::Error:
-			container = &this->error;
-			break;
-
-		default:
-			LOG(this->log_init, LEVEL_ERROR,
-				"Unable to generate configuration for plugin type %d",
-				plugin_type);
-			return;
-	}
-
+template<class T>
+void _generatePluginsConfiguration(
+		std::shared_ptr<OpenSANDConf::MetaComponent> parent,
+		const PluginConfigurationContainer<T>& container,
+		const std::string& parameter_id,
+		const std::string& parameter_name,
+		const std::string& parameter_description)
+{
 	const std::string type_name = std::string{"plugin_"} + parameter_id;
 	std::vector<std::string> plugin_names;
-	plugin_names.reserve(container->size());
-	for(auto const &element : *container)
+	plugin_names.reserve(container.size());
+	for (auto const &element : container)
 	{
 		plugin_names.push_back(element.first);
 	}
@@ -394,13 +335,53 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 
 	const char *path = parent_path.c_str();
 	const char *param_id = parameter_id.c_str();
-	for(auto const &element : *container)
+	for (auto const &element : container)
 	{
 		fn_configure configure = element.second.init;
-		if(configure)
+		if (configure)
 		{
 			configure(path, param_id);
 		}
+	}
+}
+
+void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
+											   PluginType plugin_type,
+											   const std::string &parameter_id,
+											   const std::string &parameter_name,
+											   const std::string &parameter_description)
+{
+	switch (plugin_type)
+	{
+	case PluginType::Encapsulation:
+		_generatePluginsConfiguration(parent, this->encapsulation, parameter_id, parameter_name, parameter_description);
+		break;
+
+	case PluginType::IslDelay:
+		_generatePluginsConfiguration(parent, this->isl_delay, parameter_id, parameter_name, parameter_description);
+		break;
+
+	case PluginType::SatDelay:
+		_generatePluginsConfiguration(parent, this->sat_delay, parameter_id, parameter_name, parameter_description);
+		break;
+
+	case PluginType::Attenuation:
+		_generatePluginsConfiguration(parent, this->attenuation, parameter_id, parameter_name, parameter_description);
+		break;
+
+	case PluginType::Minimal:
+		_generatePluginsConfiguration(parent, this->minimal, parameter_id, parameter_name, parameter_description);
+		break;
+
+	case PluginType::Error:
+		_generatePluginsConfiguration(parent, this->error, parameter_id, parameter_name, parameter_description);
+		break;
+
+	default:
+		LOG(this->log_init, LEVEL_ERROR,
+			"Unable to generate configuration for plugin type %d",
+			plugin_type);
+		return;
 	}
 }
 

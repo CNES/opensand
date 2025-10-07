@@ -76,7 +76,7 @@
 #include "BlockSatDispatcher.h"
 #include "BlockSatAsymetricHandler.h"
 #include "DvbS2Std.h"
-#include "Ethernet.h"
+#include "IslPlugin.h"
 
 
 EntitySat::EntitySat(tal_id_t instance_id, bool check_mode):
@@ -98,12 +98,32 @@ bool EntitySat::createSpecificBlocks()
 		sat_dispatch_cfg.isl_enabled = this->isl_enabled;
 		auto& block_sat_dispatch = Rt::Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
-		uint32_t isl_delay = 0;
+		std::shared_ptr<IslDelayPlugin> isldelay;
 		if (isl_enabled)
 		{
-			auto isl_conf = Conf->getProfileData("isl");
-			if (!OpenSandModelConf::extractParameterData(isl_conf, "delay", isl_delay))
+			std::string isldelay_name;
+			auto delay = OpenSandModelConf::Get()->getProfileData()->getComponent("isl")->getComponent("delay");
+			if(!OpenSandModelConf::extractParameterData(delay->getParameter("isl_delay"), isldelay_name))
 			{
+				DFLTLOG(LEVEL_ERROR,
+				    "section 'isl', missing parameter 'isl_delay'");
+				return false;
+			}
+			/// Load de SatDelay Plugin
+			isldelay = Plugin::getIslDelayPlugin(isldelay_name);
+			if(!isldelay)
+			{
+				DFLTLOG(LEVEL_ERROR,
+				    "error when getting the satellite ISL delay plugin '%s'",
+				    isldelay_name.c_str());
+				return false;
+			}
+			// init plugin
+			if(!isldelay->init())
+			{
+				DFLTLOG(LEVEL_ERROR,
+				    "cannot initialize satellite ISL delay plugin '%s'",
+				    isldelay_name.c_str());
 				return false;
 			}
 		}
@@ -117,7 +137,7 @@ bool EntitySat::createSpecificBlocks()
 				{
 					InterconnectConfig interco_cfg{
 						.interconnect_addr = cfg.interco_addr,
-						.delay = time_ms_t(isl_delay),
+						.delay = isldelay,
 						.isl_index = index,
 					};
 					auto& block_interco = Rt::Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
@@ -129,7 +149,7 @@ bool EntitySat::createSpecificBlocks()
 					bool is_used_for_isl = instance_id != cfg.linked_sat_id;
 					la_specific la_cfg{
 						.tap_iface = cfg.tap_iface,
-						.delay = time_ms_t(isl_delay),
+						.delay = isldelay,
 						.connected_satellite = cfg.linked_sat_id,
 						.is_used_for_isl = is_used_for_isl,
 						.packet_switch = std::make_shared<SatellitePacketSwitch>(instance_id, is_used_for_isl, getIslEntities(spot_topo)),
@@ -232,7 +252,6 @@ bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = spot_id;
 		dvb_spec.is_ground_entity = false;
-		dvb_spec.upper_encap = Ethernet::constructPlugin();
 		if (!OpenSandModelConf::Get()->getControlPlaneDisabled(dvb_spec.disable_control_plane))
 		{
 			DFLTLOG(LEVEL_ERROR,
@@ -277,8 +296,8 @@ void defineProfileMetaModel()
 	GroundPhysicalChannel::generateConfiguration();
 
 	auto isl = conf->getOrCreateComponent("isl", "ISL", "Inter-satellite links");
-	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("uint"), "Propagation delay for output ISL packets");
-	isl_delay->setUnit("ms");
+	auto isl_delay = conf->getOrCreateComponent("delay", "Delay", isl);
+	Plugin::generatePluginsConfiguration(isl_delay, PluginType::IslDelay, "isl_delay", "ISL Delay");
 }
 
 bool EntitySat::loadConfiguration(const std::string &profile_path)

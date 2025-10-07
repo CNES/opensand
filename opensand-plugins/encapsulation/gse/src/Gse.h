@@ -28,152 +28,129 @@
 
 /**
  * @file Gse.h
- * @brief GSE encapsulation plugin implementation
- * @author Julien BERNARD <jbernard@toulouse.viveris.com>
- * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
+ * @brief Gse encapsulation plugin implementation
+ * @author Axel Pinel <axel.pinel@viveris.fr>
  */
 
-#ifndef GSE_CONTEXT_H
-#define GSE_CONTEXT_H
-
+#ifndef GseRust_CONTEXT_H
+#define GseRust_CONTEXT_H
 
 #include <map>
 #include <string>
 #include <vector>
 
 #include <EncapPlugin.h>
-
 #include "GseIdentifier.h"
 
+#include "Memory.h"
+#include "GseApi.h"
 
-extern "C"
-{
-	#include <gse/constants.h>
-	#include <gse/status.h>
-	#include <gse/virtual_fragment.h>
-	#include <gse/encap.h>
-	#include <gse/deencap.h>
-	#include <gse/refrag.h>
-	#include <gse/header_fields.h>
-}
-
-
-class GseEncapCtx;
 class NetPacket;
 class NetBurst;
 
-
 /**
  * @class Gse
- * @brief GSE encapsulation plugin implementation
+ * @brief Gse encapsulation plugin implementation
  */
-class Gse: public EncapPlugin
+class Gse : public EncapPlugin
 {
- public:
+private:
 	/**
-	 * @class Context
-	 * @brief GSE encapsulation / desencapsulation context
+	 * @brief Decapsulate the packet using Gse (Rust) librairy
+	 * @param data  IN: the packet to decapsulate
+	 * @param size_t  OUT: the length read from the packet
+	 * @return the packet decapsulated
 	 */
-	class Context: public EncapContext
-	{
-	 private:
-		/// The GSE encapsulation context
-		gse_encap_t *encap;
-		/// The GSE deencapsulation context
-		gse_deencap_t *deencap;
-		/// Vector of GSE virtual fragments
-		std::vector<gse_vfrag_t *> vfrag_pkt_vec; // <-not used. remove ? 
-		/// GSE virtual fragment for storing packets before encapsulation
-		gse_vfrag_t *vfrag_pkt;
-		/// GSE virtual fragment for storing packets after encapsulation
-		gse_vfrag_t *vfrag_gse;
-		/// Buffer used by the vfrags
-		uint8_t *buf;
-		/// Temporary buffers for encapsulation contexts. Contexts are identified
-		/// by an unique identifier
-		std::map<GseIdentifier, GseEncapCtx, ltGseIdentifier> contexts;
-		/// The packing threshold for encapsulation. Packing Threshold is the time
-		/// the context can wait for additional SNDU packets to fill the incomplete
-		/// GSE packet before sending the GSE packet with padding.
-		unsigned long packing_threshold;
-
-	 public:
-		/// constructor
-		Context(EncapPlugin &plugin);
-
-		/**
-		 * Destroy the GSE encapsulation / deencapsulation context
-		 */
-		~Context();
-
-		bool init();
-		Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &time_contexts);
-		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst);
-		Rt::Ptr<NetBurst> flush(int context_id);
-		Rt::Ptr<NetBurst> flushAll();
-
-	 private:
-		bool encapFixedLength(Rt::Ptr<NetPacket> packet, NetBurst &gse_packets, long &time);
-		bool encapVariableLength(Rt::Ptr<NetPacket> packet, NetBurst &gse_packets);
-		bool encapPacket(Rt::Ptr<NetPacket> packet, NetBurst &gse_packets);
-		bool deencapPacket(gse_vfrag_t *vfrag_gse,
-		                   uint16_t dest_spot,
-		                   NetBurst &net_packets);
-		bool deencapFixedLength(gse_vfrag_t *vfrag_pdu,
-		                        uint16_t dest_spot,
-		                        uint8_t label[6],
-		                        NetBurst &net_packets);
-		bool deencapVariableLength(gse_vfrag_t *vfrag_pdu,
-		                           uint16_t dest_spot,
-		                           uint8_t label[6],
-		                           NetBurst &net_packets);
-	};
+	Rt::Ptr<NetPacket> decapNextPacket(const Rt::Data &data,
+									   size_t &length_decap);
 
 	/**
-	 * @class Packet
-	 * @brief GSE packet
+	 * @brief Map of encapsulation context
+	 * @details when a packet is fragmented, the state of the fragmentation is saved
+	 * in this map. @ref GetChunk()
 	 */
-	class PacketHandler: public EncapPacketHandler
-	{
-	 private:
-		std::map<std::string, gse_encap_build_header_ext_cb_t> encap_callback;
-		std::map<std::string, gse_deencap_read_header_ext_cb_t> deencap_callback;
+	std::map<GseIdentifier, RustContextFrag, ltGseIdentifier> contexts;
 
-	 public:
-		PacketHandler(EncapPlugin &plugin);
+	/**
+	 * @brief Memory buffer to save fragment during desencapsulation
+	 * @details Memory is created by the plugin but used by the crate
+	 * (given in parameter during the creation of the rust deencapsulator object).
+	 * @ref decap_and_build()
+	 */
+	c_memory decap_buffer;
 
-		Rt::Ptr<NetPacket> build(const Rt::Data &data,
-		                         std::size_t data_length,
-		                         uint8_t qos,
-		                         uint8_t src_tal_id,
-		                         uint8_t dst_tal_id) override;
-		size_t getFixedLength() const {return 0;};
-		size_t getMinLength() const {return 3;};
-		size_t getLength(const unsigned char *data) const;
-		bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const;
-		bool getDst(const Rt::Data &data, tal_id_t &tal_id) const;
-		bool getQos(const Rt::Data &data, qos_t &qos) const;
+	/**
+	 * @brief OpaquePointer to the Rust Encapsulator Object.
+	 * This attribute should be given as parameter to
+	 * the encapsulation function from the DVB GSE crate.
+	 */
+	OpaquePtrEncap *rust_encapsulator;
 
-		bool checkPacketForHeaderExtensions(Rt::Ptr<NetPacket> &packet) override;
-		bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
-		                         Rt::Ptr<NetPacket>& new_packet,
-		                         tal_id_t tal_id_src,
-		                         tal_id_t tal_id_dst,
-		                         std::string callback,
-		                         void *opaque) override;
+	/**
+	 * @brief OpaquePointer to the Rust Decapsulator Object.
+	 * This attribute should be given as parameter to
+	 * the deencapsulation function from the DVB GSE crate.
+	 */
+	OpaquePtrDecap *rust_decapsulator;
 
-		bool getHeaderExtensions(const Rt::Ptr<NetPacket>& packet,
-		                         std::string callback,
-		                         void *opaque) override;
+	/**
+	 * @brief Force compatibility with the DVB GSE library written in C language, if true
+	 * @details Avoid to use the label ReUse and force the usage of SixBytes Label because
+	 * the C library doesn't support them
+	 */
+	bool force_compatibility;
 
-	 protected:
-		bool getChunk(Rt::Ptr<NetPacket> packet,
-		              std::size_t remaining_length,
-		              Rt::Ptr<NetPacket>& data,
-		              Rt::Ptr<NetPacket>& remaining_data) override;
-	};
+	uint8_t max_reuse;
 
-	/// Constructor
+public:
+	/**
+	 * @brief Decapsulate all the packet using @ref decapNextPacket and push the packet to the std::vector
+	 * @param encap_packets  IN: the packets to decapsulate
+	 * @param decap_packet_count IN: the number of packet to decapsulate in the NetContainer
+	 * @param decap_packets  OUT: the vector of decapsulated packet
+	 */
+
+	bool decapAllPackets(Rt::Ptr<NetContainer> encap_packets,
+						 std::vector<Rt::Ptr<NetPacket>> &decap_packets,
+						 unsigned int decap_packet_count = 0) override;
+
+	/**
+	 * @warning This method should never be called. If called, it will abort.
+	 */
+	Rt::Ptr<NetPacket> build(const Rt::Data &data,
+							 std::size_t data_length,
+							 uint8_t qos,
+							 uint8_t src_tal_id,
+							 uint8_t dst_tal_id) override;
+
+	/**
+	 * @warning This method should never be called. If called, it will abort.
+	 */
+	bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const override;
+
+	/**
+	 * @warning This method should never be called. If called, it will abort.
+	 */
+	bool getQos(const Rt::Data &data, qos_t &qos) const override;
+
+	bool encapNextPacket(Rt::Ptr<NetPacket> packet,
+						 std::size_t remaining_length,
+						 bool new_burst,
+						 Rt::Ptr<NetPacket> &encap_packet,
+						 Rt::Ptr<NetPacket> &remaining_data) override;
+
+	bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
+							 Rt::Ptr<NetPacket> &new_packet,
+							 tal_id_t tal_id_src,
+							 tal_id_t tal_id_dst,
+							 std::string callback_name,
+							 void *opaque) override;
+
+	bool getHeaderExtensions(const Rt::Ptr<NetPacket> &packet,
+							 std::string callback_name,
+							 void *opaque) override;
+
+public:
 	Gse();
 	~Gse();
 
@@ -181,28 +158,19 @@ class Gse: public EncapPlugin
 	 * @brief Generate the configuration for the plugin
 	 */
 	static void generateConfiguration(const std::string &parent_path,
-	                                  const std::string &param_id,
-	                                  const std::string &plugin_name);
+									  const std::string &param_id,
+									  const std::string &plugin_name);
 
 	// Static methods: getter/setter for label/fragId
 
 	/**
-	 * @brief  Set the GSE packet label
+	 * @brief  Set the Gse packet label
 	 *
 	 * @param   packet  The packet to get label values from.
 	 * @param   label   The label to set values of.
 	 * @return  true on success, false otherwise.
 	 */
 	static bool setLabel(const NetPacket &packet, uint8_t label[]);
-
-	/**
-	 * @brief  Set the GSE packet label
-	 *
-	 * @param   context  The GSE context to get label values from.
-	 * @param   label   The label to set values of.
-	 * @return  true on success, false otherwise.
-	 */
-	static bool setLabel(const GseEncapCtx &context, uint8_t label[]);
 
 	/**
 	 * @brief   Get the source TAL Id from label.
@@ -233,25 +201,11 @@ class Gse: public EncapPlugin
 	static uint8_t getFragId(const NetPacket &packet);
 
 	/**
-	 * @brief   Create a fragment id from a GSE context.
-	 * @param   contextt  The context to create the frag id from..
-	 * @return  the frag id.
-	 */
-	static uint8_t getFragId(const GseEncapCtx &context);
-
-	/**
 	 * @brief   Get the source TAL Id from a fragment id..
 	 * @param   frag_id  The fragment dd to read value from.
 	 * @return  the source TAL Id.
 	 */
 	static uint8_t getSrcTalIdFromFragId(const uint8_t frag_id);
-
-	/**
-	 * @brief   Get the destination TAL Id from a fragment id..
-	 * @param   frag_id  The fragment dd to read value from.
-	 * @return  the destination TAL Id.
-	 */
-	static uint8_t getDstTalIdFromFragId(const uint8_t frag_id);
 
 	/**
 	 * @brief   Get the QoS value from a fragment id..
@@ -261,8 +215,6 @@ class Gse: public EncapPlugin
 	static uint8_t getQosFromFragId(const uint8_t frag_id);
 };
 
-
-CREATE(Gse, Gse::Context, Gse::PacketHandler, "GSE");
-
+CREATE(Gse, PluginType::Encapsulation, "GSE");
 
 #endif

@@ -27,5 +27,3 @@ libopensand_physical_layer_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/dvb/utils \
 	-I$(top_srcdir)/src/dvb/fmt
 
-
-

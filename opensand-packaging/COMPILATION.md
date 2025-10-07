@@ -103,11 +103,11 @@ This component compilation requires the installation of the Real Time, Configura
 To compile and install it, execute the following commands:
 
 ```
-  $ cd opensand-core
-  $ ./autogen.sh
-  $ make
-  $ make check
-  $ sudo make install
+$ cd opensand-core
+$ ./autogen.sh
+$ make
+$ make check
+$ sudo make install
 ```
 
 ## GSE plugin

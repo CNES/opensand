@@ -120,6 +120,10 @@ AC_CONFIG_FILES([ \
 	src/physical_layer/plugins/satdelay/constant/Makefile \
 	src/physical_layer/plugins/satdelay/file/Makefile \
 	src/sat/Makefile \
+	src/sat/plugins/Makefile \
+	src/sat/plugins/isldelay/Makefile \
+	src/sat/plugins/isldelay/constant/Makefile \
+	src/sat/plugins/isldelay/file/Makefile \
 	src/system/Makefile \
 	opensand_plugin.pc \
 	doc/doxygen \

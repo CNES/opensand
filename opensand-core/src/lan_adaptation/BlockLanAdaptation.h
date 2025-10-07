@@ -51,12 +51,13 @@
 
 
 class PacketSwitch;
+class IslDelayPlugin;
 
 
 struct la_specific
 {
 	std::string tap_iface;
-	time_ms_t delay = time_ms_t::zero();
+	std::shared_ptr<IslDelayPlugin> delay = nullptr;
 	tal_id_t connected_satellite = 0;
 	bool is_used_for_isl = false;
 	std::shared_ptr<PacketSwitch> packet_switch = nullptr;
@@ -77,11 +78,11 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	bool onEvent(const MessageEvent& event) override;
 
 	/**
-	 * @brief Set the lan adaptation contexts for channels
+	 * @brief Set the ethernet context for channels
 	 *
-	 * @param contexts the lan adaptation contexts
+	 * @param context the ethernet context
 	 */
-	void setContexts(const lan_contexts_t &contexts);
+	void setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin);
 
 	/**
 	 * @brief Set the network socket file descriptor
@@ -115,8 +116,8 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	/// TAP file descriptor
 	int fd;
 
-	/// the contexts list from lower to upper context
-	lan_contexts_t contexts;
+	/// the ethernet context
+	std::shared_ptr<LanAdaptationPlugin> context;
 
 	/// The MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;
@@ -128,7 +129,7 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	std::shared_ptr<PacketSwitch> packet_switch;
 
 	// Delay before writting on the TAP
-	time_ms_t delay;
+	std::shared_ptr<IslDelayPlugin> delay;
 
 	// Polling event to implement delay before writting on the TAP
 	event_id_t delay_timer;
@@ -153,11 +154,11 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 	bool onEvent(const MessageEvent& event) override;
 
 	/**
-	 * @brief Set the lan adaptation contexts for channels
+	 * @brief Set the ethernet context for channels
 	 *
-	 * @param contexts the lan adaptation contexts
+	 * @param context the ethernet context
 	 */
-	void setContexts(const lan_contexts_t &contexts);
+	void setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin);
 
 	/**
 	 * @brief Set the network socket file descriptor
@@ -173,8 +174,8 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 	///  The period for statistics update
 	time_ms_t stats_period_ms;
 
-	/// the contexts list from lower to upper context
-	lan_contexts_t contexts;
+	/// the ethernet context
+	std::shared_ptr<LanAdaptationPlugin> context;
 
 	/// The MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;

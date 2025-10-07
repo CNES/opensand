@@ -91,7 +91,9 @@
     </network>
     <encap>
       <gse>
-        <packing_threshold>3</packing_threshold>
+        <max_frag_id>8</max_frag_id>
+        <decap_buffer_len>8</decap_buffer_len>
+        <compatibility_mode>true</compatibility_mode>
       </gse>
       <rle>
         <alpdu_protection>Sequence Number</alpdu_protection>

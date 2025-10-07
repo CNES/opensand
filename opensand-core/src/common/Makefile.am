@@ -1,5 +1,3 @@
-#SUBDIRS = tests
-
 # Be very careful, as Plugin define a static instance of
 # PluginUtils, you MUST NOT link with libopensand_plugin_utils.la !!
 noinst_LTLIBRARIES = libopensand_plugin_utils.la libopensand_utils.la
@@ -25,17 +23,15 @@ libopensand_plugin_la_cpp = \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp \
-	StackPlugin.cpp \
-	SimpleEncapPlugin.cpp \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
 	PhysicalLayerPlugin.cpp \
+	IslPlugin.cpp \
 	SpotComponentPair.cpp \
 	DelayFifo.cpp
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
-	StackPlugin.h \
 	OpenSandCore.h \
 	Except.h \
 	CarrierType.h \
@@ -47,9 +43,9 @@ libopensand_plugin_la_h = \
 	TrafficCategory.h \
 	SarpTable.h \
 	EncapPlugin.h \
-	SimpleEncapPlugin.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h \
+	IslPlugin.h \
 	SpotComponentPair.h \
 	DelayFifo.h
 

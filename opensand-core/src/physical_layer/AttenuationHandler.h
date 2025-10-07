@@ -58,10 +58,10 @@ private:
 	/** Minimal Conditions (minimun C/N to have QEF communications)
 	 *  of global link (i.e. considering the Modcod scheme)
 	 */
-	MinimalConditionPlugin *minimal_condition_model;
+	std::shared_ptr<MinimalConditionPlugin> minimal_condition_model;
 
 	/// Error Insertion object : defines who error will be introduced
-	ErrorInsertionPlugin *error_insertion_model;
+	std::shared_ptr<ErrorInsertionPlugin> error_insertion_model;
 
 	/// Log
 	std::shared_ptr<OutputLog> log_channel;
