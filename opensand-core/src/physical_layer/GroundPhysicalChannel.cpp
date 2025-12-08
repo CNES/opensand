@@ -80,7 +80,7 @@ void GroundPhysicalChannel::generateConfiguration()
 	Plugin::generatePluginsConfiguration(downlink, PluginType::Attenuation, "attenuation_type", "Attenuation Type");
 }
 
-void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
+void GroundPhysicalChannel::setSatDelay(std::shared_ptr<SatDelayPlugin> satdelay)
 {
 	this->satdelay_model = satdelay;
 }
@@ -168,7 +168,8 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 	    "attenuation_type = %s", attenuation_type.c_str());
 
 	// Get the attenuation plugin
-	if(!Plugin::getAttenuationPlugin(attenuation_type, &this->attenuation_model))
+	this->attenuation_model = Plugin::getAttenuationPlugin(attenuation_type);
+	if(!this->attenuation_model)
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "Unable to get the physical layer attenuation plugin");

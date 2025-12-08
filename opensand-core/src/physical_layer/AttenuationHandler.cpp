@@ -99,13 +99,15 @@ bool AttenuationHandler::initialize(std::shared_ptr<OutputLog> log_init, const s
 	    "error_insertion_type = %s", error_type.c_str());
 
 	// Load plugins
-	if(!Plugin::getMinimalConditionPlugin(minimal_type, &this->minimal_condition_model))
+	this->minimal_condition_model = Plugin::getMinimalConditionPlugin(minimal_type);
+	if(!this->minimal_condition_model)
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "Unable to get the physical layer minimal condition plugin");
 		return false;
 	}
-	if(!Plugin::getErrorInsertionPlugin(error_type, &this->error_insertion_model))
+	this->error_insertion_model = Plugin::getErrorInsertionPlugin(error_type);
+	if(!this->error_insertion_model)
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "Unable to get the physical layer error insertion plugin");

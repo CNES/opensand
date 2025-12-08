@@ -1,0 +1,4 @@
+only_target_dependencies=true
+
+include_guard = "GSE_RUST_C_API_H"
+output = "my_header.h"

@@ -44,7 +44,6 @@
 #include <sstream>
 
 #include <opensand_rt/Ptr.h>
-
 #include "StFmtSimu.h"
 #include "DvbFrame.h"
 #include "EncapPlugin.h"
@@ -62,7 +61,7 @@ class DvbFifo;
 class DvbChannel
 {
 public:
-	DvbChannel(StackPlugin *upper_encap, const std::string &name);
+	DvbChannel(const std::string &name);
 protected:
 	/**
 	 * @brief Read MODCOD Definition types
@@ -80,8 +79,7 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool initPktHdl(EncapSchemeList encap_schemes,
-					std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl,
-					encap_contexts_t &ctx);
+					std::shared_ptr<EncapPlugin> &pkt_hdl); 
 
 	/**
 	 * @brief Forward filter terminal ID to the encapsulation contexts
@@ -246,9 +244,7 @@ protected:
 	time_us_t ret_up_frame_duration;
 
 	/// The encapsulation packet handler
-	std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl;
-	encap_contexts_t ctx;
-	StackPlugin *upper_encap;
+	std::shared_ptr<EncapPlugin> pkt_hdl;
 
 	/// The statistics period
 	time_ms_t stats_period_ms;
@@ -434,7 +430,7 @@ protected:
 	 *
 	 * @return The packet with extension on success, nullptr otherwise
 	 */
-	Rt::Ptr<NetPacket> setPacketExtension(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+	Rt::Ptr<NetPacket> setPacketExtension(std::shared_ptr<EncapPlugin> pkt_hdl,
 										  Rt::Ptr<NetPacket> packet,
 										  tal_id_t source,
 										  tal_id_t dest,

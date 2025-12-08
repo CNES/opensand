@@ -70,7 +70,6 @@
 #include "SpotUpward.h"
 #include "SpotDownward.h"
 #include "PacketSwitch.h"
-#include "Ethernet.h"
 
 
 EntityGw::EntityGw(tal_id_t instance_id, bool check_mode):
@@ -109,7 +108,6 @@ bool EntityGw::createSpecificBlocks()
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = instance_id;
 		dvb_spec.is_ground_entity = true;
-		dvb_spec.upper_encap = Ethernet::constructPlugin();
 
 		struct sc_specific scspecific;
 		scspecific.ip_addr = this->ip_address;

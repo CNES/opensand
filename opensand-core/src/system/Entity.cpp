@@ -373,7 +373,7 @@ bool Entity::run()
 		return false;
 	}
 	Output::Get()->finalizeConfiguration();
-	status->sendEvent("Blocks initialized");
+	status->sendEvent("%s", "Blocks initialized");
 
 	if (check_mode)
 	{

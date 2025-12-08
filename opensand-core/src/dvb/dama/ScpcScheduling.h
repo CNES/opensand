@@ -63,7 +63,7 @@ class ScpcScheduling: public Scheduling
 {
 public:
 	ScpcScheduling(time_us_t scpc_timer,
-	               std::shared_ptr<EncapPlugin::EncapPacketHandler> packet_handler,
+	               std::shared_ptr<EncapPlugin> packet_handler,
 	               std::shared_ptr<fifos_t> fifos,
 	               std::shared_ptr<const StFmtSimuList> simu_sts,
 	               const FmtDefinitionTable &scpc_modcod_def,

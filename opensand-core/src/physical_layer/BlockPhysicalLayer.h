@@ -212,7 +212,7 @@ class BlockPhysicalLayer: public Rt::Block<BlockPhysicalLayer, PhyLayerConfig>
 	tal_id_t mac_id;
 
 	/// The satellite delay for this terminal
-	SatDelayPlugin *satdelay = nullptr;
+	std::shared_ptr<SatDelayPlugin> satdelay;
 };
 
 

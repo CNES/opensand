@@ -40,7 +40,7 @@
 #include "NetBurst.h"
 
 
-DvbRcsStd::DvbRcsStd(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
+DvbRcsStd::DvbRcsStd(std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl),
 	has_fixed_length(true)
 {
@@ -48,14 +48,14 @@ DvbRcsStd::DvbRcsStd(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
 }
 
 DvbRcsStd::DvbRcsStd(std::string type, bool has_fixed_length,
-                     std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
+                     std::shared_ptr<EncapPlugin> pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	has_fixed_length(has_fixed_length)
 {
 	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
-DvbRcs2Std::DvbRcs2Std(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl):
+DvbRcs2Std::DvbRcs2Std(std::shared_ptr<EncapPlugin> pkt_hdl):
 	DvbRcsStd("DVB-RCS2", false, pkt_hdl)
 {
 }
@@ -71,7 +71,7 @@ bool DvbRcsStd::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 {
 
 	std::vector<Rt::Ptr<NetPacket>> decap_packets;
-	bool partial_decap = false;
+	//bool partial_decap = false;
 
 	// sanity check
 	if(dvb_frame == nullptr)
@@ -115,23 +115,14 @@ bool DvbRcsStd::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 		return true;
 	}
 
-	if(this->has_fixed_length && this->packet_handler->getFixedLength() == 0)
-	{
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
-		    "encapsulated packets length is not fixed on "
-		    "a DVB-RCS emission link (packet type is %s)\n",
-		    this->packet_handler->getName().c_str());
-		return false;
-	}
-
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
 	    "%s burst received (%u packet(s))\n",
 	    this->packet_handler->getName().c_str(),
 	    packets_count);
 
 	// get encapsulated packets received from lower layer
-	if(!this->packet_handler->getEncapsulatedPackets(std::move(dvb_rcs_frame),
-	                                                 partial_decap,
+	if(!this->packet_handler->decapAllPackets(std::move(dvb_rcs_frame),
+	                                                 //partial_decap,
 	                                                 decap_packets,
 	                                                 packets_count))
 	{

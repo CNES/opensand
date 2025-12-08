@@ -52,15 +52,15 @@
 
 std::shared_ptr<OutputLog> DvbChannel::dvb_fifo_log = nullptr;
 
-DvbChannel::DvbChannel(StackPlugin *upper_encap, const std::string &name) : req_burst_length(0),
-																			super_frame_counter(0),
-																			fwd_down_frame_duration(),
-																			ret_up_frame_duration(),
-																			pkt_hdl(nullptr),
-																			upper_encap(upper_encap),
-																			stats_period_ms(),
-																			stats_period_frame(),
-																			check_send_stats(0)
+DvbChannel::DvbChannel(const std::string &name):
+	req_burst_length(0),
+	super_frame_counter(0),
+	fwd_down_frame_duration(),
+	ret_up_frame_duration(),
+	pkt_hdl(nullptr),
+	stats_period_ms(),
+	stats_period_frame(),
+	check_send_stats(0)
 {
 	// register static log
 	auto output = Output::Get();
@@ -68,7 +68,6 @@ DvbChannel::DvbChannel(StackPlugin *upper_encap, const std::string &name) : req_
 	this->log_init_channel = output->registerLog(LEVEL_WARNING, "Dvb." + name + ".Channel.init");
 	this->log_receive_channel = output->registerLog(LEVEL_WARNING, "Dvb." + name + ".Channel.receive");
 	this->log_send_channel = output->registerLog(LEVEL_WARNING, "Dvb." + name + ".Channel.send");
-	auto dvbchannelconf = OpenSandModelConf::Get()->getProfileData()->getComponent("encap")->getComponent("dvbchannel");
 };
 
 bool DvbChannel::initModcodDefinitionTypes(void)
@@ -92,48 +91,22 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 }
 
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
-							std::shared_ptr<EncapPlugin::EncapPacketHandler> &pkt_hdl,
-							encap_contexts_t &ctx)
+							std::shared_ptr<EncapPlugin> &pkt_hdl)
 {
-
 	auto encap_conf = OpenSandModelConf::Get()->getProfileData()->getComponent("encap");
-	if (!encap_conf)
-	{
-		std::cout << "missing encap section; using GSE c library by default\n";
-	}
-	std::string GSE_library_type;
-	if (!OpenSandModelConf::extractParameterData(encap_conf->getParameter("GSE_library"), GSE_library_type))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-			"Section encap, missing parameter GSE_library_type\n");
-		return false;
-	}
-
-	ctx.clear();
-	std::vector<std::string> encap_names;
+	std::string encap_plugin;
 	switch (encap_schemes)
 	{
 	case EncapSchemeList::FORWARD_DOWN:
+		encap_plugin = "GSE";
+		break;
+
 	case EncapSchemeList::RETURN_SCPC:
-
-		if (GSE_library_type == "Rust")
-		{
-
-			LOG(this->log_init_channel, LEVEL_INFO,
-				"Using GSE Rust crate \n");
-			encap_names.emplace_back("GSERust");
-		}
-		if (GSE_library_type == "C")
-		{
-
-			LOG(this->log_init_channel, LEVEL_INFO,
-				"Using GSE C-library\n");
-			encap_names.emplace_back("GSE");
-		}
+		encap_plugin = "GSE";
 		break;
 
 	case EncapSchemeList::RETURN_UP:
-		encap_names.emplace_back("RLE");
+		encap_plugin = "RLE";
 		break;
 
 	case EncapSchemeList::TRANSPARENT_NO_SCHEME:
@@ -149,40 +122,13 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 		return false;
 	}
 
-	StackPlugin *upper_encap = this->upper_encap;
-	for (auto &&encap_name : encap_names)
+	pkt_hdl = Plugin::getEncapsulationPlugin(encap_plugin);
+	if (!pkt_hdl)
 	{
-		EncapPlugin *plugin;
-		if (!Plugin::getEncapsulationPlugin(encap_name, &plugin))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"cannot get plugin for %s encapsulation\n",
-				encap_name);
-			return false;
-		}
-
-		auto context = plugin->getContext();
-		ctx.push_back(context);
-		pkt_hdl = plugin->getPacketHandler();
-		if (!pkt_hdl)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"cannot get %s packet handler\n", encap_name.c_str());
-			return false;
-		}
-		if (!context->setUpperPacketHandler(upper_encap->getPacketHandler()))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"upper encapsulation type %s is not supported "
-				"for %s encapsulation",
-				upper_encap->getName(),
-				context->getName());
-			return false;
-		}
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-			"encapsulation scheme = %s\n",
-			pkt_hdl->getName());
-		upper_encap = plugin;
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"cannot get plugin for %s encapsulation\n",
+			encap_plugin);
+		return false;
 	}
 
 	return true;
@@ -190,10 +136,8 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 
 void DvbChannel::setFilterTalId(tal_id_t filter)
 {
-	for (auto &&context : this->ctx)
-	{
-		context->setFilterTalId(filter);
-	}
+	uint8_t filter_u8 = static_cast<uint8_t>(filter & 0xFF);
+	this->pkt_hdl->setFilterTalId(filter_u8);
 }
 
 bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
@@ -214,7 +158,7 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 		"frame duration set to %uμs\n",
 		this->ret_up_frame_duration.count());
 
-	if (!this->initPktHdl(encap_schemes, this->pkt_hdl, this->ctx))
+	if (!this->initPktHdl(encap_schemes, this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 			"failed to initialize packet handler\n");
@@ -422,7 +366,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 	return this->output_sts->getCniHasChanged(tal_id);
 }
 
-Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(std::shared_ptr<EncapPlugin::EncapPacketHandler> pkt_hdl,
+Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(std::shared_ptr<EncapPlugin> pkt_hdl,
 											  Rt::Ptr<NetPacket> packet,
 											  tal_id_t source,
 											  tal_id_t dest,
@@ -446,33 +390,6 @@ Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(std::shared_ptr<EncapPlugin::Encap
 	}
 
 	opaque = hcnton(cni);
-
-	if (packet)
-	{
-
-		bool success = pkt_hdl->checkPacketForHeaderExtensions(packet);
-
-		if (!success)
-		{
-			LOG(this->log_fmt, LEVEL_DEBUG,
-				"SF#%d: Cannot get packet to add header extension\n",
-				super_frame_counter);
-		}
-		else if (packet != nullptr)
-		{
-			LOG(this->log_fmt, LEVEL_DEBUG,
-				"SF#%d: found no-fragmented packet without extensions\n",
-				super_frame_counter);
-		}
-		else
-		{
-			LOG(this->log_fmt, LEVEL_DEBUG,
-				"SF#%d: no non-fragmented or without extension packet found, "
-				"create empty packet\n",
-				super_frame_counter);
-		}
-	}
-
 	Rt::Ptr<NetPacket> extension_pkt = Rt::make_ptr<NetPacket>(nullptr);
 
 	if (!pkt_hdl->setHeaderExtensions(std::move(packet),

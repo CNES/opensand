@@ -86,11 +86,9 @@ They are detailed on the following table:
 | `opensand-plugins/encapsulation/gse` | `libopensand-gse-encap-plugin-conf` | Configuration files of the GSE Encapsulation plugin for exploitation |
 | ::: | `libopensand-gse-encap-plugin` | Library the GSE Encapsulation plugin for exploitation |
 | ::: | `libopensand-gse-encap-plugin-dbg` | Library symbols the GSE Encapsulation plugin for debug |
-| ::: | `libopensand-gse-encap-plugin-manager` | Manager module of the GSE Encapsulation plugin |
 | `opensand-plugins/encapsulation/rle` | `libopensand-rle-encap-plugin-conf` | Configuration files of the RLE Encapsulation plugin for exploitation |
 | ::: | `libopensand-rle-encap-plugin` | Library the RLE Encapsulation plugin for exploitation |
 | ::: | `libopensand-rle-encap-plugin-dbg` | Library symbols the RLE Encapsulation plugin for debug |
-| ::: | `libopensand-rle-encap-plugin-manager` | Manager module of the RLE Encapsulation plugin |
 
 Additional meta packages can be generated:
 

@@ -2,7 +2,7 @@ Source: opensand-gse-encap-plugin
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper-compat (= 13), autotools-dev, automake, libtool,
- libgse-dev (>= 1.0.1),
+ cargo, rustc,
  libopensand-conf-dev (>= 7.0.0),
  libopensand-output-dev (>= 7.0.0),
  libopensand-plugin-dev (>= 7.0.0)
@@ -15,7 +15,7 @@ Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
  opensand-core (= ${binary:Version})
-Provides: libopensand-gse-plugin
-Conflicts: libopensand-gse-plugin
-Replaces: libopensand-gse-plugin
-Description: The GSE plugin for OpenSAND
+Provides: libopensand-gse-plugin, libopensand-gse-rust-encap-plugin
+Conflicts: libopensand-gse-plugin, libopensand-gse-rust-encap-plugin
+Replaces: libopensand-gse-plugin, libopensand-gse-rust-encap-plugin
+Description: The GSE plugin for OpenSAND (Rust build)

@@ -103,11 +103,11 @@ This component compilation requires the installation of the Real Time, Configura
 To compile and install it, execute the following commands:
 
 ```
-  $ cd opensand-core
-  $ ./autogen.sh
-  $ make
-  $ make check
-  $ sudo make install
+$ cd opensand-core
+$ ./autogen.sh
+$ make
+$ make check
+$ sudo make install
 ```
 
 ## GSE plugin
@@ -119,12 +119,11 @@ Its source code is stored in the `opensand-plugins/encapsulation/gse` directory.
 This component compilation requires the installation of the Plugin, Configuration and Output libraries:
 
   * from source
-  * from packages: `libopensand-output` `libopensand-output-dev` `libopensand-conf` `libopensand-conf-dev``libopensand-plugin` `libopensand-plugin-dev`
+  * from packages: `libopensand-output` `libopensand-output-dev` `libopensand-conf` `libopensand-conf-dev` `libopensand-plugin` `libopensand-plugin-dev`
 
-It also requires the installation of the external GSE encapsulation library:
+It also requires the installation of a Rust toolchain and Git to compile the GSE library into the Plugin.
 
-  * from [source](https://github.com/CNES/libgse)
-  * or from packages: `libgse` `libgse-dev`
+  * from packages: `cargo` `rustc` `git`
 
 To compile and install it, execute the following commands:
 

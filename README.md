@@ -10,7 +10,7 @@ and conditions of the GNU GPLv3 license or the GNU LGPLv3 license.
 
 Visit us at [opensand.org](https://www.opensand.org/).
 
-# OpenSAND v6.1.0
+# OpenSAND v8.2.0
 
 ## Manuals
 

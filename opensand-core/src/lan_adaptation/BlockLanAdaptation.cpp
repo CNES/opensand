@@ -42,6 +42,7 @@
 #include "OpenSandModelConf.h"
 #include "PacketSwitch.h"
 #include "FifoElement.h"
+#include "IslPlugin.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/FileEvent.h>
@@ -78,7 +79,7 @@ BlockLanAdaptation::BlockLanAdaptation(const std::string &name, la_specific spec
 Rt::DownwardChannel<BlockLanAdaptation>::DownwardChannel(const std::string &name, la_specific specific):
 	Channels::Downward<DownwardChannel<BlockLanAdaptation>>{name},
 	stats_period_ms{},
-	contexts{},
+	context{},
 	tal_id{specific.connected_satellite},
 	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN},
 	packet_switch{specific.packet_switch}
@@ -89,7 +90,7 @@ Rt::DownwardChannel<BlockLanAdaptation>::DownwardChannel(const std::string &name
 Rt::UpwardChannel<BlockLanAdaptation>::UpwardChannel(const std::string &name, la_specific specific):
 	Channels::Upward<UpwardChannel<BlockLanAdaptation>>{name},
 	sarp_table{},
-	contexts{},
+	context{},
 	tal_id{specific.connected_satellite},
 	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN},
 	packet_switch{specific.packet_switch},
@@ -108,15 +109,7 @@ void BlockLanAdaptation::generateConfiguration()
 
 bool BlockLanAdaptation::onInit()
 {
-	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
-	std::shared_ptr<LanAdaptationPlugin::LanAdaptationContext> context = plugin->getContext();
-	if(!context->setUpperPacketHandler(nullptr))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot use %s for packets read on the interface",
-		    context->getName().c_str());
-		return false;
-	}
+	std::shared_ptr<LanAdaptationPlugin> plugin = Ethernet::constructPlugin();
 	LOG(this->log_init, LEVEL_INFO,
 	    "add lan adaptation: %s\n",
 	    plugin->getName());
@@ -128,10 +121,8 @@ bool BlockLanAdaptation::onInit()
 		return false;
 	}
 
-	lan_contexts_t contexts;
-	contexts.push_back(context);
-	this->upward.setContexts(contexts);
-	this->downward.setContexts(contexts);
+	this->upward.setPlugin(plugin);
+	this->downward.setPlugin(plugin);
 	// we can share FD as one thread will write, the second will read
 	this->upward.setFd(fd);
 	this->downward.setFd(fd);
@@ -161,19 +152,16 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 	if (this->state == SatelliteLinkState::UP)
 	{
 		// Initialize context here in ISL mode as we don't need the link up message to know our tal_id
-		for(auto&& context : this->contexts)
+		if(!this->context->initLanAdaptationContext(this->tal_id, packet_switch))
 		{
-			if(!context->initLanAdaptationContext(this->tal_id, packet_switch))
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "cannot initialize %s context\n",
-				    context->getName());
-				return false;
-			}
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "cannot initialize %s context\n",
+			    context->getName());
+			return false;
 		}
 	}
 
-	if (delay == time_ms_t::zero())
+	if (delay == nullptr)
 	{
 		// No need to poll, messages are sent directly
 		return true;
@@ -190,14 +178,14 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 	return true;
 }
 
-void Rt::UpwardChannel<BlockLanAdaptation>::setContexts(const lan_contexts_t &contexts)
+void Rt::UpwardChannel<BlockLanAdaptation>::setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin)
 {
-	this->contexts = contexts;
+	this->context = plugin;
 }
 
-void Rt::DownwardChannel<BlockLanAdaptation>::setContexts(const lan_contexts_t &contexts)
+void Rt::DownwardChannel<BlockLanAdaptation>::setPlugin(std::shared_ptr<LanAdaptationPlugin> plugin)
 {
-	this->contexts = contexts;
+	this->context = plugin;
 }
 
 void Rt::UpwardChannel<BlockLanAdaptation>::setFd(int fd)
@@ -224,16 +212,13 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 {
 	if(event == this->stats_timer)
 	{
-		for(auto&& context : this->contexts)
-		{
-			context->updateStats(this->stats_period_ms);
-		}
+		this->context->updateStats(this->stats_period_ms);
 		return true;
 	}
 
 	LOG(this->log_receive, LEVEL_ERROR,
-			"unknown timer event received %s\n",
-			event.getName().c_str());
+	    "unknown timer event received %s\n",
+	    event.getName().c_str());
 	return false;
 }
 
@@ -287,16 +272,13 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const FileEvent& event)
 	Ptr<NetBurst> burst = make_ptr<NetBurst>();
 	burst->add(std::move(packet));
 
-	for(auto &&context : this->contexts)
+	burst = this->context->encapsulate(std::move(burst));
+	if(burst == nullptr)
 	{
-		burst = context->encapsulate(std::move(burst));
-		if(burst == nullptr)
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "failed to handle packet in %s context\n",
-			    context->getName().c_str());
-			return false;
-		}
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "failed to handle packet in %s context\n",
+		    context->getName().c_str());
+		return false;
 	}
 
 	if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
@@ -319,7 +301,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const Event& event)
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 {
-	if(delay != time_ms_t::zero() && event == delay_timer)
+	if(delay != nullptr && event == delay_timer)
 	{
 		for (auto &&elem: delay_fifo)
 		{
@@ -359,16 +341,13 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const MessageEvent& event)
 		{
 			// save group id and TAL id sent by MAC layer
 			this->tal_id = link_up_msg->tal_id;
-			// initialize contexts
-			for(auto&& context : this->contexts)
+			// initialize context
+			if(!context->initLanAdaptationContext(this->tal_id, packet_switch))
 			{
-				if(!context->initLanAdaptationContext(this->tal_id, packet_switch))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot initialize %s context\n",
-					    context->getName().c_str());
-					return false;
-				}
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot initialize %s context\n",
+				    context->getName().c_str());
+				return false;
 			}
 			this->state = SatelliteLinkState::UP;
 			// transmit link up to opposite channel
@@ -409,16 +388,13 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 		return false;
 	}
 
-	for(auto &&context : this->contexts)
+	burst = this->context->deencapsulate(std::move(burst));
+	if(burst == nullptr)
 	{
-		burst = context->deencapsulate(std::move(burst));
-		if(burst == nullptr)
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "failed to handle packet in %s context\n",
-			    context->getName().c_str());
-			return false;
-		}
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "failed to handle packet in %s context\n",
+		    context->getName().c_str());
+		return false;
 	}
 
 	bool success = true;
@@ -462,14 +438,14 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			for(unsigned int i = 0; i < TUNTAP_FLAGS_LEN; i++)
 			{
 				// add the protocol flag in the header
-				head[i] = (this->contexts.front())->getLanHeader(i, *packet_iterator);
+				head[i] = this->context->getLanHeader(i, *packet_iterator);
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "Add 0x%2x for bit %u in TAP header\n",
 				    head[i], i);
 			}
 
 			packet.insert(0, head, TUNTAP_FLAGS_LEN);
-			if (delay == time_ms_t::zero())
+			if (delay == nullptr)
 			{
 				if(!this->writePacket(packet))
 				{
@@ -480,7 +456,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			}
 			else
 			{
-				if (!delay_fifo.push(make_ptr<NetPacket>(packet), delay))
+				if (!delay_fifo.push(make_ptr<NetPacket>(packet), delay->getSatDelay()))
 				{
 					LOG(this->log_receive, LEVEL_ERROR, "failed to push the message in the fifo\n");
 					success = false;
@@ -528,16 +504,13 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 
 	if(forward_burst)
 	{
-		for(auto&& context : this->contexts)
+		forward_burst = this->context->encapsulate(std::move(forward_burst));
+		if(forward_burst == nullptr)
 		{
-			forward_burst = context->encapsulate(std::move(forward_burst));
-			if(forward_burst == nullptr)
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "failed to handle packet in %s context\n",
-				    context->getName().c_str());
-				return false;
-			}
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "failed to handle packet in %s context\n",
+			    context->getName().c_str());
+			return false;
 		}
 
 		LOG(this->log_receive, LEVEL_INFO,

@@ -1,7 +1,7 @@
 ################################################################################
 #   Name       : Makefile
-#   Author     : Julien BERNARD <julien.bernard@toulouse.viveris.com>
-#   Description: create the GSE encapsulation plugin for OpenSAND
+#   Author     : Axel PINEL <axel.pinel@viveris.fr>
+#   Description: create the GSE RUST encapsulation plugin for OpenSAND
 ################################################################################
 
 SUBDIRS = 
@@ -10,20 +10,23 @@ plugins_LTLIBRARIES = libopensand_gse_encap_plugin.la
 
 libopensand_gse_encap_plugin_la_cpp = \
 	GseIdentifier.cpp \
-	GseEncapCtx.cpp \
-	Gse.cpp
+	Gse.cpp \
+	Memory.cpp \
+	GseApi.cpp
 
 libopensand_gse_encap_plugin_la_h = \
+	Gse.h \
 	GseIdentifier.h \
-	GseEncapCtx.h \
-	Gse.h
+	Memory.h \
+	GseApi.h
 
 libopensand_gse_encap_plugin_la_SOURCES = \
-    $(libopensand_gse_encap_plugin_la_cpp) \
-    $(libopensand_gse_encap_plugin_la_h)
+	$(libopensand_gse_encap_plugin_la_cpp) \
+	$(libopensand_gse_encap_plugin_la_h)
+
+libopensand_gse_encap_plugin_la_LIBADD = libgse_rust_c_api.a
 
 pluginsdir = $(libdir)/opensand/plugins
 
-EXTRA_DIST = \
-	gse.py
-
+libgse_rust_c_api.a:
+	cd $(srcdir)/gse_c_rust_api; cargo build --release; cp target/release/$@ $(abs_builddir)

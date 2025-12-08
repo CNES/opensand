@@ -39,6 +39,7 @@
 #include <opensand_rt/Types.h>
 #include <opensand_rt/NetSocketEvent.h>
 
+#include "IslPlugin.h"
 #include "InterconnectChannel.h"
 #include "BlockInterconnect.h"
 #include "NetBurst.h"
@@ -144,13 +145,14 @@ bool InterconnectChannelSender::send(Rt::Message message)
 	auto buf = reinterpret_cast<const uint8_t *>(&msg_buffer);
 	Rt::Ptr<NetContainer> container = Rt::make_ptr<NetContainer>(buf, msg_buffer.data_len);
 
-	if (!delay_fifo.push(std::move(container), delay)) {
+	time_ms_t fifo_delay = delay == nullptr ? time_ms_t::zero() : delay->getSatDelay();
+	if (!delay_fifo.push(std::move(container), fifo_delay)) {
 		LOG(this->log_interconnect, LEVEL_ERROR, "failed to push the message in the fifo\n");
 		return false;
 	}
 	
 	// if no delay, send directly
-	if (delay == time_ms_t::zero())
+	if (fifo_delay == time_ms_t::zero())
 	{
 		return onTimerEvent();
 	}

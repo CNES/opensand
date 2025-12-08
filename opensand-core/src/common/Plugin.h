@@ -72,51 +72,49 @@ public:
 	 * @brief get a encapsulation plugins
 	 *
 	 * @param name           The name of the encapsulation plugin
-	 * @param encapsulation  The encapsulation plugin
-	 * @return true on success, false otherwise
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	static bool getEncapsulationPlugin(std::string name,
-	                                   EncapPlugin **encapsulation);
+	static std::shared_ptr<EncapPlugin> getEncapsulationPlugin(std::string name);
 
 	/**
 	 * @brief get physical layer attenuation plugin
 	 *
-	 * @param att_pl_name  The name of the attenuation model plugin
-	 * @param attenuation  The attenuation model plugin
-	 * @return true on success, false otherwise
+	 * @param name  The name of the attenuation model plugin
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	static bool getAttenuationPlugin(std::string att_pl_name,
-	                                 AttenuationModelPlugin **attenuation);
+	static std::shared_ptr<AttenuationModelPlugin> getAttenuationPlugin(std::string name);
 
 	/**
 	 * @brief get physical layer minimal condition plugin
 	 *
-	 * @param min_pl_name  The name of the minimal condition plugin
-	 * @param minimal      The minimal condition plugin
-	 * @return true on success, false otherwise
+	 * @param name  The name of the minimal condition plugin
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	static bool getMinimalConditionPlugin(std::string min_pl_name,
-	                                      MinimalConditionPlugin **minimal);
+	static std::shared_ptr<MinimalConditionPlugin> getMinimalConditionPlugin(std::string name);
 
 	/**
 	 * @brief get physical layer error insertion plugin
 	 *
 	 * @param err_pl_name  The name of the erroe insertion plugin
-	 * @param error        The error insertion plugin
-	 * @return true on success, false otherwise
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	static bool getErrorInsertionPlugin(std::string err_pl_name,
-	                                    ErrorInsertionPlugin **error);
+	static std::shared_ptr<ErrorInsertionPlugin> getErrorInsertionPlugin(std::string name);
 
 	/**
 	 * @brief get a satellite delay plugin
 	 *
 	 * @param name           The name of the satellite delay plugin
-	 * @param sat_delay      The satellite delay plugin
-	 * @return true on success, false otherwise
+	 * @return the plugin on success, nullptr otherwise
 	 */
-	static bool getSatDelayPlugin(std::string name,
-	                              SatDelayPlugin **sat_delay);
+	static std::shared_ptr<SatDelayPlugin> getSatDelayPlugin(std::string name);
+
+	/**
+	 * @brief get a satellite ISL delay plugin
+	 *
+	 * @param name           The name of the satellite delay plugin
+	 * @return the plugin on success, nullptr otherwise
+	 */
+	static std::shared_ptr<IslDelayPlugin> getIslDelayPlugin(std::string name);
 
 	/**
 	 * @brief get the encapsulation plugins list
